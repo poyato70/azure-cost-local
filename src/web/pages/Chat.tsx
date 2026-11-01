@@ -1,0 +1,187 @@
+import { useEffect, useRef, useState } from "react";
+import type {
+  Scope,
+  CostQuery,
+  CostResult,
+  ChatEvent,
+} from "../../shared/contracts.js";
+import { api, money } from "../api.js";
+export function Chat({
+  scope,
+  basis,
+}: {
+  scope?: Scope;
+  basis: CostQuery["basis"];
+}) {
+  const [message, setMessage] = useState(""),
+    [consent, setConsent] = useState(false),
+    [busy, setBusy] = useState(false),
+    [status, setStatus] = useState(""),
+    [entries, setEntries] = useState<
+      { role: string; text: string; result?: CostResult }[]
+    >([]);
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => {
+    controller.current?.abort();
+    setEntries([]);
+    setBusy(false);
+    return () => controller.current?.abort();
+  }, [scope, basis]);
+  async function send() {
+    if (!message.trim() || !consent) return;
+    const c = new AbortController();
+    controller.current = c;
+    setBusy(true);
+    const question = message;
+    setMessage("");
+    setEntries((e) => [...e, { role: "Você", text: question }]);
+    try {
+      await api.ask(
+        { message: question, scope, basis, consent: true },
+        (e) => {
+          if (c.signal.aborted) return;
+          if (e.type === "text")
+            setEntries((x) => [...x, { role: "Copilot", text: e.text }]);
+          if (e.type === "error")
+            setEntries((x) => [...x, { role: "Aviso", text: e.message }]);
+          if (e.type === "result" && "totals" in e.result)
+            setEntries((x) => [
+              ...x,
+              {
+                role: "Dados consultados",
+                text: "Resultado verificado no serviço de custos",
+                result: e.result as CostResult,
+              },
+            ]);
+        },
+        c.signal,
+      );
+    } catch (e) {
+      if (!c.signal.aborted)
+        setEntries((x) => [
+          ...x,
+          { role: "Aviso", text: (e as Error).message },
+        ]);
+    } finally {
+      if (!c.signal.aborted) setBusy(false);
+    }
+  }
+  return (
+    <>
+      <div className="section-head">
+        <div>
+          <h2>Converse com seus custos</h2>
+          <p>
+            GitHub Copilot local · consultas de leitura no escopo selecionado
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setStatus("Verificando…");
+            void api
+              .chatStatus()
+              .then((s) => setStatus(s.message))
+              .catch((e) => setStatus(e.message));
+          }}
+        >
+          Verificar Copilot
+        </button>
+      </div>
+      {status && (
+        <p className="notice" role="status">
+          {status}
+        </p>
+      )}
+      <div className="chat-area">
+        {!entries.length ? (
+          <div className="chat-intro">
+            <span className="empty-icon">✳</span>
+            <h3>Uma pergunta. Dados com contexto.</h3>
+            <p>
+              O chat consulta as mesmas fontes do dashboard e informa período,
+              moeda e origem.
+            </p>
+            <button
+              className="suggestion"
+              onClick={() =>
+                setMessage(
+                  "Quanto gastei no resource group nos dois últimos meses?",
+                )
+              }
+            >
+              Quanto gastei nos dois últimos meses? ↗
+            </button>
+          </div>
+        ) : (
+          entries.map((e, i) => (
+            <article
+              className={"chat-message " + (e.role === "Você" ? "user" : "")}
+              key={i}
+            >
+              <strong>{e.role}</strong>
+              <p>{e.text}</p>
+              {e.result && (
+                <div>
+                  {e.result.totals.map((t) => (
+                    <div key={t.currency}>{money(t.amount, t.currency)}</div>
+                  ))}
+                  <small>
+                    {e.result.meta.period?.from} a{" "}
+                    {e.result.meta.period?.toExclusive} (fim exclusivo) ·{" "}
+                    {e.result.meta.source}
+                  </small>
+                </div>
+              )}
+            </article>
+          ))
+        )}
+      </div>
+      <div className="chat-compose">
+        <label className="consent">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+          />
+          Autorizo enviar o contexto necessário ao GitHub Copilot
+        </label>
+        <p className="fine">
+          Nomes de recursos e valores consultados podem ser enviados à GitHub.
+          As políticas e o consumo da sua assinatura Copilot se aplicam.
+        </p>
+        <label className="sr-only" htmlFor="question">
+          Sua pergunta
+        </label>
+        <textarea
+          id="question"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Pergunte sobre custos, budgets ou compromissos…"
+          maxLength={4000}
+        />
+        <div className="compose-footer">
+          <small>
+            “Dois últimos meses” usa os dois meses civis completos anteriores.
+          </small>
+          <button
+            className="primary"
+            disabled={!consent || !message.trim() || busy || !scope}
+            onClick={send}
+          >
+            {busy ? "Consultando…" : "Enviar pergunta"}
+          </button>
+          {busy && (
+            <button
+              onClick={() => {
+                controller.current?.abort();
+                setBusy(false);
+              }}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

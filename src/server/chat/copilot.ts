@@ -1,0 +1,178 @@
+import {
+  CopilotClient,
+  RuntimeConnection,
+  defineTool,
+  type CopilotSession,
+} from "@github/copilot-sdk";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
+import { mkdir } from "node:fs/promises";
+import {
+  executeQuestionTool,
+  ensureQuestionScope,
+  restrictedSessionConfig,
+  toolParameters,
+  type QueryServices,
+} from "./tools.js";
+import { AppError, assertActive } from "../errors.js";
+import type {
+  RequestContext,
+  Scope,
+  CostQuery,
+  ChatEvent,
+} from "../../shared/contracts.js";
+import { resolveCopilotPath } from "./runtime.js";
+export class CopilotChat {
+  private client?: CopilotClient;
+  private starting?: Promise<CopilotClient>;
+  private busy = new Set<string>();
+  constructor(private services: QueryServices) {}
+  private async getClient() {
+    if (this.client) return this.client;
+    if (!this.starting)
+      this.starting = (async () => {
+        const cwd = join(tmpdir(), "azure-cost-local-empty");
+        await mkdir(cwd, { recursive: true });
+        const client = new CopilotClient({
+          mode: "empty",
+          baseDirectory: join(homedir(), ".copilot"),
+          workingDirectory: cwd,
+          connection: RuntimeConnection.forStdio({
+            path: resolveCopilotPath(),
+          }),
+        });
+        await client.start();
+        this.client = client;
+        return client;
+      })().catch((e) => {
+        this.starting = undefined;
+        throw e;
+      });
+    return this.starting;
+  }
+  async status() {
+    try {
+      const client = await this.getClient();
+      const auth = await client.getAuthStatus();
+      return {
+        available: auth.isAuthenticated,
+        message: auth.isAuthenticated
+          ? "Copilot CLI autenticado. As ferramentas são verificadas antes de cada pergunta."
+          : "Entre no Copilot CLI para habilitar o chat.",
+      };
+    } catch {
+      return {
+        available: false,
+        message:
+          "Copilot CLI indisponível ou incompatível. Consulte a configuração local.",
+      };
+    }
+  }
+  async ask(
+    ctx: RequestContext,
+    input: { message: string; scope?: Scope; basis: CostQuery["basis"] },
+    emit: (e: ChatEvent) => void,
+  ) {
+    ensureQuestionScope(input.message, input.scope);
+    if (this.busy.has(ctx.sessionId))
+      throw new AppError("invalid_request", "Aguarde a resposta anterior.");
+    this.busy.add(ctx.sessionId);
+    let session: CopilotSession | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let client: CopilotClient | undefined;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    ctx.signal.addEventListener("abort", abort, { once: true });
+    const localCtx = {
+      ...ctx,
+      signal: AbortSignal.any([ctx.signal, controller.signal]),
+    };
+    let calls = 0;
+    try {
+      client = await this.getClient();
+      if (!(await client.getAuthStatus()).isAuthenticated)
+        throw new AppError(
+          "unauthenticated",
+          "Entre primeiro no Copilot CLI.",
+          401,
+        );
+      const tool = defineTool("azure_query", {
+        description:
+          "Consulta somente o escopo selecionado no dashboard. Sem período usa dois meses civis completos anteriores. Operações: custos, comparação, budgets, Reservations e Savings Plans.",
+        parameters: toolParameters,
+        skipPermission: true,
+        handler: async (args) => {
+          assertActive(localCtx.signal);
+          if (++calls > 10) {
+            controller.abort();
+            throw new AppError(
+              "invalid_request",
+              "Limite de dez consultas por pergunta atingido.",
+            );
+          }
+          const result = await executeQuestionTool(
+            this.services,
+            localCtx,
+            input.scope,
+            input.basis,
+            args,
+          );
+          assertActive(localCtx.signal);
+          const cost = result.current || result;
+          if (cost?.meta) emit({ type: "result", result: cost });
+          return JSON.stringify(result);
+        },
+      });
+      session = await client.createSession(restrictedSessionConfig([tool]));
+      await session.rpc.tools.initializeAndValidate();
+      const metadata = await session.rpc.tools.getCurrentMetadata();
+      const items = (metadata as any).tools;
+      if (
+        !Array.isArray(items) ||
+        items.some((x: any) => x.name !== "azure_query") ||
+        !items.some((x: any) => x.name === "azure_query")
+      )
+        throw new AppError(
+          "forbidden",
+          "O catálogo de ferramentas do Copilot não pôde ser restringido. Chat desativado.",
+          403,
+        );
+      const activeSession = session;
+      const onAbort = () => {
+        void activeSession.abort().catch(() => {});
+      };
+      localCtx.signal.addEventListener("abort", onAbort, { once: true });
+      timer = setTimeout(() => controller.abort(), 120000);
+      try {
+        const response = await session.sendAndWait(
+          {
+            prompt: `Data atual: ${new Date().toISOString()}. Escopo autorizado: ${JSON.stringify(input.scope || null)}. Base: ${input.basis}. Pergunta: ${input.message}`,
+          },
+          120000,
+        );
+        assertActive(localCtx.signal);
+        emit({
+          type: "text",
+          text: (
+            response?.data.content || "Nenhuma resposta foi retornada."
+          ).slice(0, 8000),
+        });
+      } finally {
+        localCtx.signal.removeEventListener("abort", onAbort);
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
+      controller.abort();
+      ctx.signal.removeEventListener("abort", abort);
+      this.busy.delete(ctx.sessionId);
+      if (session && client) {
+        const id = session.sessionId;
+        await session.disconnect().catch(() => {});
+        await client.deleteSession(id).catch(() => {});
+      }
+    }
+  }
+  async close() {
+    await this.client?.stop();
+  }
+}

@@ -14,6 +14,39 @@ const meta = {
   fetchedAt: "2026-11-01T12:00Z",
   warnings: [],
 };
+test("opens Microsoft login in a separate window and updates the original dashboard", async ({
+  page,
+}) => {
+  let done = false;
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    let json: any = {};
+    if (path === "/api/bootstrap")
+      json = {
+        csrf: "test",
+        authenticated: done,
+        configured: true,
+        tenantId,
+        clientId: subscriptionId,
+        period,
+      };
+    if (path === "/api/auth/login") {
+      done = true;
+      json = { url: "http://localhost:4317/auth/complete" };
+    }
+    if (path === "/api/subscriptions") json = [];
+    await route.fulfill({ json });
+  });
+  await page.goto("/");
+  const popupEvent = page.waitForEvent("popup");
+  await page.getByRole("button", { name: /Entrar com Microsoft/ }).click();
+  const popup = await popupEvent;
+  expect(popup).not.toBe(page);
+  expect(new URL(page.url()).pathname).toBe("/");
+  await expect(
+    page.getByRole("button", { name: "Sair", exact: true }),
+  ).toBeVisible({ timeout: 10000 });
+});
 test("shows actionable login error returned by the local callback", async ({
   page,
 }) => {

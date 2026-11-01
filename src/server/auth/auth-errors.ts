@@ -1,24 +1,9 @@
 import { AppError } from "../errors.js";
 
-const knownMsalCodes = new Set([
-  "invalid_client",
-  "invalid_grant",
-  "invalid_scope",
-  "invalid_resource",
-  "invalid_request",
-  "interaction_required",
-  "consent_required",
-  "access_denied",
-  "post_request_failed",
-  "get_request_failed",
-  "network_error",
-  "endpoints_resolution_error",
-  "openid_config_error",
-  "untrusted_authority",
-  "invalid_instance",
-  "server_error",
-  "temporarily_unavailable",
-]);
+const safeIdentifier = (value: unknown) =>
+  typeof value === "string" && /^[a-zA-Z][a-zA-Z0-9_]{2,79}$/.test(value)
+    ? value
+    : undefined;
 /** Expose diagnostic identifiers, never raw MSAL messages, authorization codes or URLs. */
 export function authError(error: unknown): AppError {
   if (error instanceof AppError) return error;
@@ -26,10 +11,21 @@ export function authError(error: unknown): AppError {
     error && typeof error === "object"
       ? (error as Record<string, unknown>)
       : {};
-  const msal =
-    typeof e.errorCode === "string" && knownMsalCodes.has(e.errorCode)
-      ? e.errorCode
-      : undefined;
+  const cause =
+    e.cause && typeof e.cause === "object"
+      ? (e.cause as Record<string, unknown>)
+      : {};
+  const msal = safeIdentifier(e.errorCode);
+  const nodeCode = safeIdentifier(e.code) || safeIdentifier(cause.code);
+  const exceptionName = [
+    "TypeError",
+    "ReferenceError",
+    "SyntaxError",
+    "RangeError",
+    "Error",
+  ].includes(String(e.name))
+    ? String(e.name)
+    : undefined;
   const text =
     typeof e.errorMessage === "string"
       ? e.errorMessage
@@ -37,7 +33,9 @@ export function authError(error: unknown): AppError {
         ? e.message
         : "";
   const aad = text.match(/\bAADSTS(\d{4,9})\b/)?.[1];
-  const label = aad ? `AADSTS${aad}` : msal || "não identificado";
+  const label = aad
+    ? `AADSTS${aad}`
+    : msal || nodeCode || exceptionName || "erro_interno";
   if (aad === "7000218" || aad === "9002327")
     return new AppError(
       "auth_configuration",
@@ -63,14 +61,15 @@ export function authError(error: unknown): AppError {
       400,
     );
   if (
-    msal &&
-    [
-      "post_request_failed",
-      "get_request_failed",
-      "network_error",
-      "endpoints_resolution_error",
-      "openid_config_error",
-    ].includes(msal)
+    nodeCode ||
+    (msal &&
+      [
+        "post_request_failed",
+        "get_request_failed",
+        "network_error",
+        "endpoints_resolution_error",
+        "openid_config_error",
+      ].includes(msal))
   )
     return new AppError(
       "auth_network",

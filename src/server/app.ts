@@ -184,7 +184,7 @@ export async function buildApp(deps: AppDeps = {}) {
         .parse(req.query);
       const id = await identity.finish(req.cookies.sid || "", q.state, q.code);
       setCookie(reply, id);
-      return reply.redirect("/");
+      return reply.redirect("/auth/complete");
     } catch (error) {
       const safe =
         error instanceof z.ZodError
@@ -200,7 +200,7 @@ export async function buildApp(deps: AppDeps = {}) {
         setCookie(reply, id);
       }
       current.loginError = { code: safe.code, message: safe.message };
-      return reply.redirect("/");
+      return reply.redirect("/auth/complete");
     }
   });
   app.post("/api/auth/logout", async (req, reply) => {

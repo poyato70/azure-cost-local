@@ -5,6 +5,17 @@
   font-synthesis: none;
   font-size: 14px;
 }
+.login-complete {
+  padding: 48px;
+  max-width: 560px;
+  margin: 30px auto;
+  background: #fff;
+  border: 1px solid #dce5d7;
+  border-radius: 12px;
+}
+.login-complete p {
+  margin-top: 20px;
+}
 * {
   box-sizing: border-box;
 }

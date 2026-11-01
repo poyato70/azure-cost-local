@@ -6,6 +6,25 @@ import {
 import { SessionStore } from "../../src/server/auth/session-store.js";
 import { buildApp } from "../../src/server/app.js";
 import { createHash } from "node:crypto";
+import { authError } from "../../src/server/auth/auth-errors.js";
+it("retains safe MSAL and Node cause identifiers outside the old whitelist", () => {
+  expect(
+    authError({
+      errorCode: "token_parsing_error",
+      message: "code=private-value",
+    }).message,
+  ).toContain("token_parsing_error");
+  expect(
+    authError({
+      name: "TypeError",
+      cause: { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE" },
+      message: "https://private.test?code=secret",
+    }).message,
+  ).toContain("UNABLE_TO_VERIFY_LEAF_SIGNATURE");
+  expect(
+    authError({ errorCode: "https://private.test?code=secret" }).message,
+  ).not.toContain("private.test");
+});
 it("binds PKCE to single-use state, session and expiration", () => {
   const flows = new LoginFlows();
   const f = flows.start("session");
@@ -83,7 +102,7 @@ it("redirects failed callbacks to dashboard and only exposes safe error text", a
     headers: { host: "localhost:4317" },
   });
   expect(r.statusCode).toBe(302);
-  expect(r.headers.location).toBe("/");
+  expect(r.headers.location).toBe("/auth/complete");
   expect(r.body).not.toContain("synthetic-secret");
   const cookie = String(r.headers["set-cookie"]).split(";")[0];
   const b = await app.inject({

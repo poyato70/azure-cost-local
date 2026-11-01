@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type {
   Scope,
   DateRange,
@@ -18,6 +18,16 @@ const tabs = [
   { id: "chat", label: "Chat", icon: "✳" },
 ];
 export function App() {
+  const [loginPending, setLoginPending] = useState(false);
+  const loginTimer = useRef<ReturnType<typeof setInterval> | undefined>(
+    undefined,
+  );
+  useEffect(
+    () => () => {
+      if (loginTimer.current) clearInterval(loginTimer.current);
+    },
+    [],
+  );
   const [boot, setBoot] = useState<Bootstrap>(),
     [error, setError] = useState(""),
     [tab, setTab] = useState("costs"),
@@ -97,14 +107,72 @@ export function App() {
     [scope, period, basis, groupBy, granularity],
   );
   async function connect() {
+    if (loginPending) return;
     setError("");
+    const popup = window.open(
+      "about:blank",
+      "azure-cost-login",
+      "popup=yes,width=560,height=760",
+    );
+    if (!popup) {
+      setError(
+        "Permita pop-ups para localhost para abrir o login em uma janela separada.",
+      );
+      return;
+    }
+    const note = popup.document.createElement("p");
+    note.textContent = "Preparando o login Microsoft…";
+    popup.document.body.append(note);
+    setLoginPending(true);
+    setInfo(
+      "Conclua o login na janela separada. O dashboard será atualizado automaticamente.",
+    );
     try {
       await api.config(tenant.trim(), client.trim());
       const b = await api.bootstrap();
       setBoot(b);
       const login = await api.login();
-      window.location.assign(login.url);
+      popup.location.assign(login.url);
+      popup.focus();
+      const started = Date.now();
+      let checking = false;
+      loginTimer.current = setInterval(async () => {
+        if (checking) return;
+        checking = true;
+        try {
+          const current = await api.bootstrap();
+          if (current.authenticated || current.loginError) {
+            clearInterval(loginTimer.current);
+            loginTimer.current = undefined;
+            setLoginPending(false);
+            setBoot(current);
+            setError(current.loginError?.message || "");
+            setInfo(
+              current.authenticated
+                ? "Login Microsoft concluído. Selecione seu escopo para consultar."
+                : "A tentativa de login não foi concluída. Veja a mensagem acima.",
+            );
+          } else if (Date.now() - started > 600000) {
+            clearInterval(loginTimer.current);
+            loginTimer.current = undefined;
+            setLoginPending(false);
+            setInfo(
+              "A tentativa de login expirou. Você pode iniciar uma nova janela.",
+            );
+          }
+        } catch (e) {
+          clearInterval(loginTimer.current);
+          loginTimer.current = undefined;
+          setLoginPending(false);
+          setError((e as Error).message);
+        } finally {
+          checking = false;
+        }
+      }, 1000);
     } catch (e) {
+      popup.close();
+      setLoginPending(false);
+      setInfo("");
       setError((e as Error).message);
     }
   }
@@ -229,8 +297,15 @@ export function App() {
                       pattern="[0-9a-fA-F-]{36}"
                     />
                   </label>
-                  <button className="primary" type="submit">
-                    Entrar com Microsoft <span>↗</span>
+                  <button
+                    className="primary"
+                    type="submit"
+                    disabled={loginPending}
+                  >
+                    {loginPending
+                      ? "Aguardando login…"
+                      : "Entrar com Microsoft"}{" "}
+                    <span>↗</span>
                   </button>
                   <small>
                     Callback: http://localhost:4317/api/auth/callback

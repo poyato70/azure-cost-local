@@ -36,3 +36,9 @@ O usuário informou que possui os identificadores, mas ainda não os forneceu/co
 O callback atingiu a aplicação, mas uma falha de acquireTokenByCode era ocultada pelo tratamento genérico de erros. Adicionado mapeamento seguro de códigos Microsoft/MSAL para mensagens úteis, sem retornar o payload bruto, authorization code, token ou URL. Em falha, o callback redireciona para o dashboard e apresenta a mensagem da sessão. A causa do login real anterior não pode ser recuperada retroativamente: requer nova tentativa; não houve replay de código recebido no chat.
 
 Validação após correção: 22 testes de serviço, cinco testes Edge, typecheck e build passaram. Serviço reiniciado preservando somente Tenant ID e Client ID em memória/ambiente do processo. O novo teste de navegador demonstrou primeiro a ausência do aviso e depois a mensagem no dashboard. Login real continua pendente.
+
+## Login em janela separada
+
+Solicitação do usuário implementada: abrir popup durante o clique, antes das chamadas assíncronas; manter dashboard aberto; acompanhar sessão compartilhada por polling limitado a dez minutos; concluir em /auth/complete, removendo a query OAuth do endereço atual, e tentar fechar a janela. Polling permite concluir mesmo se a Microsoft separar o opener por política de navegador. Pop-up bloqueado mostra orientação, sem redirecionar a aba principal.
+
+Diagnóstico ampliado para identificadores MSAL/Node seguros fora da lista anterior, incluindo causas de rede/certificado. A origem da falha real anterior permanece desconhecida; esta alteração não comprova login Azure bem-sucedido. Nenhuma URL/código de autorização recebido no chat foi reutilizado. Teste de popup usa respostas de autenticação simuladas; não credenciais reais.

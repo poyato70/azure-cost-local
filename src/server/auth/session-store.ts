@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { PublicClientApplication, AccountInfo } from "@azure/msal-node";
 export type Session = {
+  loginError?: { code: string; message: string };
   id: string;
   userId: string;
   tenantId: string;

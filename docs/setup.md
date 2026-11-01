@@ -24,6 +24,8 @@ Use um registro de aplicativo que você esteja autorizado a configurar:
 
 Se o tenant bloquear consentimento ou registro público, o administrador deve autorizar a configuração adequada. Client ID isolado não concede acesso. Não informe senha, segredo ou token no chat nem salve esses dados neste diretório OneDrive.
 
+Se o retorno de login falhar, a aplicação volta ao dashboard e apresenta o código Microsoft/MSAL reconhecido, sem copiar a URL ou o código de autorização. Inicie uma nova tentativa pelo botão Entrar; não reutilize uma URL antiga de callback. AADSTS7000218 indica incompatibilidade de cliente confidencial/público: confira se o URI está cadastrado na plataforma de desktop/mobile, e não como Web confidencial. Não adicione um Client Secret como contorno para este MVP público. Outros códigos devem ser diagnosticados pela mensagem específica.
+
 Porta configurável por `PORT`; atualize o redirect URI do aplicativo e use `http://localhost:<porta>`. O serviço escuta somente 127.0.0.1, usando localhost como origem canônica. A tela mostra callback padrão 4317; em porta personalizada, siga esta configuração.
 
 ## Copilot

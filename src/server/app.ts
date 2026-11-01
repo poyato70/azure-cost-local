@@ -5,6 +5,7 @@ import { timingSafeEqual } from "node:crypto";
 import { readConfig, type Config } from "./config.js";
 import { SessionStore, type Session } from "./auth/session-store.js";
 import { MicrosoftIdentity } from "./auth/msal-provider.js";
+import { authError } from "./auth/auth-errors.js";
 import { ArmHttp } from "./azure/http.js";
 import { Inventory } from "./azure/inventory.js";
 import { AzureCosts, compareCosts } from "./costs/service.js";
@@ -111,12 +112,10 @@ export async function buildApp(deps: AppDeps = {}) {
   });
   app.setErrorHandler((error, req, reply) => {
     if (error instanceof z.ZodError)
-      return reply
-        .status(400)
-        .send({
-          code: "invalid_request",
-          message: "Parâmetros inválidos. Confira escopo e datas.",
-        });
+      return reply.status(400).send({
+        code: "invalid_request",
+        message: "Parâmetros inválidos. Confira escopo e datas.",
+      });
     const e =
       error instanceof AppError
         ? error
@@ -141,6 +140,7 @@ export async function buildApp(deps: AppDeps = {}) {
       tenantId: config.tenantId,
       clientId: config.clientId,
       configured: !!config.tenantId && !!config.clientId,
+      loginError: s.loginError,
       period: lastCompleteMonths(new Date(), 2),
     };
   });
@@ -167,12 +167,41 @@ export async function buildApp(deps: AppDeps = {}) {
     return { url: result.url };
   });
   app.get("/api/auth/callback", async (req, reply) => {
-    const q = z
-      .object({ state: z.string(), code: z.string() })
-      .parse(req.query);
-    const id = await identity.finish(req.cookies.sid || "", q.state, q.code);
-    setCookie(reply, id);
-    return reply.redirect("/");
+    try {
+      const upstream = z
+        .object({
+          error: z.string().optional(),
+          error_description: z.string().optional(),
+        })
+        .parse(req.query);
+      if (upstream.error)
+        throw authError({
+          errorCode: upstream.error,
+          errorMessage: upstream.error_description,
+        });
+      const q = z
+        .object({ state: z.string(), code: z.string() })
+        .parse(req.query);
+      const id = await identity.finish(req.cookies.sid || "", q.state, q.code);
+      setCookie(reply, id);
+      return reply.redirect("/");
+    } catch (error) {
+      const safe =
+        error instanceof z.ZodError
+          ? new AppError(
+              "invalid_request",
+              "Retorno de login incompleto. Inicie um novo login pelo dashboard.",
+            )
+          : authError(error);
+      let current = store.get(req.cookies.sid);
+      if (!current) {
+        const id = store.create("", config.tenantId);
+        current = store.get(id)!;
+        setCookie(reply, id);
+      }
+      current.loginError = { code: safe.code, message: safe.message };
+      return reply.redirect("/");
+    }
   });
   app.post("/api/auth/logout", async (req, reply) => {
     const s = session(req);

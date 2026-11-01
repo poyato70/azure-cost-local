@@ -14,18 +14,86 @@ const meta = {
   fetchedAt: "2026-11-01T12:00Z",
   warnings: [],
 };
-test('ignores a late cost response after switching resource groups',async({page})=>{
- let oldStarted!:()=>void,releaseOld!:()=>void;const started=new Promise<void>(r=>oldStarted=r),gate=new Promise<void>(r=>releaseOld=r);
- await page.route('**/api/**',async route=>{const path=new URL(route.request().url()).pathname;let json:any={};
- if(path==='/api/bootstrap')json={authenticated:true,configured:true,csrf:'t',tenantId,period};
- else if(path==='/api/subscriptions')json=[{id:subscriptionId,tenantId,name:'Teste'}];
- else if(path==='/api/resource-groups')json=['rg-a','rg-b'];
- else if(path==='/api/costs/compare')json={comparison:[]};
- else if(path==='/api/costs/query'){const q=route.request().postDataJSON();const old=q.scope.resourceGroup==='rg-a';if(old){oldStarted();await gate;}json={meta,basis:'ActualCost',rows:[],totals:[{currency:'USD',amount:old?'999':'22'}]};}
- try{await route.fulfill({json});}catch{/* Browser intentionally cancelled the old request. */}
- });
- await page.goto('/');await page.getByRole('combobox',{name:'Resource group',exact:true}).selectOption('rg-a');await page.getByRole('button',{name:'Consultar custos',exact:true}).click();await started;
- await page.getByRole('combobox',{name:'Resource group',exact:true}).selectOption('rg-b');await expect(page.getByTestId('totals')).toContainText('22,00');releaseOld();await expect(page.getByTestId('totals')).not.toContainText('999');
+test("shows actionable login error returned by the local callback", async ({
+  page,
+}) => {
+  await page.route("**/api/bootstrap", (r) =>
+    r.fulfill({
+      json: {
+        csrf: "test",
+        authenticated: false,
+        configured: true,
+        tenantId,
+        clientId: subscriptionId,
+        period,
+        loginError: {
+          code: "auth_configuration",
+          message: "AADSTS7000218: configure Aplicativos móveis e de desktop.",
+        },
+      },
+    }),
+  );
+  await page.goto("/");
+  await expect(page.getByRole("alert")).toContainText("AADSTS7000218");
+  await expect(
+    page.getByRole("heading", { name: "Conecte sua conta Azure" }),
+  ).toBeVisible();
+});
+test("ignores a late cost response after switching resource groups", async ({
+  page,
+}) => {
+  let oldStarted!: () => void, releaseOld!: () => void;
+  const started = new Promise<void>((r) => (oldStarted = r)),
+    gate = new Promise<void>((r) => (releaseOld = r));
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    let json: any = {};
+    if (path === "/api/bootstrap")
+      json = {
+        authenticated: true,
+        configured: true,
+        csrf: "t",
+        tenantId,
+        period,
+      };
+    else if (path === "/api/subscriptions")
+      json = [{ id: subscriptionId, tenantId, name: "Teste" }];
+    else if (path === "/api/resource-groups") json = ["rg-a", "rg-b"];
+    else if (path === "/api/costs/compare") json = { comparison: [] };
+    else if (path === "/api/costs/query") {
+      const q = route.request().postDataJSON();
+      const old = q.scope.resourceGroup === "rg-a";
+      if (old) {
+        oldStarted();
+        await gate;
+      }
+      json = {
+        meta,
+        basis: "ActualCost",
+        rows: [],
+        totals: [{ currency: "USD", amount: old ? "999" : "22" }],
+      };
+    }
+    try {
+      await route.fulfill({ json });
+    } catch {
+      /* Browser intentionally cancelled the old request. */
+    }
+  });
+  await page.goto("/");
+  await page
+    .getByRole("combobox", { name: "Resource group", exact: true })
+    .selectOption("rg-a");
+  await page
+    .getByRole("button", { name: "Consultar custos", exact: true })
+    .click();
+  await started;
+  await page
+    .getByRole("combobox", { name: "Resource group", exact: true })
+    .selectOption("rg-b");
+  await expect(page.getByTestId("totals")).toContainText("22,00");
+  releaseOld();
+  await expect(page.getByTestId("totals")).not.toContainText("999");
 });
 test("shows setup without fake spend or password fields", async ({ page }) => {
   await page.goto("/");

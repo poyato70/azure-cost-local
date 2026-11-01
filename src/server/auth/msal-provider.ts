@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { PublicClientApplication } from "@azure/msal-node";
 import { AppError } from "../errors.js";
+import { authError } from "./auth-errors.js";
 import type { SessionStore } from "./session-store.js";
 import type { Config } from "../config.js";
 import type { RequestContext } from "../../shared/contracts.js";
@@ -89,12 +90,16 @@ export class MicrosoftIdentity {
         "Sessão de login não encontrada.",
         401,
       );
-    const result = await s.pca.acquireTokenByCode({
-      code,
-      scopes,
-      redirectUri: this.config.origin + "/api/auth/callback",
-      codeVerifier: f.verifier,
-    });
+    const result = await s.pca
+      .acquireTokenByCode({
+        code,
+        scopes,
+        redirectUri: this.config.origin + "/api/auth/callback",
+        codeVerifier: f.verifier,
+      })
+      .catch((error) => {
+        throw authError(error);
+      });
     if (
       !result?.account ||
       (result.idTokenClaims as Record<string, unknown>)?.nonce !== f.nonce

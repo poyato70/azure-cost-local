@@ -30,3 +30,9 @@ O usuário informou que possui os identificadores, mas ainda não os forneceu/co
 - Testes de navegador usam Edge instalado, evitando instalação de navegador adicional.
 - Metadados de autoria Codex somente no comando de commit local, sem modificar identidade Git global do usuário.
 - O registro operacional da execução fica preservado na documentação; aceite de integração permanece pendente, sem declaração de conclusão total.
+
+## Correção de diagnóstico de login
+
+O callback atingiu a aplicação, mas uma falha de acquireTokenByCode era ocultada pelo tratamento genérico de erros. Adicionado mapeamento seguro de códigos Microsoft/MSAL para mensagens úteis, sem retornar o payload bruto, authorization code, token ou URL. Em falha, o callback redireciona para o dashboard e apresenta a mensagem da sessão. A causa do login real anterior não pode ser recuperada retroativamente: requer nova tentativa; não houve replay de código recebido no chat.
+
+Validação após correção: 22 testes de serviço, cinco testes Edge, typecheck e build passaram. Serviço reiniciado preservando somente Tenant ID e Client ID em memória/ambiente do processo. O novo teste de navegador demonstrou primeiro a ausência do aviso e depois a mensagem no dashboard. Login real continua pendente.

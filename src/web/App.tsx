@@ -46,6 +46,7 @@ export function App() {
           setPeriod(b.period);
           setTenant(b.tenantId);
           setClient(b.clientId);
+          if (b.loginError) setError(b.loginError.message);
         }
       })
       .catch((e) => setError(e.message));

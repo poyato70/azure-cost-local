@@ -10,6 +10,7 @@ import type {
 } from "../shared/contracts.js";
 let csrf = "";
 export type Bootstrap = {
+  loginError?: { code: string; message: string };
   csrf: string;
   authenticated: boolean;
   tenantId: string;

@@ -146,4 +146,3 @@ test("forbidden is shown as error, not zero", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText("Sem permissão");
   await expect(page.getByTestId("totals")).toHaveCount(0);
 });
-

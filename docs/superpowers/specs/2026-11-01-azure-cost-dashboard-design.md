@@ -100,5 +100,3 @@ As fontes sustentam os componentes; a stack, o cache e as escolhas de interface 
 ## Revisão do desenho
 
 Revisão independente de construtibilidade concluída em 01/11/2026: sem lacunas bloqueantes para planejar. Incorporadas correções sobre a entrega mínima de Compromissos e o alcance da limpeza de conversas controladas pela aplicação.
-
-

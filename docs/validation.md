@@ -42,3 +42,9 @@ Validação após correção: 22 testes de serviço, cinco testes Edge, typechec
 Solicitação do usuário implementada: abrir popup durante o clique, antes das chamadas assíncronas; manter dashboard aberto; acompanhar sessão compartilhada por polling limitado a dez minutos; concluir em /auth/complete, removendo a query OAuth do endereço atual, e tentar fechar a janela. Polling permite concluir mesmo se a Microsoft separar o opener por política de navegador. Pop-up bloqueado mostra orientação, sem redirecionar a aba principal.
 
 Diagnóstico ampliado para identificadores MSAL/Node seguros fora da lista anterior, incluindo causas de rede/certificado. A origem da falha real anterior permanece desconhecida; esta alteração não comprova login Azure bem-sucedido. Nenhuma URL/código de autorização recebido no chat foi reutilizado. Teste de popup usa respostas de autenticação simuladas; não credenciais reais.
+
+## Causa confirmada de nonce_mismatch
+
+A implementação enviava nonce em getAuthCodeUrl, mas omitia o mesmo nonce em acquireTokenByCode. O MSAL Node 7.1.2 instalado valida presença e correspondência ao processar o ID token; seu código local mostrou a rejeição quando o token contém nonce mas nenhum valor esperado foi fornecido. Corrigido passando o nonce original armazenado no fluxo para acquireTokenByCode. Preservadas validações de nonce, state, PKCE e tenant.
+
+Teste de regressão reproduziu nonce_mismatch antes da correção e passou depois. Outro teste garante rejeição de nonce diferente, sem autenticar sessão. Após a correção: 25 testes passaram, typecheck e build passaram, serviço reiniciado. A confirmação de login real requer nova tentativa do usuário; nenhum código anterior foi reproduzido.

@@ -96,6 +96,7 @@ export class MicrosoftIdentity {
         scopes,
         redirectUri: this.config.origin + "/api/auth/callback",
         codeVerifier: f.verifier,
+        nonce: f.nonce,
       })
       .catch((error) => {
         throw authError(error);

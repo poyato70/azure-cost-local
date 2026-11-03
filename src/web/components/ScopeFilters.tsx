@@ -34,6 +34,7 @@ export function ScopeFilters({
         Subscription
         <select
           disabled={disabled}
+          aria-label="Subscription"
           value={subscription}
           onChange={(e) => setSubscription(e.target.value)}
         >
@@ -49,6 +50,7 @@ export function ScopeFilters({
         Resource group
         <select
           disabled={disabled || !subscription}
+          aria-label="Resource group"
           value={group}
           onChange={(e) => setGroup(e.target.value)}
         >

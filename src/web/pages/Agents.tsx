@@ -59,8 +59,22 @@ export function Agents({
   }
   return (
     <>
-      <button onClick={()=>{setForm({...fresh,...finopsTemplate()});setToolNames("azure_query, finops_hub");setKey("");setKeyAction("keep");}}>Usar perfil Analista FinOps</button>
-      {form.templateSource && <p>Perfil {form.templateSource.id} · versão {form.templateSource.version} · adaptação rastreável Microsoft FinOps Toolkit / Awesome Copilot</p>}
+      <button
+        onClick={() => {
+          setForm({ ...fresh, ...finopsTemplate() });
+          setToolNames("azure_query\nfinops_hub");
+          setKey("");
+          setKeyAction("keep");
+        }}
+      >
+        Usar perfil Analista FinOps
+      </button>
+      {form.templateSource && (
+        <p>
+          Perfil {form.templateSource.id} · versão {form.templateSource.version}{" "}
+          · adaptação rastreável Microsoft FinOps Toolkit / Awesome Copilot
+        </p>
+      )}
       <div className="section-head">
         <div>
           <h2>Agentes locais</h2>
@@ -132,6 +146,7 @@ export function Agents({
             Instruções
             <textarea
               rows={4}
+              aria-label="Instruções"
               value={form.instructions}
               onChange={(e) => field("instructions", e.target.value)}
             />

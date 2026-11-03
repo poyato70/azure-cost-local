@@ -78,6 +78,7 @@ export class AccessService {
     let ref: string | undefined;
     await this.store.mutate((s) => {
       if (
+        (s.hubProfiles || []).some((p) => p.accessId === id) ||
         s.mcpProfiles.some((p) => p.accessId === id) ||
         s.agentProfiles.some(
           (a) =>

@@ -1,3 +1,4 @@
+import { Hubs } from "./pages/Hubs.js";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type {
   Scope,
@@ -22,12 +23,14 @@ const tabs = [
   { id: "accesses", label: "Acessos", icon: "⚿" },
   { id: "mcps", label: "MCPs", icon: "⌘" },
   { id: "agents", label: "Agentes", icon: "✧" },
+  { id: "hubs", label: "FinOps hub", icon: "◈" },
   { id: "costs", label: "Custos", icon: "◷" },
   { id: "benefits", label: "Compromissos", icon: "◇" },
   { id: "budgets", label: "Budgets", icon: "▤" },
   { id: "chat", label: "Chat", icon: "✳" },
 ];
 export function App() {
+  const [hubId, setHubId] = useState("");
   const [accesses, setAccesses] = useState<PublicAccessProfile[]>([]),
     [mcpProfiles, setMcpProfiles] = useState<any[]>([]),
     [agentProfiles, setAgentProfiles] = useState<PublicAgent[]>([]),
@@ -80,6 +83,9 @@ export function App() {
     [info, setInfo] = useState(""),
     [groupBy, setGroupBy] = useState<CostQuery["groupBy"]>("ServiceName"),
     [granularity, setGranularity] = useState<CostQuery["granularity"]>("Daily");
+  useEffect(() => {
+    setHubId("");
+  }, [boot?.activeAccessId, boot?.authenticated]);
   useEffect(() => {
     let active = true;
     api
@@ -240,7 +246,7 @@ export function App() {
       setError((e as Error).message);
     }
   }
-  async function openResourceLogin(id: string) {
+  async function openResourceLogin(id: string, kind = "mcp-connections") {
     const popup = window.open(
       "about:blank",
       "azure-cost-login",
@@ -252,7 +258,7 @@ export function App() {
     }
     try {
       const r = await manageRequest(
-        "/mcp-connections/" + id + "/login",
+        "/" + kind + "/" + id + "/login",
         "POST",
         {},
       );
@@ -510,6 +516,18 @@ export function App() {
             />
           )}
           <section className="content-card">
+            {tab === "hubs" && (
+              <Hubs
+                key={boot?.activeAccessId}
+                accesses={accesses}
+                mcps={mcpProfiles}
+                scope={scope}
+                basis={basis}
+                selected={hubId}
+                onSelect={setHubId}
+                onLogin={(id) => void openResourceLogin(id, "hubs")}
+              />
+            )}
             {tab === "accesses" && (
               <Accesses
                 profiles={accesses}
@@ -605,13 +623,22 @@ export function App() {
             )}{" "}
             {tab === "chat" && (
               <Chat
-                key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                key={
+                  boot?.activeAccessId +
+                  "|" +
+                  source +
+                  "|" +
+                  mcpId +
+                  "|" +
+                  hubId
+                }
                 scope={scope}
                 basis={basis}
                 agents={agentProfiles}
                 selection={
                   boot?.activeAccessId
                     ? {
+                        hubId: hubId || undefined,
                         accessId: boot.activeAccessId,
                         source,
                         mcpConnectionId: mcpId || undefined,

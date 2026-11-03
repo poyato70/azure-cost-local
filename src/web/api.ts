@@ -19,8 +19,10 @@ export async function manageRequest<T = any>(
   path: string,
   method = "GET",
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const r = await fetch("/api" + path, {
+    signal,
     method,
     headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
     body: body === undefined ? undefined : JSON.stringify(body),

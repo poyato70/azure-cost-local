@@ -23,40 +23,42 @@ Local Windows; sem instalação/deployment automático; sem KQL arbitrário; Hub
 
 Arquivos: shared/connections.ts; server/agents/finops-template.ts; web/pages/Agents.tsx; tests/agents/finops-template.test.ts.
 Interface: finopsTemplate() retorna campos de instruções e templateSource (id/version/sources/customized), preservados no CRUD; sem endpoint/Secret predefinido.
-- [ ] RED template não existe; testar regras financeiras e rastreabilidade.
-- [ ] Implementar botão Usar perfil Analista FinOps; salvar origem e customização.
-- [ ] GREEN teste/typecheck; commit.
+- [x] RED template não existe; testar regras financeiras e rastreabilidade.
+- [x] Implementar botão Usar perfil Analista FinOps; salvar origem e customização.
+- [x] GREEN teste/typecheck; commit.
 
 ## Tarefa2 — Hub e transportes
 
 Arquivos: shared/hubs.ts; server/hubs/{queries,service,transport,routes}.ts; storage/config-store.ts; mcp/registry.ts; app.ts; tests/hubs/{queries,service,transport}.test.ts.
 Interfaces: HubProfile versionado com accessId, endpoint, database=Hub, schemaVersion=v1_2, transport=api|mcp, mcpConnectionId opcional. HubService.costs(ctx,id,scope,basis,now?) -> HubCostResult. buildHubQuery(operation,scope,period) produz string determinística, validável apenas pela entrada do servidor.
-- [ ] RED templates rejeitam outro RG/injection, datas/moedas, erro/truncamento, endpoint inválido e revisão cancelada.
-- [ ] CRUD Hub sem novos Secrets; API ADX bound HTTPS/cluster audience; MCP fixed query com ferramenta aprovada/schema e gate sem liberar query livre.
-- [ ] Normalizar tabelas nomeadas/colunas, números exatos e ausência/partialidade; testar com fixture real HTTP local sem tokens reais.
-- [ ] GREEN testes/typecheck; commit.
+- [x] RED templates rejeitam outro RG/injection, datas/moedas, erro/truncamento, endpoint inválido e revisão cancelada.
+- [x] CRUD Hub sem novos Secrets; API ADX bound HTTPS/cluster audience; MCP fixed query com ferramenta aprovada/schema e gate sem liberar query livre.
+- [x] Normalizar tabelas nomeadas/colunas, números exatos e ausência/partialidade; testar com fixture real HTTP local sem tokens reais.
+- [x] GREEN testes/typecheck; commit.
 
 ## Tarefa3 — Conciliação e benefícios
 
 Arquivos: server/hubs/{reconcile,benefits}.ts; tests/hubs/{reconcile,benefits}.test.ts.
 Interfaces: reconcile(hub,arm,policy) retorna por moeda valores/diferenças e comparabilidade; HubService.benefits(ctx,id,scope,kind) retorna métricas verificadas ou unavailable por dataset.
-- [ ] RED moedas distintas, denominador zero, cobertura desconhecida, bases incompatíveis e dados ausentes.
-- [ ] Comparação explícita sem corrigir totais; queries de leitura registradas por dataset, escopo e schema; não agregar purchases billing como gasto RG.
-- [ ] GREEN; commit.
+- [x] RED moedas distintas, denominador zero, cobertura desconhecida, bases incompatíveis e dados ausentes.
+- [x] Comparação explícita sem corrigir totais; queries de leitura registradas por dataset, escopo e schema; não agregar purchases billing como gasto RG.
+- [x] GREEN; commit.
 
 ## Tarefa4 — Dashboard e ambos os chats
 
 Arquivos: web/pages/Hubs.tsx, App.tsx, Chat.tsx; shared/connections.ts; server/chat/{tools,copilot}.ts; agents/runtime.ts; tests/e2e/hubs.spec.ts; testes de autorização.
 Interfaces: selection.hubId opcional indica origem Hub explicitamente; hub tool aceita operation costs|reconcile|reservations|savingsPlans, usa scope do servidor, nunca endpoint/query do modelo. Todos os vínculos Hub/access/MCP e revisões são revalidados.
-- [ ] RED botão template, cadastro Hub, seleção limpa contexto, resultados parciais e ferramenta fora de vínculos bloqueada.
-- [ ] UI configuração/teste/consulta e tabela por moeda/mês; comparação e capacidades de compromissos. Ambos chats expõem wrapper mediado quando Hub selecionado; fonte Cost Management permanece comportamento original.
-- [ ] GREEN Edge/typecheck/build; commit.
+- [x] RED botão template, cadastro Hub, seleção limpa contexto, resultados parciais e ferramenta fora de vínculos bloqueada.
+- [x] UI configuração/teste/consulta e tabela por moeda/mês; comparação e capacidades de compromissos. Ambos chats expõem wrapper mediado quando Hub selecionado; fonte Cost Management permanece comportamento original.
+- [x] GREEN Edge/typecheck/build; commit.
 
 ## Tarefa5 — Verificação e entrega
 
-- [ ] Revisão independente final, uma correção dos achados materiais com regressão.
-- [ ] npm test; npm run typecheck; npm run build; npm run test:e2e; npm audit --omit=dev; git diff --check.
-- [ ] Documentar operação, matriz implementado/teste sintético/aceite real pendente; atualizar migração e README.
-- [ ] Reiniciar serviço preservando IDs; publicar repositório privado autorizado e verificar SHA remoto. Não criar Hub nem solicitar Secret pelo chat.
+- [x] Revisão independente final, uma correção dos achados materiais com regressão.
+- [x] npm test; npm run typecheck; npm run build; npm run test:e2e; npm audit --omit=dev; git diff --check.
+- [x] Documentar operação, matriz implementado/teste sintético/aceite real pendente; atualizar migração e README.
+- [x] Reiniciar serviço preservando IDs; publicar repositório privado autorizado e verificar SHA remoto. Não criar Hub nem solicitar Secret pelo chat.
 
 Self-review: quatro requisitos distribuídos pelas tarefas1–4; cinco riscos têm testes donos. Execução contínua nesta conversa; decisões no ledger. Implementação inicial pode prosseguir sem Hub real, mas aceite real ficará pendente.
+
+Execução: templates e resultados/rotas organizados em módulos próprios; transporte ficou em service.ts para compartilhar revisão/identidade. Conciliação é informativa e não certifica equivalência; em falta de Hub/credenciais o aceite real continua pendente. Utilização percentual e simulação de compras não foram inferidas. Recomendações Savings Plans no schema Hub v1_2 ficam explicitamente indisponíveis sem contrato certificado; custos atribuídos Savings Plans são consultáveis. Revisão final única concluída e quatro achados corrigidos.

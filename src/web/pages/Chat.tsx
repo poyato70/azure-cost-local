@@ -25,7 +25,7 @@ export function Chat({
     [busy, setBusy] = useState(false),
     [status, setStatus] = useState(""),
     [entries, setEntries] = useState<
-      { role: string; text: string; result?: CostResult }[]
+      { role: string; text: string; result?: CostResult; evidence?: unknown }[]
     >([]);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -64,6 +64,15 @@ export function Chat({
                     ? "Copilot"
                     : agents.find((a) => a.id === agentId)?.name || "Agente",
                 text: e.text,
+              },
+            ]);
+          if (e.type === "hubEvidence")
+            setEntries((x) => [
+              ...x,
+              {
+                role: "Evidência FinOps hub",
+                text: "Resultado do serviço, independente do texto do modelo",
+                evidence: e.result,
               },
             ]);
           if (e.type === "error")
@@ -122,7 +131,11 @@ export function Chat({
         )}
         <small>
           Fonte:{" "}
-          {selection?.source === "mcp" ? "MCP selecionado" : "APIs Azure"}
+          {selection?.hubId
+            ? "FinOps hub selecionado (dois meses civis completos)"
+            : selection?.source === "mcp"
+              ? "MCP selecionado"
+              : "APIs Azure"}
         </small>
       </div>
       <div className="section-head">
@@ -180,10 +193,23 @@ export function Chat({
             >
               <strong>{e.role}</strong>
               <p>{e.text}</p>
+              {e.evidence !== undefined && (
+                <details>
+                  <summary>Ver dados e avisos da consulta</summary>
+                  <pre
+                    style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+                  >
+                    {JSON.stringify(e.evidence, null, 2)}
+                  </pre>
+                </details>
+              )}
               {e.result && (
                 <div>
                   {e.result.totals.map((t) => (
                     <div key={t.currency}>{money(t.amount, t.currency)}</div>
+                  ))}
+                  {e.result.meta.warnings.map((w) => (
+                    <p key={w}>{w}</p>
                   ))}
                   <small>
                     {e.result.meta.period?.from} a{" "}

@@ -71,6 +71,7 @@ export function authorizeTool(
   p: McpProfile,
   t: ToolDescriptor,
   args: Record<string, unknown>,
+  registeredQuery?: string,
 ) {
   if (
     !reviewable(p, t) ||
@@ -117,7 +118,7 @@ export function authorizeTool(
             "Consulta genérica não autorizada.",
             403,
           );
-        validateQuery(value, p.preset);
+        if (value !== registeredQuery) validateQuery(value, p.preset);
       }
       if (value && typeof value === "object") {
         if (Array.isArray(value))

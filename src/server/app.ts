@@ -1,3 +1,5 @@
+import { HubService } from "./hubs/service.js";
+import { registerHubRoutes } from "./hubs/routes.js";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { z } from "zod";
@@ -62,13 +64,24 @@ export async function buildApp(deps: AppDeps = {}) {
     benefits = new Benefits(http);
   const app = Fastify({ logger: false, bodyLimit: 32000 });
   await app.register(cookie);
-  const chat = new CopilotChat({ inventory, costs, budgets, benefits }, mcps);
+  const hubs = new HubService(saved, gate, identities, mcps, {
+    inventory,
+    costs,
+    budgets,
+    benefits,
+  });
+  const chat = new CopilotChat(
+    { inventory, costs, budgets, benefits },
+    mcps,
+    hubs,
+  );
   const localAgents = new LocalAgentRuntime(
     { inventory, costs, budgets, benefits },
     vault,
     identities,
     gate,
     mcps,
+    hubs,
   );
   const session = (request: any): Session => {
     const s = store.get(request.cookies.sid);
@@ -103,6 +116,7 @@ export async function buildApp(deps: AppDeps = {}) {
       path: "/",
       maxAge: 8 * 3600,
     });
+  registerHubRoutes(app, hubs, context, session, identities, setCookie);
   app.addHook("onRequest", async (req, reply) => {
     const controller = new AbortController();
     (req as any).operationSignal = controller.signal;

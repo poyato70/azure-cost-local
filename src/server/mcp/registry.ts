@@ -106,7 +106,10 @@ export class McpRegistry {
   }
   async remove(id: string) {
     await this.store.mutate((s) => {
-      if (s.agentProfiles.some((a) => a.mcpConnectionIds.includes(id)))
+      if (
+        (s.hubProfiles || []).some((h) => h.mcpConnectionId === id) ||
+        s.agentProfiles.some((a) => a.mcpConnectionIds.includes(id))
+      )
         throw new AppError(
           "access_in_use",
           "Remova o vínculo com os agentes antes de excluir.",
@@ -162,7 +165,14 @@ export class McpRegistry {
       return old;
     const versions = await this.gate.capture(["access:" + a.id, "mcp:" + id]),
       controller = new AbortController(),
-      unwatch = this.gate.watch(versions, controller);
+      unwatchConfig = this.gate.watch(versions, controller);
+    const abortParent = () => controller.abort();
+    ctx.signal.addEventListener("abort", abortParent, { once: true });
+    const unwatch = () => {
+      unwatchConfig();
+      ctx.signal.removeEventListener("abort", abortParent);
+    };
+    if (ctx.signal.aborted) controller.abort();
     const client = new Client({ name: "azure-cost-local", version: "0.2.0" });
     let transport;
     try {
@@ -317,6 +327,7 @@ export class McpRegistry {
         "abort",
         () => {
           this.live.delete(key);
+          unwatch();
           void client.close().catch(() => {});
         },
         { once: true },
@@ -370,6 +381,7 @@ export class McpRegistry {
     id: string,
     name: string,
     args: Record<string, unknown>,
+    registeredQuery?: string,
   ) {
     const live = await this.connect(ctx, id),
       current = await this.get(id);
@@ -379,7 +391,7 @@ export class McpRegistry {
     });
     const t = latest.tools.map(descriptor).find((t) => t.name === name);
     if (!t) throw new AppError("unsupported", "Ferramenta não encontrada.");
-    authorizeTool(current, t, args);
+    authorizeTool(current, t, args, registeredQuery);
     const validate = new AjvJsonSchemaValidator().getValidator(
       t.inputSchema as any,
     );

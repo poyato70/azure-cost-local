@@ -46,6 +46,7 @@ export class ConfigStore {
       const s = JSON.parse(text);
       if (
         s.schemaVersion !== 1 ||
+        (s.hubProfiles !== undefined && !Array.isArray(s.hubProfiles)) ||
         ![s.accessProfiles, s.mcpProfiles, s.agentProfiles].every(Array.isArray)
       )
         throw new Error();

@@ -1,3 +1,6 @@
+import { emitHubEvidence } from "../hubs/evidence.js";
+import type { HubService } from "../hubs/service.js";
+import { hubOperation } from "../../shared/hubs.js";
 import {
   CopilotClient,
   RuntimeConnection,
@@ -32,6 +35,7 @@ export class CopilotChat {
   constructor(
     private services: QueryServices,
     private mcps?: McpRegistry,
+    private hubs?: HubService,
   ) {}
   private async getClient() {
     if (this.client) return this.client;
@@ -99,7 +103,10 @@ export class CopilotChat {
       signal: AbortSignal.any([ctx.signal, controller.signal]),
     };
     let calls = 0;
+    let unwatchHub: (() => void) | undefined;
     try {
+      if (input.selection?.hubId && this.hubs)
+        unwatchHub = await this.hubs.watch(input.selection.hubId, controller);
       client = await this.getClient();
       if (!(await client.getAuthStatus()).isAuthenticated)
         throw new AppError(
@@ -134,7 +141,7 @@ export class CopilotChat {
           return JSON.stringify(result);
         },
       });
-      if (input.selection?.source === "mcp") {
+      if (input.selection?.source === "mcp" && !input.selection?.hubId) {
         const id = input.selection.mcpConnectionId;
         if (!id || !this.mcps)
           throw new AppError("invalid_request", "Selecione uma conexão MCP.");
@@ -178,6 +185,34 @@ export class CopilotChat {
           },
         });
       }
+      if (input.selection?.hubId) {
+        const hubId = input.selection.hubId;
+        tool = defineTool("finops_hub", {
+          description:
+            "Consulta Hub para RG nos dois meses civis completos: custos, conciliação informativa e recomendações de benefícios disponíveis.",
+          parameters: z.object({ operation: hubOperation }).strict(),
+          skipPermission: true,
+          handler: async (args) => {
+            if (++calls > 10)
+              throw new AppError(
+                "limit_exceeded",
+                "Limite de consultas atingido.",
+              );
+            if (!this.hubs || !input.scope)
+              throw new AppError("invalid_request", "Selecione um RG e Hub.");
+            const r = await this.hubs.run(
+              localCtx,
+              hubId,
+              input.scope,
+              input.basis,
+              args.operation,
+            );
+            assertActive(localCtx.signal);
+            emitHubEvidence(r, emit);
+            return JSON.stringify(r);
+          },
+        });
+      }
       const allowedName = tool.name;
       session = await client.createSession(restrictedSessionConfig([tool]));
       await session.rpc.tools.initializeAndValidate();
@@ -217,6 +252,7 @@ export class CopilotChat {
         localCtx.signal.removeEventListener("abort", onAbort);
       }
     } finally {
+      unwatchHub?.();
       if (timer) clearTimeout(timer);
       controller.abort();
       ctx.signal.removeEventListener("abort", abort);

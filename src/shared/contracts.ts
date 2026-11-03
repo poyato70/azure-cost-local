@@ -108,6 +108,7 @@ export type BenefitAnalysis = {
 };
 export type Subscription = { id: string; name: string; tenantId: string };
 export type ChatEvent =
+  | { type: "hubEvidence"; result: unknown }
   | { type: "text"; text: string }
   | { type: "result"; result: CostResult | BudgetStatus | BenefitAnalysis }
   | { type: "error"; code: string; message: string };

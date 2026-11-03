@@ -53,3 +53,8 @@ Teste de regressão reproduziu nonce_mismatch antes da correção e passou depoi
 ## Ampliação de 03/11/2026
 
 Veja [conexões e agentes](connections-validation.md) para o estado atual: 42 testes de serviço e oito testes Edge; identidades salvas, Secrets DPAPI, MCPs e agente local. Os registros acima descrevem a versão anterior. O roteiro de instalação/migração está em [migration-windows.md](migration-windows.md). Publicação privada no GitHub autorizada pelo usuário em 03/11/2026; integração com contas reais continua pendente.
+
+
+## Analista FinOps e Hub — 03/11/2026
+
+Implementação descrita no [guia](finops-hub-guide.md): perfil rastreável, fonte Hub por API/MCP, comparação informativa bidirecional e evidência independente no chat. 57 testes do serviço e dez testes Edge passaram; typecheck/build e auditoria npm de produção passaram (zero vulnerabilidades reportadas). Inspeção da tela Hub em 1440 px sem rolagem horizontal. Serviço reiniciado com identificadores preservados; GET /api/hubs respondeu 200. Quatro achados da revisão independente foram corrigidos com regressões. Consultas reais ADX, exportações, conciliação financeira certificada e inferência com dados reais continuam pendentes.

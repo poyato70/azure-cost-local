@@ -116,3 +116,7 @@ pwsh -File .\scripts\start.ps1
 ```
 
 Preserve alterações locais antes de atualizar. Não exponha o serviço local à rede. Teams, SharePoint e hospedagem multiusuário exigem outro desenho de implantação e não fazem parte desta migração.
+
+## Ampliação FinOps hub
+
+Ao migrar, recadastre também os Hubs depois dos acessos e MCPs; configure Database Viewer e valide o schema v1_2. Nenhuma dependência adicional é exigida para consultar ADX remoto. Não instale Docker, módulos FinOpsToolkit ou plugins globais apenas para usar esta integração. Veja [roteiro específico](finops-hub-guide.md).

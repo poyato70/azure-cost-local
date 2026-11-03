@@ -1,3 +1,6 @@
+import { emitHubEvidence } from "../hubs/evidence.js";
+import type { HubService } from "../hubs/service.js";
+import { hubOperation } from "../../shared/hubs.js";
 import type { ModelTurn, ModelResult } from "./model-provider.js";
 import { ModelProvider } from "./model-provider.js";
 import type { AgentProfile, DataSelection } from "../../shared/connections.js";
@@ -127,6 +130,7 @@ export class LocalAgentRuntime {
     private identity: IdentityProvider,
     private gate: Invalidation,
     private mcps: McpRegistry,
+    private hubs?: HubService,
   ) {}
   async ask(
     ctx: RequestContext,
@@ -157,6 +161,7 @@ export class LocalAgentRuntime {
     ];
     if (agent.modelCredential.kind === "entra")
       keys.push("access:" + agent.modelCredential.accessId);
+    if (input.selection.hubId) keys.push("hub:" + input.selection.hubId);
     const revisions = await this.gate.capture(keys),
       controller = new AbortController(),
       unwatch = this.gate.watch(revisions, controller);
@@ -171,7 +176,8 @@ export class LocalAgentRuntime {
     try {
       if (
         agent.allowedTools.includes("azure_query") &&
-        input.selection.source === "api"
+        input.selection.source === "api" &&
+        !input.selection.hubId
       )
         tools.push({
           name: "azure_query",
@@ -202,7 +208,52 @@ export class LocalAgentRuntime {
             return result;
           },
         });
-      if (input.selection.source === "mcp") {
+      if (input.selection.hubId) {
+        const id = input.selection.hubId;
+        if (!this.hubs || !agent.allowedTools.includes("finops_hub"))
+          throw new AppError(
+            "forbidden",
+            "Autorize finops_hub neste agente.",
+            403,
+          );
+        const h = await this.hubs.get(id);
+        if (
+          h.transport === "mcp" &&
+          !agent.mcpConnectionIds.includes(h.mcpConnectionId!)
+        )
+          throw new AppError(
+            "forbidden",
+            "MCP do Hub não autorizado para o agente.",
+            403,
+          );
+        tools.push({
+          name: "finops_hub",
+          description:
+            "Consulta custos de RG nos dois meses civis completos; conciliação informativa; Reservations/Savings Plans conforme dados disponíveis.",
+          parameters: z.toJSONSchema(
+            z.object({ operation: hubOperation }).strict(),
+          ),
+          call: async (args) => {
+            if (!input.scope)
+              throw new AppError(
+                "invalid_request",
+                "Selecione subscription e RG.",
+              );
+            const r = await this.hubs!.run(
+              context,
+              id,
+              input.scope,
+              input.basis,
+              hubOperation.parse(args.operation),
+            );
+            await check();
+            assertActive(signal);
+            emitHubEvidence(r, emit);
+            return r;
+          },
+        });
+      }
+      if (input.selection.source === "mcp" && !input.selection.hubId) {
         if (
           !input.selection.mcpConnectionId ||
           !agent.mcpConnectionIds.includes(input.selection.mcpConnectionId)

@@ -67,7 +67,22 @@ export const agentInput = z
     name,
     description: z.string().max(2000).default(""),
     instructions: z.string().max(12000).default(""),
-    templateSource: z.object({id:z.literal("finops-analyst"),version:z.literal("1"),customized:z.boolean(),sources:z.array(z.object({url:z.string().url(),license:z.string(),attribution:z.string()})).max(10)}).optional(),
+    templateSource: z
+      .object({
+        id: z.literal("finops-analyst"),
+        version: z.literal("1"),
+        customized: z.boolean(),
+        sources: z
+          .array(
+            z.object({
+              url: z.string().url(),
+              license: z.string(),
+              attribution: z.string(),
+            }),
+          )
+          .max(10),
+      })
+      .optional(),
     provider: z.literal("azure-chat-v1"),
     endpoint: z.string().max(2048),
     model: z.string().min(1).max(200),
@@ -107,6 +122,7 @@ export type PublicAgent = Omit<AgentProfile, "modelCredential"> & {
     | { kind: "entra"; accessId: string };
 };
 export type ConfigSnapshot = {
+  hubProfiles?: import("./hubs.js").HubProfile[];
   schemaVersion: 1;
   accessProfiles: AccessProfile[];
   mcpProfiles: McpProfile[];
@@ -117,6 +133,7 @@ export const selectionSchema = z
     accessId: id,
     source: z.enum(["api", "mcp"]),
     mcpConnectionId: id.optional(),
+    hubId: id.optional(),
   })
   .strict();
 export type DataSelection = z.infer<typeof selectionSchema>;

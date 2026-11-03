@@ -13,6 +13,7 @@ export class Invalidation {
       ["access", s.accessProfiles],
       ["mcp", s.mcpProfiles],
       ["agent", s.agentProfiles],
+      ["hub", s.hubProfiles || []],
     ] as const)
       for (const v of list) all[`${prefix}:${v.id}`] = v.configurationVersion;
     return all;

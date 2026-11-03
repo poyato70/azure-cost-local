@@ -1,6 +1,6 @@
 # Conexões salvas, identidade de aplicação e agentes locais
 
-Data: 03/11/2026. Estado: desenho para aprovação, sem implementação desta ampliação.
+Data: 03/11/2026. Estado: desenho aprovado pelo usuário em 03/11/2026; implementação desta ampliação ainda não iniciada.
 
 ## Objetivo e escolhas confirmadas
 

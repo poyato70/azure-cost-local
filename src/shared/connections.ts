@@ -1,0 +1,17 @@
+import {z} from 'zod';
+export const id=z.string().uuid();const name=z.string().trim().min(1).max(120);
+export const secretAction=z.discriminatedUnion('kind',[z.object({kind:z.literal('keep')}),z.object({kind:z.literal('remove')}),z.object({kind:z.literal('replace'),value:z.string().min(1).max(16384)})]);
+export const accessInput=z.object({id:id.optional(),expectedVersion:z.number().int().positive().optional(),name,tenantId:id,clientId:id,preferredMode:z.enum(['user','application']),secretExpiresAt:z.string().optional(),secretAction:secretAction.default({kind:'keep'})}).strict();
+export type AccessProfile={id:string;name:string;tenantId:string;clientId:string;preferredMode:'user'|'application';secretRef?:string;secretExpiresAt?:string;credentialVersion:number;configurationVersion:number};
+export type PublicAccessProfile=Omit<AccessProfile,'secretRef'>&{secretConfigured:boolean};
+export const mcpInput=z.object({id:id.optional(),expectedVersion:z.number().int().positive().optional(),name,preset:z.enum(['azure','adx','foundry','fabric','powerbi']),transport:z.enum(['stdio','http']),endpoint:z.string().max(2048).optional(),accessId:id.optional(),authMode:z.enum(['delegated','application','none']),audience:z.string().max(300).optional(),allowPrivateNetwork:z.boolean().default(false),resourceContext:z.record(z.string(),z.string().max(2048)).default({}),approvedTools:z.array(z.object({name:z.string().max(200),schemaHash:z.string().max(100)})).max(100).default([])}).strict();
+export type McpProfile=Omit<z.infer<typeof mcpInput>,'id'|'expectedVersion'>&{id:string;configurationVersion:number};
+export const agentInput=z.object({id:id.optional(),expectedVersion:z.number().int().positive().optional(),name,description:z.string().max(2000).default(''),instructions:z.string().max(12000).default(''),provider:z.literal('azure-chat-v1'),endpoint:z.string().max(2048),model:z.string().min(1).max(200),modelCredential:z.discriminatedUnion('kind',[z.object({kind:z.literal('apiKey')}),z.object({kind:z.literal('entra'),accessId:id})]),keyAction:secretAction.default({kind:'keep'}),allowedAccessIds:z.array(id).max(100),mcpConnectionIds:z.array(id).max(100).default([]),allowedTools:z.array(z.string().max(200)).max(100).default(['azure_query']),limits:z.object({toolCalls:z.number().int().min(1).max(10),timeoutMs:z.number().int().min(1000).max(120000),responseChars:z.number().int().min(100).max(8000)}).default({toolCalls:10,timeoutMs:120000,responseChars:8000})}).strict();
+export type AgentProfile=Omit<z.infer<typeof agentInput>,'id'|'expectedVersion'|'keyAction'|'modelCredential'>&{id:string;configurationVersion:number;modelCredential:{kind:'apiKey';secretRef?:string}|{kind:'entra';accessId:string}};
+export type PublicAgent=Omit<AgentProfile,'modelCredential'>&{modelCredential:{kind:'apiKey';keyConfigured:boolean}|{kind:'entra';accessId:string}};
+export type ConfigSnapshot={schemaVersion:1;accessProfiles:AccessProfile[];mcpProfiles:McpProfile[];agentProfiles:AgentProfile[]};
+export const selectionSchema=z.object({accessId:id,source:z.enum(['api','mcp']),mcpConnectionId:id.optional()}).strict();
+export type DataSelection=z.infer<typeof selectionSchema>;
+export type RevisionSet=Record<string,number>;
+export type CapabilityRecord={service:string;transport:string;authMode:string;status:'available'|'pending'|'unsupported';reason:string;sourceUrl:string;checkedAt:string};
+export type ToolDescriptor={name:string;description?:string;inputSchema:Record<string,unknown>;schemaHash:string;annotations?:Record<string,unknown>};

@@ -45,6 +45,9 @@ export type Scope = z.infer<typeof scopeSchema>;
 export type DateRange = z.infer<typeof periodSchema>;
 export type CostQuery = z.infer<typeof costQuerySchema>;
 export type RequestContext = {
+  principalKind?: "user" | "application";
+  accessId?: string;
+  configurationVersion?: number;
   sessionId: string;
   userId: string;
   tenantId: string;

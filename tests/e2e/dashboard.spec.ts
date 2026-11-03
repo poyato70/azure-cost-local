@@ -1,4 +1,10 @@
 import { test, expect } from "@playwright/test";
+test.beforeEach(async ({ page }) => {
+  await page.route(/\/api\/(accesses|mcp-connections|agents)$/, (r) =>
+    r.fulfill({ json: [] }),
+  );
+});
+
 const tenantId = "11111111-1111-4111-8111-111111111111",
   subscriptionId = "22222222-2222-4222-8222-222222222222";
 const period = {
@@ -219,6 +225,9 @@ test("keeps currencies distinct, budgets empty and chat uses returned costs", as
   ).toBeVisible();
 });
 test("forbidden is shown as error, not zero", async ({ page }) => {
+  await page.route(/\/api\/(accesses|mcp-connections|agents)$/, (r) =>
+    r.fulfill({ json: [] }),
+  );
   await page.route("**/api/bootstrap", (r) =>
     r.fulfill({
       json: {

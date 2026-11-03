@@ -12,6 +12,18 @@ npm start
 
 Abra http://localhost:4317. Ctrl+C encerra o serviço. `scripts/start.ps1` oferece início em segundo plano e abre o navegador; `scripts/stop.ps1` encerra somente o processo criado por esse script. Não exponha a porta na rede. Não há dados fictícios na execução normal.
 
+## Acessos salvos, MCPs e agentes
+
+Use **Acessos** para salvar Tenant/Client ID e escolher usuário ou aplicação. O Secret Value opcional é digitado somente no formulário local e protegido com DPAPI do usuário Windows, fora do OneDrive. Identidade de aplicação usa Client Credentials, sem popup de usuário; permissões/RBAC devem ser atribuídas à aplicação. O Secret não substitui o consentimento do modo usuário.
+
+Em **MCPs**, vincule um acesso e contexto; teste conexão, descubra ferramentas e aprove as de leitura por nome/schema. Há presets Azure, ADX, Foundry, Fabric e Power BI. MCP HTTP próprio Azure/ADX exige audience de entrada própria api://ID; os presets remotos oficiais têm endpoint fixo. Nem todo preset aceita todo modo de autenticação. Foundry remoto app-only é bloqueado nesta versão; ferramentas Foundry ainda dependem de adapter revisado.
+
+Em **Agentes**, cadastre endpoint Azure Chat Completions v1, deployment, instruções e acessos/ferramentas autorizados. A chave de inferência é separada do Secret Entra. No **Chat**, escolha Copilot local ou Agente cadastrado. A inferência do agente é remota, embora o loop de execução seja local.
+
+A fonte API alimenta custos reais/budgets/benefícios. MCP atende ferramentas aprovadas pelo chat/painel, sem fallback automático para API. Ausência de adapter de Cost Management é apresentada como indisponibilidade; preços de catálogo não são despesas reais.
+
+Veja [migração Windows](migration-windows.md) e [limites/validação](connections-validation.md). As instruções abaixo de aplicativo público referem-se ao **modo usuário**, não impedem o cadastro separado de identidade de aplicação.
+
 ## Microsoft Entra
 
 Use um registro de aplicativo que você esteja autorizado a configurar:
@@ -34,7 +46,7 @@ O Copilot CLI é uma instalação separada do chat de VS Code. Abra `copilot` no
 
 Na tela Chat, selecione o escopo, marque o consentimento de envio de contexto e consulte “Verificar Copilot”. O serviço usa a instalação do PATH e o diretório padrão `~/.copilot`, sem copiar ou ler manualmente credenciais. `COPILOT_CLI_PATH` permite selecionar o caminho absoluto de outra instalação autorizada.
 
-O SDK opera no modo empty, sem descoberta de configuração, memória ou ferramentas built-in/MCP. Antes de cada pergunta, o catálogo efetivo precisa conter somente `azure_query`; caso contrário, a consulta é recusada. Sem shell, arquivos ou alterações no Azure. Até dez consultas por pergunta, dois minutos e resposta de até 8.000 caracteres. Cada pergunta cria sessão efêmera e tenta excluí-la após uso. Logs internos do CLI/GitHub seguem suas políticas; sair limpa os dados controlados pela aplicação, sem promessa de apagar registros remotos.
+O SDK opera no modo empty, sem descoberta de configuração, memória ou ferramentas built-in/MCP. Antes de cada pergunta, o catálogo efetivo precisa conter somente `azure_query` (fonte API) ou `mcp_query` (fonte MCP); caso contrário, a consulta é recusada. Sem shell, arquivos ou alterações no Azure. Até dez consultas por pergunta, dois minutos e resposta de até 8.000 caracteres. Cada pergunta cria sessão efêmera e tenta excluí-la após uso. Logs internos do CLI/GitHub seguem suas políticas; sair limpa os dados controlados pela aplicação, sem promessa de apagar registros remotos.
 
 Valores, nomes e contexto necessários podem ser enviados ao GitHub Copilot, mesmo que a interface seja local. O dashboard funciona independentemente do chat. Perguntas referem-se ao escopo selecionado; troque o filtro antes de perguntar sobre outro RG. O chat não mantém histórico contextual entre perguntas nesta versão, embora a conversa da tela fique visível até trocar filtros/sair.
 

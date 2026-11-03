@@ -3,10 +3,41 @@ import { SessionStore } from "../../src/server/auth/session-store.js";
 import { buildApp } from "../../src/server/app.js";
 import { ArmHttp } from "../../src/server/azure/http.js";
 describe("local boundary", () => {
-  it('sets an HttpOnly callback-compatible cookie and requires CSRF for changes',async()=>{
-    const app=await buildApp();const boot=await app.inject({url:'/api/bootstrap',headers:{host:'localhost:4317'}});const cookie=String(boot.headers['set-cookie']);expect(cookie).toContain('HttpOnly');expect(cookie).toContain('SameSite=Lax');expect(boot.json()).not.toHaveProperty('accessToken');
-    const without=await app.inject({method:'POST',url:'/api/config',headers:{host:'localhost:4317',cookie:cookie.split(';')[0]},payload:{tenantId:'11111111-1111-4111-8111-111111111111',clientId:'22222222-2222-4222-8222-222222222222'}});expect(without.statusCode).toBe(403);
-    const valid=await app.inject({method:'POST',url:'/api/config',headers:{host:'localhost:4317',cookie:cookie.split(';')[0],'x-csrf-token':boot.json().csrf},payload:{tenantId:'11111111-1111-4111-8111-111111111111',clientId:'22222222-2222-4222-8222-222222222222'}});expect(valid.statusCode).toBe(200);await app.close();
+  it("sets an HttpOnly callback-compatible cookie and requires CSRF for changes", async () => {
+    const app = await buildApp();
+    const boot = await app.inject({
+      url: "/api/bootstrap",
+      headers: { host: "localhost:4317" },
+    });
+    const cookie = String(boot.headers["set-cookie"]);
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(boot.json()).not.toHaveProperty("accessToken");
+    const without = await app.inject({
+      method: "POST",
+      url: "/api/config",
+      headers: { host: "localhost:4317", cookie: cookie.split(";")[0] },
+      payload: {
+        tenantId: "11111111-1111-4111-8111-111111111111",
+        clientId: "22222222-2222-4222-8222-222222222222",
+      },
+    });
+    expect(without.statusCode).toBe(403);
+    const valid = await app.inject({
+      method: "POST",
+      url: "/api/config",
+      headers: {
+        host: "localhost:4317",
+        cookie: cookie.split(";")[0],
+        "x-csrf-token": boot.json().csrf,
+      },
+      payload: {
+        tenantId: "11111111-1111-4111-8111-111111111111",
+        clientId: "22222222-2222-4222-8222-222222222222",
+      },
+    });
+    expect(valid.statusCode).toBe(200);
+    await app.close();
   });
   it("refuses external Host and Origin and requires session", async () => {
     const app = await buildApp();

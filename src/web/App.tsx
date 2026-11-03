@@ -5,19 +5,53 @@ import type {
   CostQuery,
   Subscription,
 } from "../shared/contracts.js";
-import { api, type Bootstrap } from "./api.js";
+import { api, manageRequest, selectDataSource, type Bootstrap } from "./api.js";
 import { ScopeFilters } from "./components/ScopeFilters.js";
 import { Costs } from "./pages/Costs.js";
 import { Budgets } from "./pages/Budgets.js";
 import { Benefits } from "./pages/Benefits.js";
 import { Chat } from "./pages/Chat.js";
+import type {
+  PublicAccessProfile,
+  PublicAgent,
+} from "../shared/connections.js";
+import { Accesses } from "./pages/Accesses.js";
+import { McpConnections } from "./pages/McpConnections.js";
+import { Agents } from "./pages/Agents.js";
 const tabs = [
+  { id: "accesses", label: "Acessos", icon: "⚿" },
+  { id: "mcps", label: "MCPs", icon: "⌘" },
+  { id: "agents", label: "Agentes", icon: "✧" },
   { id: "costs", label: "Custos", icon: "◷" },
   { id: "benefits", label: "Compromissos", icon: "◇" },
   { id: "budgets", label: "Budgets", icon: "▤" },
   { id: "chat", label: "Chat", icon: "✳" },
 ];
 export function App() {
+  const [accesses, setAccesses] = useState<PublicAccessProfile[]>([]),
+    [mcpProfiles, setMcpProfiles] = useState<any[]>([]),
+    [agentProfiles, setAgentProfiles] = useState<PublicAgent[]>([]),
+    [chosenAccess, setChosenAccess] = useState(""),
+    [accessMode, setAccessMode] = useState<"user" | "application">("user"),
+    [source, setSource] = useState<"api" | "mcp">("api"),
+    [mcpId, setMcpId] = useState("");
+  const reloadSettings = async () => {
+    try {
+      const [a, m, g] = await Promise.all([
+        manageRequest("/accesses"),
+        manageRequest("/mcp-connections"),
+        manageRequest("/agents"),
+      ]);
+      setAccesses(Array.isArray(a) ? a : []);
+      setMcpProfiles(Array.isArray(m) ? m : []);
+      setAgentProfiles(Array.isArray(g) ? g : []);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  useEffect(() => {
+    selectDataSource({ source, mcpConnectionId: mcpId || undefined });
+  }, [source, mcpId]);
   const [loginPending, setLoginPending] = useState(false);
   const loginTimer = useRef<ReturnType<typeof setInterval> | undefined>(
     undefined,
@@ -53,6 +87,8 @@ export function App() {
       .then((b) => {
         if (active) {
           setBoot(b);
+          if (b.activeAccessId) setChosenAccess(b.activeAccessId);
+          void reloadSettings();
           setPeriod(b.period);
           setTenant(b.tenantId);
           setClient(b.clientId);
@@ -106,7 +142,26 @@ export function App() {
     () => (scope ? { scope, period, basis, groupBy, granularity } : undefined),
     [scope, period, basis, groupBy, granularity],
   );
-  async function connect() {
+  async function connect(
+    accessId?: string,
+    mode: "user" | "application" = "user",
+  ) {
+    if (accessId && mode === "application") {
+      setError("");
+      try {
+        await manageRequest("/accesses/" + accessId + "/connect", "POST", {
+          mode,
+        });
+        const b = await api.bootstrap();
+        setBoot(b);
+        setInfo(
+          "Identidade de aplicação conectada. Nenhum login de usuário foi solicitado.",
+        );
+      } catch (e) {
+        setError((e as Error).message);
+      }
+      return;
+    }
     if (loginPending) return;
     setError("");
     const popup = window.open(
@@ -128,10 +183,19 @@ export function App() {
       "Conclua o login na janela separada. O dashboard será atualizado automaticamente.",
     );
     try {
-      await api.config(tenant.trim(), client.trim());
-      const b = await api.bootstrap();
-      setBoot(b);
-      const login = await api.login();
+      let login: { url: string };
+      if (accessId)
+        login = await manageRequest(
+          "/accesses/" + accessId + "/connect",
+          "POST",
+          { mode },
+        );
+      else {
+        await api.config(tenant.trim(), client.trim());
+        const b = await api.bootstrap();
+        setBoot(b);
+        login = await api.login();
+      }
       popup.location.assign(login.url);
       popup.focus();
       const started = Date.now();
@@ -173,6 +237,50 @@ export function App() {
       popup.close();
       setLoginPending(false);
       setInfo("");
+      setError((e as Error).message);
+    }
+  }
+  async function openResourceLogin(id: string) {
+    const popup = window.open(
+      "about:blank",
+      "azure-cost-login",
+      "popup=yes,width=560,height=760",
+    );
+    if (!popup) {
+      setError("Permita pop-ups para localhost.");
+      return;
+    }
+    try {
+      const r = await manageRequest(
+        "/mcp-connections/" + id + "/login",
+        "POST",
+        {},
+      );
+      popup.location.assign(r.url);
+      setInfo("Autorize o recurso na janela separada.");
+      let checking = false;
+      const started = Date.now();
+      const timer = setInterval(async () => {
+        if (checking) return;
+        checking = true;
+        try {
+          const b = await api.bootstrap();
+          if (
+            b.authenticated ||
+            b.loginError ||
+            Date.now() - started > 600000
+          ) {
+            clearInterval(timer);
+            setBoot(b);
+            setError(b.loginError?.message || "");
+            void reloadSettings();
+          }
+        } finally {
+          checking = false;
+        }
+      }, 1000);
+    } catch (e) {
+      popup.close();
       setError((e as Error).message);
     }
   }
@@ -256,7 +364,8 @@ export function App() {
           {!boot ? (
             <p role="status">Iniciando serviço local…</p>
           ) : (
-            !boot.authenticated && (
+            !boot.authenticated &&
+            !["accesses", "mcps", "agents"].includes(tab) && (
               <section className="setup">
                 <div className="setup-copy">
                   <span className="eyebrow">COMECE PELA CONEXÃO</span>
@@ -316,20 +425,114 @@ export function App() {
               </section>
             )
           )}
-          <ScopeFilters
-            subscriptions={subs}
-            subscription={sub}
-            setSubscription={setSub}
-            groups={groups}
-            group={group}
-            setGroup={setGroup}
-            period={period}
-            setPeriod={setPeriod}
-            basis={basis}
-            setBasis={setBasis}
-            disabled={!boot?.authenticated}
-          />
+          {accesses.length > 0 && (
+            <section className="connection-toolbar">
+              <label>
+                Acesso salvo
+                <select
+                  value={chosenAccess}
+                  onChange={(e) => {
+                    setChosenAccess(e.target.value);
+                    const a = accesses.find((x) => x.id === e.target.value);
+                    if (a) setAccessMode(a.preferredMode);
+                  }}
+                >
+                  <option value="">Selecione um acesso</option>
+                  {accesses.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Autenticação
+                <select
+                  value={accessMode}
+                  onChange={(e) => setAccessMode(e.target.value as any)}
+                >
+                  <option value="user">Usuário</option>
+                  <option value="application">Aplicação com Secret</option>
+                </select>
+              </label>
+              <button
+                disabled={!chosenAccess || loginPending}
+                onClick={() => void connect(chosenAccess, accessMode)}
+              >
+                Conectar acesso
+              </button>
+              <label>
+                Fonte dos dados
+                <select
+                  value={source}
+                  onChange={(e) => setSource(e.target.value as any)}
+                >
+                  <option value="api">APIs Azure</option>
+                  <option value="mcp">Servidor MCP</option>
+                </select>
+              </label>
+              {source === "mcp" && (
+                <label>
+                  Conexão MCP
+                  <select
+                    value={mcpId}
+                    onChange={(e) => setMcpId(e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {mcpProfiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <small>
+                Acesso ativo:{" "}
+                {accesses.find((a) => a.id === boot?.activeAccessId)?.name ||
+                  "login pessoal existente / desconectado"}
+              </small>
+            </section>
+          )}
+          {!["accesses", "mcps", "agents"].includes(tab) && (
+            <ScopeFilters
+              subscriptions={subs}
+              subscription={sub}
+              setSubscription={setSub}
+              groups={groups}
+              group={group}
+              setGroup={setGroup}
+              period={period}
+              setPeriod={setPeriod}
+              basis={basis}
+              setBasis={setBasis}
+              disabled={!boot?.authenticated}
+            />
+          )}
           <section className="content-card">
+            {tab === "accesses" && (
+              <Accesses
+                profiles={accesses}
+                onChanged={() => void reloadSettings()}
+                onConnect={(id, mode) => void connect(id, mode)}
+              />
+            )}
+            {tab === "mcps" && (
+              <McpConnections
+                profiles={mcpProfiles}
+                accesses={accesses}
+                onChanged={() => void reloadSettings()}
+                onLogin={(id) => void openResourceLogin(id)}
+              />
+            )}
+            {tab === "agents" && (
+              <Agents
+                profiles={agentProfiles}
+                accesses={accesses}
+                mcps={mcpProfiles}
+                onChanged={() => void reloadSettings()}
+              />
+            )}
             {tab === "costs" && (
               <>
                 <div className="toolbar compact">
@@ -381,12 +584,42 @@ export function App() {
                     Últimos 60 dias
                   </button>
                 </div>
-                <Costs query={query} connected={!!boot?.authenticated} />
+                <Costs
+                  key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                  query={query}
+                  connected={!!boot?.authenticated}
+                />
               </>
             )}
-            {tab === "budgets" && <Budgets scope={scope} />}{" "}
-            {tab === "benefits" && <Benefits scope={scope} />}{" "}
-            {tab === "chat" && <Chat scope={scope} basis={basis} />}
+            {tab === "budgets" && (
+              <Budgets
+                key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                scope={scope}
+              />
+            )}{" "}
+            {tab === "benefits" && (
+              <Benefits
+                key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                scope={scope}
+              />
+            )}{" "}
+            {tab === "chat" && (
+              <Chat
+                key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                scope={scope}
+                basis={basis}
+                agents={agentProfiles}
+                selection={
+                  boot?.activeAccessId
+                    ? {
+                        accessId: boot.activeAccessId,
+                        source,
+                        mcpConnectionId: mcpId || undefined,
+                      }
+                    : undefined
+                }
+              />
+            )}
           </section>
           <footer className="page-footer">
             <span>Azure Cost · fontes oficiais, decisões informadas.</span>

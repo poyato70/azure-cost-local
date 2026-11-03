@@ -58,7 +58,16 @@ export class AzureCosts {
       throw new AppError("forbidden", "Tenant fora da sessão.", 403);
     for (const [k, v] of this.cache)
       if (Date.now() - v.at > 300000) this.cache.delete(k);
-    const key = ctx.sessionId + "|" + ctx.userId + "|" + JSON.stringify(query),
+    const key =
+        ctx.sessionId +
+        "|" +
+        ctx.userId +
+        "|" +
+        (ctx.accessId || "legacy") +
+        ":" +
+        (ctx.configurationVersion || 0) +
+        "|" +
+        JSON.stringify(query),
       cached = this.cache.get(key);
     if (cached) return cached.value;
     const to = new Date(Date.parse(query.period.toExclusive) - 1000)

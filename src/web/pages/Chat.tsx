@@ -6,13 +6,20 @@ import type {
   ChatEvent,
 } from "../../shared/contracts.js";
 import { api, money } from "../api.js";
+import type { PublicAgent, DataSelection } from "../../shared/connections.js";
 export function Chat({
   scope,
   basis,
+  agents = [],
+  selection,
 }: {
+  agents?: PublicAgent[];
+  selection?: DataSelection;
   scope?: Scope;
   basis: CostQuery["basis"];
 }) {
+  const [runtime, setRuntime] = useState<"copilot" | "agent">("copilot"),
+    [agentId, setAgentId] = useState("");
   const [message, setMessage] = useState(""),
     [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
@@ -26,7 +33,7 @@ export function Chat({
     setEntries([]);
     setBusy(false);
     return () => controller.current?.abort();
-  }, [scope, basis]);
+  }, [scope, basis, runtime, agentId, selection]);
   async function send() {
     if (!message.trim() || !consent) return;
     const c = new AbortController();
@@ -37,11 +44,28 @@ export function Chat({
     setEntries((e) => [...e, { role: "Você", text: question }]);
     try {
       await api.ask(
-        { message: question, scope, basis, consent: true },
+        {
+          message: question,
+          scope,
+          basis,
+          consent: true,
+          runtime,
+          agentId: runtime === "agent" ? agentId : undefined,
+          selection,
+        },
         (e) => {
           if (c.signal.aborted) return;
           if (e.type === "text")
-            setEntries((x) => [...x, { role: "Copilot", text: e.text }]);
+            setEntries((x) => [
+              ...x,
+              {
+                role:
+                  runtime === "copilot"
+                    ? "Copilot"
+                    : agents.find((a) => a.id === agentId)?.name || "Agente",
+                text: e.text,
+              },
+            ]);
           if (e.type === "error")
             setEntries((x) => [...x, { role: "Aviso", text: e.message }]);
           if (e.type === "result" && "totals" in e.result)
@@ -68,11 +92,47 @@ export function Chat({
   }
   return (
     <>
+      <div className="toolbar">
+        <label>
+          Assistente do chat
+          <select
+            value={runtime}
+            onChange={(e) => setRuntime(e.target.value as any)}
+          >
+            <option value="copilot">Copilot local</option>
+            <option value="agent">Agente cadastrado</option>
+          </select>
+        </label>
+        {runtime === "agent" && (
+          <label>
+            Agente cadastrado
+            <select
+              aria-label="Agente cadastrado"
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+            >
+              <option value="">Selecione</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <small>
+          Fonte:{" "}
+          {selection?.source === "mcp" ? "MCP selecionado" : "APIs Azure"}
+        </small>
+      </div>
       <div className="section-head">
         <div>
           <h2>Converse com seus custos</h2>
           <p>
-            GitHub Copilot local · consultas de leitura no escopo selecionado
+            {runtime === "copilot"
+              ? "GitHub Copilot local"
+              : "Agente executado no serviço local"}{" "}
+            · consultas de leitura no escopo selecionado
           </p>
         </div>
         <button
@@ -143,11 +203,13 @@ export function Chat({
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
           />
-          Autorizo enviar o contexto necessário ao GitHub Copilot
+          {runtime === "copilot"
+            ? "Autorizo enviar o contexto necessário ao GitHub Copilot"
+            : "Autorizo enviar o contexto necessário ao provedor do agente"}
         </label>
         <p className="fine">
           Nomes de recursos e valores consultados podem ser enviados à GitHub.
-          As políticas e o consumo da sua assinatura Copilot se aplicam.
+          As políticas e o consumo do provedor selecionado se aplicam.
         </p>
         <label className="sr-only" htmlFor="question">
           Sua pergunta
@@ -165,7 +227,13 @@ export function Chat({
           </small>
           <button
             className="primary"
-            disabled={!consent || !message.trim() || busy || !scope}
+            disabled={
+              !consent ||
+              !message.trim() ||
+              busy ||
+              !scope ||
+              (runtime === "agent" && (!agentId || !selection))
+            }
             onClick={send}
           >
             {busy ? "Consultando…" : "Enviar pergunta"}

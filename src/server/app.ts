@@ -19,19 +19,57 @@ import {
 } from "../shared/contracts.js";
 import { AppError } from "./errors.js";
 import { CopilotChat } from "./chat/copilot.js";
-export type AppDeps = { config?: Config; store?: SessionStore; http?: ArmHttp };
+import { ConfigStore } from "./storage/config-store.js";
+import { SecretStore } from "./storage/secret-store.js";
+import { AccessService } from "./connections/access-service.js";
+import { Invalidation } from "./connections/invalidation.js";
+import { ApplicationProvider } from "./auth/application-provider.js";
+import { IdentityProvider } from "./auth/identity-provider.js";
+import { McpRegistry } from "./mcp/registry.js";
+import { AgentService } from "./agents/service.js";
+import { LocalAgentRuntime } from "./agents/runtime.js";
+import { registerConnectionRoutes } from "./connections/routes.js";
+import { selectionSchema } from "../shared/connections.js";
+import { assertApiSelection } from "./connections/data-provider.js";
+export type AppDeps = {
+  config?: Config;
+  store?: SessionStore;
+  http?: ArmHttp;
+  configStore?: ConfigStore;
+};
 export async function buildApp(deps: AppDeps = {}) {
   const config = deps.config || readConfig(),
     store = deps.store || new SessionStore(),
     identity = new MicrosoftIdentity(store, config);
-  const http = deps.http || new ArmHttp((ctx) => identity.getArmToken(ctx)),
+  const saved = deps.configStore || new ConfigStore(),
+    vault = new SecretStore(saved.root),
+    gate = new Invalidation(saved),
+    accesses = new AccessService(saved, vault, gate),
+    identities = new IdentityProvider(
+      new ApplicationProvider(accesses, vault),
+      accesses,
+      gate,
+      store,
+      config,
+      identity,
+    ),
+    mcps = new McpRegistry(saved, vault, accesses, gate, identities),
+    agents = new AgentService(saved, vault, gate);
+  const http = deps.http || new ArmHttp((ctx) => identities.getToken(ctx)),
     inventory = new Inventory(http),
     costs = new AzureCosts(http),
     budgets = new Budgets(http),
     benefits = new Benefits(http);
   const app = Fastify({ logger: false, bodyLimit: 32000 });
   await app.register(cookie);
-  const chat = new CopilotChat({ inventory, costs, budgets, benefits });
+  const chat = new CopilotChat({ inventory, costs, budgets, benefits }, mcps);
+  const localAgents = new LocalAgentRuntime(
+    { inventory, costs, budgets, benefits },
+    vault,
+    identities,
+    gate,
+    mcps,
+  );
   const session = (request: any): Session => {
     const s = store.get(request.cookies.sid);
     if (!s)
@@ -47,6 +85,9 @@ export async function buildApp(deps: AppDeps = {}) {
     if (!s.userId)
       throw new AppError("unauthenticated", "Entre com Microsoft.", 401);
     return {
+      principalKind: s.principalKind || "user",
+      accessId: s.accessId,
+      configurationVersion: s.accessVersion,
       sessionId: s.id,
       userId: s.userId,
       tenantId: s.tenantId,
@@ -126,6 +167,16 @@ export async function buildApp(deps: AppDeps = {}) {
           );
     return reply.status(e.status).send({ code: e.code, message: e.message });
   });
+  registerConnectionRoutes(app, {
+    accesses,
+    identity: identities,
+    mcps,
+    agents,
+    vault,
+    session,
+    context,
+    setCookie,
+  });
   app.get("/api/health", async () => ({ ok: true }));
   app.get("/api/bootstrap", async (req, reply) => {
     let s = store.get(req.cookies.sid);
@@ -136,8 +187,10 @@ export async function buildApp(deps: AppDeps = {}) {
     }
     return {
       csrf: s.csrf,
+      activeAccessId: s.accessId,
+      principalKind: s.principalKind,
       authenticated: !!s.userId,
-      tenantId: config.tenantId,
+      tenantId: s.userId ? s.tenantId : config.tenantId,
       clientId: config.clientId,
       configured: !!config.tenantId && !!config.clientId,
       loginError: s.loginError,
@@ -182,7 +235,11 @@ export async function buildApp(deps: AppDeps = {}) {
       const q = z
         .object({ state: z.string(), code: z.string() })
         .parse(req.query);
-      const id = await identity.finish(req.cookies.sid || "", q.state, q.code);
+      const id = await identities.finish(
+        req.cookies.sid || "",
+        q.state,
+        q.code,
+      );
       setCookie(reply, id);
       return reply.redirect("/auth/complete");
     } catch (error) {
@@ -205,6 +262,8 @@ export async function buildApp(deps: AppDeps = {}) {
   });
   app.post("/api/auth/logout", async (req, reply) => {
     const s = session(req);
+    await mcps.closeSession(s.id);
+    identities.applications.clear();
     costs.clear(s.id);
     store.remove(s.id);
     reply.clearCookie("sid", { path: "/" });
@@ -222,6 +281,12 @@ export async function buildApp(deps: AppDeps = {}) {
     return inventory.listResourceGroups(context(req), q.subscriptionId);
   });
   app.post("/api/costs/query", async (req) => {
+    if (req.headers["x-data-source"] === "mcp")
+      assertApiSelection({
+        accessId: context(req).accessId || "",
+        source: "mcp",
+        mcpConnectionId: String(req.headers["x-mcp-connection"] || ""),
+      });
     const query = costQuerySchema.parse(req.body),
       ctx = context(req);
     await inventory.authorize(ctx, query.scope);
@@ -229,6 +294,12 @@ export async function buildApp(deps: AppDeps = {}) {
     return current;
   });
   app.post("/api/costs/compare", async (req) => {
+    if (req.headers["x-data-source"] === "mcp")
+      assertApiSelection({
+        accessId: context(req).accessId || "",
+        source: "mcp",
+        mcpConnectionId: String(req.headers["x-mcp-connection"] || ""),
+      });
     const query = costQuerySchema.parse(req.body),
       ctx = context(req);
     await inventory.authorize(ctx, query.scope);
@@ -251,12 +322,24 @@ export async function buildApp(deps: AppDeps = {}) {
     };
   });
   app.post("/api/budgets/query", async (req) => {
+    if (req.headers["x-data-source"] === "mcp")
+      assertApiSelection({
+        accessId: context(req).accessId || "",
+        source: "mcp",
+        mcpConnectionId: String(req.headers["x-mcp-connection"] || ""),
+      });
     const scope = scopeSchema.parse(req.body),
       ctx = context(req);
     await inventory.authorize(ctx, scope);
     return budgets.getBudgets(ctx, scope);
   });
   app.post("/api/benefits/query", async (req) => {
+    if (req.headers["x-data-source"] === "mcp")
+      assertApiSelection({
+        accessId: context(req).accessId || "",
+        source: "mcp",
+        mcpConnectionId: String(req.headers["x-mcp-connection"] || ""),
+      });
     const b = z
         .object({
           scope: scopeSchema,
@@ -275,6 +358,9 @@ export async function buildApp(deps: AppDeps = {}) {
     const ctx = context(req);
     const input = z
       .object({
+        runtime: z.enum(["copilot", "agent"]).default("copilot"),
+        agentId: z.string().uuid().optional(),
+        selection: selectionSchema.optional(),
         message: z.string().min(1).max(4000),
         scope: scopeSchema.optional(),
         basis: z.enum(["ActualCost", "AmortizedCost"]),
@@ -297,11 +383,24 @@ export async function buildApp(deps: AppDeps = {}) {
         reply.raw.write(JSON.stringify(event) + "\n");
     };
     try {
-      await chat.ask(
-        { ...ctx, signal: AbortSignal.any([ctx.signal, controller.signal]) },
-        input,
-        emit,
-      );
+      if (input.runtime === "agent") {
+        if (!input.agentId || !input.selection)
+          throw new AppError(
+            "invalid_request",
+            "Selecione um agente e acesso.",
+          );
+        await localAgents.ask(
+          { ...ctx, signal: AbortSignal.any([ctx.signal, controller.signal]) },
+          await agents.get(input.agentId),
+          { ...input, selection: input.selection },
+          emit,
+        );
+      } else
+        await chat.ask(
+          { ...ctx, signal: AbortSignal.any([ctx.signal, controller.signal]) },
+          input,
+          emit,
+        );
     } catch (e) {
       emit({
         type: "error",
@@ -318,6 +417,7 @@ export async function buildApp(deps: AppDeps = {}) {
   });
   app.addHook("onClose", async () => {
     store.clear();
+    await mcps.close();
     await chat.close();
   });
   return Object.assign(app, {

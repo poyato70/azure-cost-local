@@ -1,2 +1,38 @@
-import {it,expect} from 'vitest';import {mkdtemp} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {ConfigStore} from '../../src/server/storage/config-store.js';import {SecretStore} from '../../src/server/storage/secret-store.js';import {AccessService} from '../../src/server/connections/access-service.js';import {Invalidation} from '../../src/server/connections/invalidation.js';
-it('rotates credentials, rejects stale edits and aborts old configuration',async()=>{const root=await mkdtemp(join(tmpdir(),'azure-cost-access-')),store=new ConfigStore(root),gate=new Invalidation(store),service=new AccessService(store,new SecretStore(root),gate);const data={name:'A',tenantId:'11111111-1111-4111-8111-111111111111',clientId:'22222222-2222-4222-8222-222222222222',preferredMode:'application'};const a=await service.save(data);const revisions=await gate.capture(['access:'+a.id]);const c=new AbortController();gate.watch(revisions,c);const b=await service.save({...data,id:a.id,expectedVersion:1,secretAction:{kind:'replace',value:'synthetic-rotate'}});expect(b.credentialVersion).toBe(2);expect(c.signal.aborted).toBe(true);await expect(gate.assertCurrent(revisions)).rejects.toMatchObject({code:'configuration_changed'});await expect(service.save({...data,id:a.id,expectedVersion:1})).rejects.toMatchObject({status:409});});
+import { it, expect } from "vitest";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { ConfigStore } from "../../src/server/storage/config-store.js";
+import { SecretStore } from "../../src/server/storage/secret-store.js";
+import { AccessService } from "../../src/server/connections/access-service.js";
+import { Invalidation } from "../../src/server/connections/invalidation.js";
+it("rotates credentials, rejects stale edits and aborts old configuration", async () => {
+  const root = await mkdtemp(join(tmpdir(), "azure-cost-access-")),
+    store = new ConfigStore(root),
+    gate = new Invalidation(store),
+    service = new AccessService(store, new SecretStore(root), gate);
+  const data = {
+    name: "A",
+    tenantId: "11111111-1111-4111-8111-111111111111",
+    clientId: "22222222-2222-4222-8222-222222222222",
+    preferredMode: "application",
+  };
+  const a = await service.save(data);
+  const revisions = await gate.capture(["access:" + a.id]);
+  const c = new AbortController();
+  gate.watch(revisions, c);
+  const b = await service.save({
+    ...data,
+    id: a.id,
+    expectedVersion: 1,
+    secretAction: { kind: "replace", value: "synthetic-rotate" },
+  });
+  expect(b.credentialVersion).toBe(2);
+  expect(c.signal.aborted).toBe(true);
+  await expect(gate.assertCurrent(revisions)).rejects.toMatchObject({
+    code: "configuration_changed",
+  });
+  await expect(
+    service.save({ ...data, id: a.id, expectedVersion: 1 }),
+  ).rejects.toMatchObject({ status: 409 });
+});

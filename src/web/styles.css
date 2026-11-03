@@ -879,3 +879,122 @@ pre {
     font-size: 25px;
   }
 }
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 28px;
+}
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: #f8faf5;
+  border: 1px solid #e2e8dc;
+  border-radius: 9px;
+}
+.settings-form small {
+  font-size: 10px;
+  color: #7d8d73;
+  line-height: 1.7;
+}
+.config-card {
+  padding: 20px;
+  border: 1px solid #e0e7d9;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  overflow-wrap: anywhere;
+}
+.config-card p {
+  font-size: 12px;
+  color: #6e7f66;
+}
+.config-card small {
+  color: #819275;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 15px;
+}
+.actions button {
+  font-size: 10px;
+  padding: 8px 10px;
+}
+.connection-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  background: #eaf0e4;
+  border: 1px solid #dce5d4;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.connection-toolbar label {
+  font-size: 10px;
+  min-width: 130px;
+  flex: 1;
+}
+.connection-toolbar button {
+  font-size: 11px;
+}
+.connection-toolbar small {
+  width: 100%;
+  color: #7a8d70;
+  font-size: 10px;
+}
+.tool-review {
+  margin-top: 24px;
+  border-top: 1px solid #e1e8d9;
+  padding-top: 20px;
+}
+.tool-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border-bottom: 1px solid #edf0e7;
+}
+.tool-row input {
+  width: 15px;
+}
+.tool-row small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  max-width: 800px;
+  font-weight: 400;
+}
+.tool-review pre {
+  max-height: 350px;
+  overflow: auto;
+  padding: 12px;
+  background: #f5f7f0;
+}
+.settings-form fieldset {
+  border: 1px solid #dce5d5;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.settings-form legend {
+  font-size: 11px;
+  color: #708467;
+}
+.limits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 1000px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}

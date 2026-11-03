@@ -48,3 +48,8 @@ Diagnóstico ampliado para identificadores MSAL/Node seguros fora da lista anter
 A implementação enviava nonce em getAuthCodeUrl, mas omitia o mesmo nonce em acquireTokenByCode. O MSAL Node 7.1.2 instalado valida presença e correspondência ao processar o ID token; seu código local mostrou a rejeição quando o token contém nonce mas nenhum valor esperado foi fornecido. Corrigido passando o nonce original armazenado no fluxo para acquireTokenByCode. Preservadas validações de nonce, state, PKCE e tenant.
 
 Teste de regressão reproduziu nonce_mismatch antes da correção e passou depois. Outro teste garante rejeição de nonce diferente, sem autenticar sessão. Após a correção: 25 testes passaram, typecheck e build passaram, serviço reiniciado. A confirmação de login real requer nova tentativa do usuário; nenhum código anterior foi reproduzido.
+
+
+## Ampliação de 03/11/2026
+
+Veja [conexões e agentes](connections-validation.md) para o estado atual: 42 testes de serviço e oito testes Edge; identidades salvas, Secrets DPAPI, MCPs e agente local. Os registros acima descrevem a versão anterior. O roteiro de instalação/migração está em [migration-windows.md](migration-windows.md). Publicação privada no GitHub autorizada pelo usuário em 03/11/2026; integração com contas reais continua pendente.

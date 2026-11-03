@@ -49,6 +49,7 @@ export class MicrosoftIdentity {
   constructor(
     private store: SessionStore,
     private config: Config,
+    private options: { scopes?: string[]; pca?: PublicClientApplication } = {},
   ) {}
   async begin() {
     if (!this.config.clientId || !this.config.tenantId)
@@ -58,20 +59,22 @@ export class MicrosoftIdentity {
       );
     const id = this.store.create("", this.config.tenantId),
       s = this.store.get(id)!;
-    s.pca = new PublicClientApplication({
-      auth: {
-        clientId: this.config.clientId,
-        authority: `https://login.microsoftonline.com/${this.config.tenantId}`,
-      },
-      system: {
-        loggerOptions: { piiLoggingEnabled: false, loggerCallback: () => {} },
-      },
-    });
+    s.pca =
+      this.options.pca ||
+      new PublicClientApplication({
+        auth: {
+          clientId: this.config.clientId,
+          authority: `https://login.microsoftonline.com/${this.config.tenantId}`,
+        },
+        system: {
+          loggerOptions: { piiLoggingEnabled: false, loggerCallback: () => {} },
+        },
+      });
     const f = this.flows.start(id);
     return {
       id,
       url: await s.pca.getAuthCodeUrl({
-        scopes,
+        scopes: this.options.scopes || scopes,
         redirectUri: this.config.origin + "/api/auth/callback",
         codeChallenge: f.challenge,
         codeChallengeMethod: "S256",
@@ -93,7 +96,7 @@ export class MicrosoftIdentity {
     const result = await s.pca
       .acquireTokenByCode({
         code,
-        scopes,
+        scopes: this.options.scopes || scopes,
         redirectUri: this.config.origin + "/api/auth/callback",
         codeVerifier: f.verifier,
         nonce: f.nonce,

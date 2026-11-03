@@ -9,7 +9,29 @@ import type {
   ChatEvent,
 } from "../shared/contracts.js";
 let csrf = "";
+let dataSource: { source: "api" | "mcp"; mcpConnectionId?: string } = {
+  source: "api",
+};
+export function selectDataSource(value: typeof dataSource) {
+  dataSource = value;
+}
+export async function manageRequest<T = any>(
+  path: string,
+  method = "GET",
+  body?: unknown,
+): Promise<T> {
+  const r = await fetch("/api" + path, {
+    method,
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const result = await r.json();
+  if (!r.ok) throw new Error(result.message || "A operação falhou.");
+  return result;
+}
 export type Bootstrap = {
+  activeAccessId?: string;
+  principalKind?: "user" | "application";
   loginError?: { code: string; message: string };
   csrf: string;
   authenticated: boolean;
@@ -29,7 +51,12 @@ async function request<T>(
     headers:
       body === undefined
         ? {}
-        : { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+        : {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrf,
+            "X-Data-Source": dataSource.source,
+            "X-Mcp-Connection": dataSource.mcpConnectionId || "",
+          },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
   });
@@ -77,6 +104,9 @@ export const api = {
       scope?: Scope;
       basis: CostQuery["basis"];
       consent: true;
+      runtime?: "copilot" | "agent";
+      agentId?: string;
+      selection?: import("../shared/connections.js").DataSelection;
     },
     emit: (e: ChatEvent) => void,
     signal?: AbortSignal,

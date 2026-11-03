@@ -22,11 +22,17 @@ import type {
   ChatEvent,
 } from "../../shared/contracts.js";
 import { resolveCopilotPath } from "./runtime.js";
+import type { McpRegistry } from "../mcp/registry.js";
+import type { DataSelection } from "../../shared/connections.js";
+import { z } from "zod";
 export class CopilotChat {
   private client?: CopilotClient;
   private starting?: Promise<CopilotClient>;
   private busy = new Set<string>();
-  constructor(private services: QueryServices) {}
+  constructor(
+    private services: QueryServices,
+    private mcps?: McpRegistry,
+  ) {}
   private async getClient() {
     if (this.client) return this.client;
     if (!this.starting)
@@ -70,7 +76,12 @@ export class CopilotChat {
   }
   async ask(
     ctx: RequestContext,
-    input: { message: string; scope?: Scope; basis: CostQuery["basis"] },
+    input: {
+      message: string;
+      scope?: Scope;
+      basis: CostQuery["basis"];
+      selection?: DataSelection;
+    },
     emit: (e: ChatEvent) => void,
   ) {
     ensureQuestionScope(input.message, input.scope);
@@ -96,7 +107,7 @@ export class CopilotChat {
           "Entre primeiro no Copilot CLI.",
           401,
         );
-      const tool = defineTool("azure_query", {
+      let tool: any = defineTool("azure_query", {
         description:
           "Consulta somente o escopo selecionado no dashboard. Sem período usa dois meses civis completos anteriores. Operações: custos, comparação, budgets, Reservations e Savings Plans.",
         parameters: toolParameters,
@@ -123,14 +134,59 @@ export class CopilotChat {
           return JSON.stringify(result);
         },
       });
+      if (input.selection?.source === "mcp") {
+        const id = input.selection.mcpConnectionId;
+        if (!id || !this.mcps)
+          throw new AppError("invalid_request", "Selecione uma conexão MCP.");
+        tool = defineTool("mcp_query", {
+          description:
+            "Descobrir ferramentas de leitura aprovadas e consultar o MCP selecionado. operation list descobre schemas; call executa somente ferramenta aprovada.",
+          parameters: z
+            .object({
+              operation: z.enum(["list", "call"]),
+              name: z.string().optional(),
+              arguments: z.record(z.string(), z.unknown()).optional(),
+            })
+            .strict(),
+          skipPermission: true,
+          handler: async (args) => {
+            assertActive(localCtx.signal);
+            if (++calls > 10)
+              throw new AppError(
+                "limit_exceeded",
+                "Limite de consultas atingido.",
+              );
+            if (args.operation === "list")
+              return JSON.stringify(
+                (await this.mcps!.tools(localCtx, id)).filter(
+                  (t) => t.reviewable && t.approved,
+                ),
+              );
+            if (!args.name)
+              throw new AppError(
+                "invalid_request",
+                "Ferramenta não informada.",
+              );
+            return JSON.stringify(
+              await this.mcps!.call(
+                localCtx,
+                id,
+                args.name,
+                args.arguments || {},
+              ),
+            );
+          },
+        });
+      }
+      const allowedName = tool.name;
       session = await client.createSession(restrictedSessionConfig([tool]));
       await session.rpc.tools.initializeAndValidate();
       const metadata = await session.rpc.tools.getCurrentMetadata();
       const items = (metadata as any).tools;
       if (
         !Array.isArray(items) ||
-        items.some((x: any) => x.name !== "azure_query") ||
-        !items.some((x: any) => x.name === "azure_query")
+        items.some((x: any) => x.name !== allowedName) ||
+        !items.some((x: any) => x.name === allowedName)
       )
         throw new AppError(
           "forbidden",

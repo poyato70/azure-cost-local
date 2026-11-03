@@ -1,3 +1,4 @@
+import { finopsTemplate } from "../../server/agents/finops-template.js";
 import { useState } from "react";
 import type {
   PublicAgent,
@@ -58,6 +59,8 @@ export function Agents({
   }
   return (
     <>
+      <button onClick={()=>{setForm({...fresh,...finopsTemplate()});setToolNames("azure_query, finops_hub");setKey("");setKeyAction("keep");}}>Usar perfil Analista FinOps</button>
+      {form.templateSource && <p>Perfil {form.templateSource.id} · versão {form.templateSource.version} · adaptação rastreável Microsoft FinOps Toolkit / Awesome Copilot</p>}
       <div className="section-head">
         <div>
           <h2>Agentes locais</h2>

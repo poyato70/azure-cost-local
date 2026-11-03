@@ -1,3 +1,4 @@
+import { finopsTemplate } from "./finops-template.js";
 import { randomUUID } from "node:crypto";
 import {
   agentInput,
@@ -105,6 +106,7 @@ export class AgentService {
         const { keyAction, expectedVersion, modelCredential, ...fields } = v;
         saved = {
           ...fields,
+          templateSource: fields.templateSource ? {...finopsTemplate().templateSource, customized:fields.instructions !== finopsTemplate().instructions} : undefined,
           id: old?.id || randomUUID(),
           configurationVersion: (old?.configurationVersion || 0) + 1,
           modelCredential:

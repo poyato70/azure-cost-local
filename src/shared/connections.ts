@@ -67,6 +67,7 @@ export const agentInput = z
     name,
     description: z.string().max(2000).default(""),
     instructions: z.string().max(12000).default(""),
+    templateSource: z.object({id:z.literal("finops-analyst"),version:z.literal("1"),customized:z.boolean(),sources:z.array(z.object({url:z.string().url(),license:z.string(),attribution:z.string()})).max(10)}).optional(),
     provider: z.literal("azure-chat-v1"),
     endpoint: z.string().max(2048),
     model: z.string().min(1).max(200),

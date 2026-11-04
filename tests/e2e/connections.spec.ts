@@ -99,3 +99,82 @@ test("exposes the independent agent selector and MCP configuration", async ({
     "https://api.fabric.microsoft.com/v1/mcp/powerbi",
   );
 });
+
+test("shows application connection feedback beneath the selected access buttons", async ({
+  page,
+}) => {
+  let fail = false;
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/connect")) {
+      await route.fulfill({
+        status: fail ? 403 : 200,
+        json: fail
+          ? { message: "Sem permissão para conectar este acesso." }
+          : { connected: true },
+      });
+      return;
+    }
+    let json: any = [];
+    if (path === "/api/bootstrap")
+      json = {
+        csrf: "test",
+        authenticated: false,
+        configured: false,
+        tenantId,
+        clientId,
+        period: {
+          from: "2026-09-01",
+          toExclusive: "2026-11-01",
+          timeZone: "America/Sao_Paulo",
+        },
+      };
+    if (path === "/api/accesses")
+      json = [
+        {
+          id: clientId,
+          name: "Aplicação de teste",
+          tenantId,
+          clientId,
+          preferredMode: "application",
+          secretConfigured: true,
+          configurationVersion: 1,
+          credentialVersion: 1,
+        },
+      ];
+    await route.fulfill({ json });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Acessos", exact: true }).click();
+  const card = page
+    .locator("article")
+    .filter({
+      has: page.getByRole("heading", {
+        name: "Aplicação de teste",
+        exact: true,
+      }),
+    });
+  await card
+    .getByRole("button", { name: "Conectar aplicação", exact: true })
+    .click();
+  const confirmation = card.getByRole("status");
+  await expect(confirmation).toHaveText("Aplicação conectada com sucesso.");
+  await expect(
+    page.getByText("Aplicação conectada com sucesso.", { exact: true }),
+  ).toHaveCount(1);
+  const actions = await card.locator(".actions").boundingBox(),
+    feedback = await confirmation.boundingBox();
+  expect(feedback!.y).toBeGreaterThanOrEqual(actions!.y + actions!.height);
+  await page.screenshot({
+    path: "test-results/access-connection-feedback.png",
+    fullPage: true,
+  });
+  fail = true;
+  await card
+    .getByRole("button", { name: "Conectar aplicação", exact: true })
+    .click();
+  await expect(card.getByRole("alert")).toHaveText(
+    "Sem permissão para conectar este acesso.",
+  );
+  await expect(card.getByRole("status")).toHaveCount(0);
+});

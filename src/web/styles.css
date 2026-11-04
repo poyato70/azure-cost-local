@@ -998,3 +998,25 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+.config-card .access-feedback {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border-left: 4px solid #27694f;
+  background: #e7f3eb;
+  color: #174b35;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.config-card .access-feedback.pending {
+  background: #eef3f5;
+  color: #294e61;
+  border-color: #47758c;
+}
+.config-card .access-feedback.error {
+  background: #fff0ec;
+  color: #8b3023;
+  border-color: #b94834;
+}

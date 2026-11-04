@@ -12,7 +12,13 @@ export function Accesses({
   profiles,
   onChanged,
   onConnect,
+  connectionFeedback,
 }: {
+  connectionFeedback?: {
+    id: string;
+    kind: "pending" | "success" | "error";
+    message: string;
+  };
   profiles: PublicAccessProfile[];
   onChanged: () => void;
   onConnect: (id: string, mode: "user" | "application") => void;
@@ -193,7 +199,11 @@ export function Accesses({
                   Conectar usuário
                 </button>
                 <button
-                  disabled={busy || !p.secretConfigured}
+                  disabled={
+                    busy ||
+                    connectionFeedback?.kind === "pending" ||
+                    !p.secretConfigured
+                  }
                   onClick={() => onConnect(p.id, "application")}
                 >
                   Conectar aplicação
@@ -232,6 +242,16 @@ export function Accesses({
                   Excluir
                 </button>
               </div>
+              {connectionFeedback?.id === p.id && (
+                <p
+                  className={"access-feedback " + connectionFeedback.kind}
+                  role={
+                    connectionFeedback.kind === "error" ? "alert" : "status"
+                  }
+                >
+                  {connectionFeedback.message}
+                </p>
+              )}
             </article>
           ))}
         </div>

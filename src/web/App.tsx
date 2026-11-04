@@ -30,6 +30,11 @@ const tabs = [
   { id: "chat", label: "Chat", icon: "✳" },
 ];
 export function App() {
+  const [connectionFeedback, setConnectionFeedback] = useState<{
+    id: string;
+    kind: "pending" | "success" | "error";
+    message: string;
+  }>();
   const [hubId, setHubId] = useState("");
   const [accesses, setAccesses] = useState<PublicAccessProfile[]>([]),
     [mcpProfiles, setMcpProfiles] = useState<any[]>([]),
@@ -151,20 +156,41 @@ export function App() {
   async function connect(
     accessId?: string,
     mode: "user" | "application" = "user",
+    inline = false,
   ) {
     if (accessId && mode === "application") {
       setError("");
+      setInfo("");
+      if (inline)
+        setConnectionFeedback({
+          id: accessId,
+          kind: "pending",
+          message: "Conectando aplicação…",
+        });
       try {
         await manageRequest("/accesses/" + accessId + "/connect", "POST", {
           mode,
         });
         const b = await api.bootstrap();
         setBoot(b);
-        setInfo(
-          "Identidade de aplicação conectada. Nenhum login de usuário foi solicitado.",
-        );
+        if (inline)
+          setConnectionFeedback({
+            id: accessId,
+            kind: "success",
+            message: "Aplicação conectada com sucesso.",
+          });
+        else
+          setInfo(
+            "Identidade de aplicação conectada. Nenhum login de usuário foi solicitado.",
+          );
       } catch (e) {
-        setError((e as Error).message);
+        if (inline)
+          setConnectionFeedback({
+            id: accessId,
+            kind: "error",
+            message: (e as Error).message,
+          });
+        else setError((e as Error).message);
       }
       return;
     }
@@ -532,7 +558,8 @@ export function App() {
               <Accesses
                 profiles={accesses}
                 onChanged={() => void reloadSettings()}
-                onConnect={(id, mode) => void connect(id, mode)}
+                connectionFeedback={connectionFeedback}
+                onConnect={(id, mode) => void connect(id, mode, true)}
               />
             )}
             {tab === "mcps" && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { PublicAccessProfile } from "../../shared/connections.js";
 import { manageRequest } from "../api.js";
 const initial = {
@@ -27,7 +27,15 @@ export function Accesses({
     [action, setAction] = useState("keep"),
     [secret, setSecret] = useState(""),
     [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [testFeedback, setTestFeedback] = useState<{
+      id: string;
+      kind: "pending" | "success" | "error";
+      message: string;
+    }>();
+  useEffect(() => {
+    setTestFeedback(undefined);
+  }, [connectionFeedback]);
   const field = (name: string, value: string) =>
     setForm((f: any) => ({ ...f, [name]: value }));
   async function save() {
@@ -64,6 +72,26 @@ export function Accesses({
       onChanged();
     } catch (e) {
       setNotice((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function testSecret(id: string) {
+    setBusy(true);
+    setNotice("");
+    setTestFeedback({ id, kind: "pending", message: "Testando Secret…" });
+    try {
+      const r = await manageRequest("/accesses/" + id + "/test", "POST", {});
+      setTestFeedback({
+        id,
+        kind: "success",
+        message:
+          r.message ||
+          "Secret aceito. Permissões de dados serão verificadas na consulta.",
+      });
+      onChanged();
+    } catch (e) {
+      setTestFeedback({ id, kind: "error", message: (e as Error).message });
     } finally {
       setBusy(false);
     }
@@ -225,11 +253,7 @@ export function Accesses({
                 </button>
                 <button
                   disabled={busy || !p.secretConfigured}
-                  onClick={() =>
-                    void run(() =>
-                      manageRequest("/accesses/" + p.id + "/test", "POST", {}),
-                    )
-                  }
+                  onClick={() => void testSecret(p.id)}
                 >
                   Testar Secret
                 </button>
@@ -242,7 +266,15 @@ export function Accesses({
                   Excluir
                 </button>
               </div>
-              {connectionFeedback?.id === p.id && (
+              {testFeedback?.id === p.id && (
+                <p
+                  className={"access-feedback " + testFeedback.kind}
+                  role={testFeedback.kind === "error" ? "alert" : "status"}
+                >
+                  {testFeedback.message}
+                </p>
+              )}
+              {connectionFeedback?.id === p.id && testFeedback?.id !== p.id && (
                 <p
                   className={"access-feedback " + connectionFeedback.kind}
                   role={

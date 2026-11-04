@@ -106,6 +106,14 @@ test("shows application connection feedback beneath the selected access buttons"
   let fail = false;
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/test")) {
+      await route.fulfill({
+        json: {
+          message: "Secret aceito. Permissões serão verificadas na consulta.",
+        },
+      });
+      return;
+    }
     if (path.endsWith("/connect")) {
       await route.fulfill({
         status: fail ? 403 : 200,
@@ -146,14 +154,12 @@ test("shows application connection feedback beneath the selected access buttons"
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Acessos", exact: true }).click();
-  const card = page
-    .locator("article")
-    .filter({
-      has: page.getByRole("heading", {
-        name: "Aplicação de teste",
-        exact: true,
-      }),
-    });
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", {
+      name: "Aplicação de teste",
+      exact: true,
+    }),
+  });
   await card
     .getByRole("button", { name: "Conectar aplicação", exact: true })
     .click();
@@ -177,4 +183,18 @@ test("shows application connection feedback beneath the selected access buttons"
     "Sem permissão para conectar este acesso.",
   );
   await expect(card.getByRole("status")).toHaveCount(0);
+  await card
+    .getByRole("button", { name: "Testar Secret", exact: true })
+    .click();
+  const secretStatus = card.getByRole("status");
+  await expect(secretStatus).toHaveText(
+    "Secret aceito. Permissões serão verificadas na consulta.",
+  );
+  const secretBox = await secretStatus.boundingBox();
+  expect(secretBox!.y).toBeGreaterThanOrEqual(actions!.y + actions!.height);
+  await expect(
+    page.getByText("Secret aceito. Permissões serão verificadas na consulta.", {
+      exact: true,
+    }),
+  ).toHaveCount(1);
 });

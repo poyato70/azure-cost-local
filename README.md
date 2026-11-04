@@ -19,3 +19,5 @@ O modo normal usa APIs reais. Sem login, nenhuma despesa é inventada. Integraç
 [Analista FinOps e consulta Hub: uso e limites](docs/finops-hub-guide.md). Inclui comparação informativa com Cost Management e benefícios conforme datasets disponíveis.
 
 [MCP: formulário de tools, busca de subscriptions e diagnóstico](docs/mcp-usability-diagnostics.md).
+
+[Cost Management: ARM MCP oficial, APIs e opção de MCP próprio](docs/cost-management-mcp-options.md) — análise de 04/11/2026.

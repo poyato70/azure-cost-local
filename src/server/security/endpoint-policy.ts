@@ -20,10 +20,13 @@ for (const [a, n] of [
   ["fc00::", 7],
   ["fe80::", 10],
   ["ff00::", 8],
-  ["::ffff:0:0", 96],
 ] as const)
   privateIPs.addSubnet(a, n, "ipv6");
+const mappedIPs = new BlockList();
+mappedIPs.addSubnet("::ffff:0:0", 96, "ipv6");
 export function isPrivateAddress(ip: string) {
+  if (!isIP(ip)) return true;
+  if (isIP(ip) === 6 && mappedIPs.check(ip, "ipv6")) return true;
   return isIP(ip) === 4
     ? privateIPs.check(ip, "ipv4")
     : privateIPs.check(ip, "ipv6");

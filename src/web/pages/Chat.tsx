@@ -66,14 +66,20 @@ export function Chat({
                 text: e.text,
               },
             ]);
-          if (e.type === "hubEvidence" || e.type === "mcpEvidence")
+          if (
+            e.type === "hubEvidence" ||
+            e.type === "mcpEvidence" ||
+            e.type === "forecastEvidence"
+          )
             setEntries((x) => [
               ...x,
               {
                 role:
-                  e.type === "mcpEvidence"
-                    ? "Retorno MCP"
-                    : "Evidência FinOps hub",
+                  e.type === "forecastEvidence"
+                    ? "Previsão oficial Azure (não é gasto realizado)"
+                    : e.type === "mcpEvidence"
+                      ? "Retorno MCP"
+                      : "Evidência FinOps hub",
                 text: "Resultado do serviço, independente do texto do modelo",
                 evidence: e.result,
               },

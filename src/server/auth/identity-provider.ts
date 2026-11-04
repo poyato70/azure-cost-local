@@ -1,3 +1,4 @@
+import { resourceScopes } from "./resource-scopes.js";
 import type { RequestContext } from "../../shared/contracts.js";
 import type { AccessService } from "../connections/access-service.js";
 import type { Invalidation } from "../connections/invalidation.js";
@@ -26,7 +27,7 @@ export class IdentityProvider {
       this.sessions,
       { ...this.config, tenantId: p.tenantId, clientId: p.clientId },
       {
-        scopes: audience ? [audience + "/.default"] : undefined,
+        scopes: audience ? resourceScopes(audience) : undefined,
         pca:
           previous?.accessId === accessId && previous.principalKind === "user"
             ? previous.pca
@@ -113,7 +114,7 @@ export class IdentityProvider {
       return (
         await s.pca.acquireTokenSilent({
           account: s.account,
-          scopes: [audience + "/.default"],
+          scopes: resourceScopes(audience),
         })
       ).accessToken;
     } catch {

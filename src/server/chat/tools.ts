@@ -1,3 +1,4 @@
+import type { ForecastService } from "../forecast/service.js";
 import { z } from "zod";
 import type { SessionConfig, Tool } from "@github/copilot-sdk";
 import {
@@ -17,11 +18,13 @@ export type QueryServices = {
   costs: AzureCosts;
   budgets: Budgets;
   benefits: Benefits;
+  forecast?: ForecastService;
 };
 export const toolParameters = z
   .object({
     operation: z.enum([
       "costs",
+      "forecast",
       "compare",
       "budgets",
       "reservations",
@@ -54,6 +57,27 @@ export async function executeQuestionTool(
       "Selecione o resource group antes de consultar.",
     );
   await services.inventory.authorize(ctx, scope);
+  if (input.operation === "forecast") {
+    if (!services.forecast)
+      throw new AppError("unsupported", "Forecast indisponível.");
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(now);
+    const y = Number(parts.find((p) => p.type === "year")!.value),
+      m = Number(parts.find((p) => p.type === "month")!.value) - 1;
+    return services.forecast.query(ctx, {
+      scope,
+      basis,
+      includeActual: false,
+      period: input.period || {
+        from: new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10),
+        toExclusive: new Date(Date.UTC(y, m + 1, 1)).toISOString().slice(0, 10),
+        timeZone: "America/Sao_Paulo",
+      },
+    });
+  }
   if (input.operation === "budgets")
     return services.budgets.getBudgets(ctx, scope);
   if (input.operation === "reservations" || input.operation === "savingsPlans")

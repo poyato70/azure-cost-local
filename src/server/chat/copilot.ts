@@ -1,3 +1,4 @@
+import { assertArmChatScope } from "../mcp/arm-policy.js";
 import { emitHubEvidence } from "../hubs/evidence.js";
 import type { HubService } from "../hubs/service.js";
 import { hubOperation } from "../../shared/hubs.js";
@@ -116,7 +117,7 @@ export class CopilotChat {
         );
       let tool: any = defineTool("azure_query", {
         description:
-          "Consulta somente o escopo selecionado no dashboard. Sem período usa dois meses civis completos anteriores. Operações: custos, comparação, budgets, Reservations e Savings Plans.",
+          "Consulta somente o escopo selecionado no dashboard. Sem período usa dois meses civis completos anteriores. Operações: custos, previsão (forecast, padrão mês atual), comparação, budgets, Reservations e Savings Plans.",
         parameters: toolParameters,
         skipPermission: true,
         handler: async (args) => {
@@ -137,7 +138,9 @@ export class CopilotChat {
           );
           assertActive(localCtx.signal);
           const cost = result.current || result;
-          if (cost?.meta) emit({ type: "result", result: cost });
+          if (cost?.forecastTotals)
+            emit({ type: "forecastEvidence", result: cost });
+          else if (cost?.meta) emit({ type: "result", result: cost });
           return JSON.stringify(result);
         },
       });
@@ -145,6 +148,9 @@ export class CopilotChat {
         const id = input.selection.mcpConnectionId;
         if (!id || !this.mcps)
           throw new AppError("invalid_request", "Selecione uma conexão MCP.");
+        const profile = await this.mcps.get(id);
+        if (profile.preset === "arm")
+          assertArmChatScope(profile.resourceContext.scope || "", input.scope);
         tool = defineTool("mcp_query", {
           description:
             "Descobrir ferramentas de leitura aprovadas e consultar o MCP selecionado. operation list descobre schemas; call executa somente ferramenta aprovada.",

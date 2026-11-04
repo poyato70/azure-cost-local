@@ -1,3 +1,5 @@
+import { ForecastService } from "./forecast/service.js";
+import { forecastQuery } from "../shared/forecast.js";
 import { Diagnostics } from "./diagnostics/service.js";
 import { HubService } from "./hubs/service.js";
 import { registerHubRoutes } from "./hubs/routes.js";
@@ -62,7 +64,8 @@ export async function buildApp(deps: AppDeps = {}) {
     inventory = new Inventory(http),
     costs = new AzureCosts(http),
     budgets = new Budgets(http),
-    benefits = new Benefits(http);
+    benefits = new Benefits(http),
+    forecast = new ForecastService(http);
   const diagnostics = new Diagnostics();
   const app = Fastify({ logger: false, bodyLimit: 32000 });
   await app.register(cookie);
@@ -73,12 +76,12 @@ export async function buildApp(deps: AppDeps = {}) {
     benefits,
   });
   const chat = new CopilotChat(
-    { inventory, costs, budgets, benefits },
+    { inventory, costs, budgets, benefits, forecast },
     mcps,
     hubs,
   );
   const localAgents = new LocalAgentRuntime(
-    { inventory, costs, budgets, benefits },
+    { inventory, costs, budgets, benefits, forecast },
     vault,
     identities,
     gate,
@@ -385,6 +388,16 @@ export async function buildApp(deps: AppDeps = {}) {
       ctx = context(req);
     await inventory.authorize(ctx, scope);
     return budgets.getBudgets(ctx, scope);
+  });
+  app.post("/api/forecast/query", async (req) => {
+    const ctx = context(req);
+    assertApiSelection({
+      accessId: ctx.accessId || "",
+      source: req.headers["x-data-source"] === "mcp" ? "mcp" : "api",
+    });
+    const q = forecastQuery.parse(req.body);
+    await inventory.authorize(ctx, q.scope);
+    return forecast.query(ctx, q);
   });
   app.post("/api/benefits/query", async (req) => {
     if (req.headers["x-data-source"] === "mcp")

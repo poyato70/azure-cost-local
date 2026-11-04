@@ -1,3 +1,4 @@
+import { validArmScope } from "./arm-policy.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -59,6 +60,11 @@ export class McpRegistry {
   }
   async save(raw: unknown) {
     const v = mcpInput.parse(raw);
+    if (v.preset === "arm" && !validArmScope(v.resourceContext.scope || ""))
+      throw new AppError(
+        "invalid_request",
+        "ARM MCP requer scope da subscription/RG em Recursos autorizados.",
+      );
     if (v.transport === "http") {
       if (!v.endpoint)
         throw new AppError(
@@ -202,6 +208,8 @@ export class McpRegistry {
                 : await this.identity.getToken(ctx, audience);
             const headers = new Headers(options?.headers);
             headers.set("Authorization", "Bearer " + token);
+            if (p.preset === "arm")
+              headers.set("x-mcp-toolset", "CostManagement");
             return fetchBound(
               target,
               {
@@ -503,6 +511,13 @@ export class McpRegistry {
       connectionId: id,
       operation: name,
       result: safeToolResult(result),
+      ...(current.preset === "arm"
+        ? {
+            warnings: [
+              "Retorno ARM MCP bruto e potencialmente limitado; não representa automaticamente o total completo. Verifique limites e truncamento antes de somar linhas.",
+            ],
+          }
+        : {}),
     };
   }
 }

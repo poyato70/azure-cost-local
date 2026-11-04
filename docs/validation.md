@@ -63,3 +63,11 @@ Implementação descrita no [guia](finops-hub-guide.md): perfil rastreável, fon
 ## Usabilidade MCP e diagnóstico — 04/11/2026
 
 Formulário gerado do schema, lista/quantidade de tools, aprovação separada de permissão Azure, execução com retorno visível, busca de subscriptions por nome/ID e diagnóstico por sessão. 59 testes de serviço (26 arquivos) e 13 testes Edge passaram; typecheck/build passaram. A inspeção visual verificou formulário hierárquico e resultado de pricing_get sintético. Endpoint de diagnóstico validado em execução local (HTTP 200 e evento de rota). Em teste de carga paralela, o teste Windows DPAPI de acessos excedeu 5s; orçamento desse arquivo ajustado para 15s, compatível com o teste de storage existente. Sem alteração de lógica DPAPI. O histórico real anterior não foi reconstruído; conta Azure e consultas reais não foram reexecutadas nesta mudança. Veja [guia](mcp-usability-diagnostics.md).
+
+## Forecast e ARM MCP — 04/11/2026
+
+67 testes de serviço em 29 arquivos e 14 testes Edge passaram; typecheck e build passaram. O build mantém aviso de tamanho do bundle, sem falha de compilação. Uma revisão independente final não encontrou achados materiais. O teste de navegador usa respostas simuladas: confirma apresentação separada de Actual/Forecast e configuração do preset ARM, sem comprovar valores financeiros ou login Azure.
+
+Testes de serviço cobrem totais por moeda/estado, fim exclusivo, ausência de dados sem zero, rejeição de status desconhecido, paginação externa, escopo ARM, audience/permissão e transporte HTTP com initialize/list/call. Corrigida a classificação de rede que tratava IPv4 públicos como privados: a faixa IPv6 mapeada agora é checada separadamente; regressão mantém bloqueio de IPs privados, metadata e IPv4 mapeado em IPv6.
+
+Teste público real sem credenciais confirmou metadados ARM HTTP 200 e initialize anônimo HTTP 401. Não foi realizada consulta financeira autenticada. Serviço local reiniciado preservando os identificadores públicos configurados; /api/health respondeu 200 com ok=true. O usuário informou autorização Entra e foi orientado a concluir o popup e testar descoberta/leitura. Consulte [operação e limites](forecast-arm-operation.md).

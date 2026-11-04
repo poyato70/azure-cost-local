@@ -114,6 +114,7 @@ export type BenefitAnalysis = {
 };
 export type Subscription = { id: string; name: string; tenantId: string };
 export type ChatEvent =
+  | { type: "forecastEvidence"; result: import("./forecast.js").ForecastResult }
   | { type: "mcpEvidence"; result: unknown }
   | { type: "hubEvidence"; result: unknown }
   | { type: "text"; text: string }

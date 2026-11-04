@@ -10,6 +10,7 @@ import type {
 } from "../../shared/connections.js";
 import { manageRequest } from "../api.js";
 const defaults = {
+  arm: { endpoint: "https://mcp.management.azure.com", transport: "http" },
   azure: { endpoint: "", transport: "stdio" },
   adx: { endpoint: "", transport: "stdio" },
   foundry: { endpoint: "https://mcp.ai.azure.com", transport: "http" },
@@ -198,6 +199,16 @@ export function McpConnections({
           }}
         >
           <h3>{form.id ? "Editar MCP" : "Cadastrar MCP"}</h3>
+          {form.preset === "arm" && (
+            <p className="notice">
+              ARM MCP oficial (preview): use login de usuário e Autorizar
+              recurso para consentir MCP.Access. Endpoint e header
+              CostManagement são fixados pelo serviço. Em Recursos autorizados,
+              informe scope completo /subscriptions/ID ou
+              /subscriptions/ID/resourceGroups/NOME. Só leituras revisadas podem
+              ser liberadas; os cartões do dashboard continuam na API direta.
+            </p>
+          )}
           <label>
             Nome
             <input
@@ -224,15 +235,17 @@ export function McpConnections({
                 });
                 setContext(
                   JSON.stringify(
-                    preset === "adx"
-                      ? { clusterUri: "", database: "" }
-                      : preset === "powerbi"
-                        ? { modelId: "" }
-                        : preset === "fabric"
-                          ? { workspaceId: "" }
-                          : preset === "azure"
-                            ? { namespace: "pricing" }
-                            : {},
+                    preset === "arm"
+                      ? { scope: "" }
+                      : preset === "adx"
+                        ? { clusterUri: "", database: "" }
+                        : preset === "powerbi"
+                          ? { modelId: "" }
+                          : preset === "fabric"
+                            ? { workspaceId: "" }
+                            : preset === "azure"
+                              ? { namespace: "pricing" }
+                              : {},
                     null,
                     2,
                   ),
@@ -330,14 +343,16 @@ export function McpConnections({
               </small>
             </label>
           )}
-          {["adx", "powerbi", "fabric"].includes(form.preset) && (
+          {["adx", "powerbi", "fabric", "arm"].includes(form.preset) && (
             <fieldset>
               <legend>Recursos autorizados</legend>
-              {(form.preset === "adx"
-                ? ["clusterUri", "database", "tenant", "subscription"]
-                : form.preset === "powerbi"
-                  ? ["modelId", "workspaceId"]
-                  : ["workspaceId"]
+              {(form.preset === "arm"
+                ? ["scope"]
+                : form.preset === "adx"
+                  ? ["clusterUri", "database", "tenant", "subscription"]
+                  : form.preset === "powerbi"
+                    ? ["modelId", "workspaceId"]
+                    : ["workspaceId"]
               ).map((k) => (
                 <label key={k}>
                   {k}

@@ -1,3 +1,4 @@
+import { authorizeArmScope } from "./arm-policy.js";
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { McpProfile, ToolDescriptor } from "../../shared/connections.js";
@@ -57,6 +58,7 @@ export function reviewable(p: McpProfile, t: ToolDescriptor) {
   )
     return false;
   const patterns: Record<string, RegExp> = {
+    arm: /^(query_costs|forecast_costs|list_budgets|get_budget|list_dimensions)$/,
     azure:
       /^(?:azmcp_)?(?:subscription_list|group_list|pricing_get|advisor_recommendation_list|optimization_recommendation_(?:list|alternatives|explain))$/,
     adx: /^(?:azmcp_)?kusto_(?:(?:cluster|database|table)_(?:get|list)|query|query_execute)$/,
@@ -84,6 +86,10 @@ export function authorizeTool(
       "Ferramenta não aprovada ou schema alterado. Revise a conexão.",
       403,
     );
+  if (p.preset === "arm") {
+    authorizeArmScope(p.resourceContext.scope || "", args);
+    return args;
+  }
   const canonical = (k: string) =>
     k
       .replace(/[-_]/g, "")

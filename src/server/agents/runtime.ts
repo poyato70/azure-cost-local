@@ -1,3 +1,4 @@
+import { assertArmChatScope } from "../mcp/arm-policy.js";
 import { emitHubEvidence } from "../hubs/evidence.js";
 import type { HubService } from "../hubs/service.js";
 import { hubOperation } from "../../shared/hubs.js";
@@ -182,7 +183,7 @@ export class LocalAgentRuntime {
         tools.push({
           name: "azure_query",
           description:
-            "Consulta custos/budgets/benefícios no escopo selecionado. Dois últimos meses são meses civis completos anteriores.",
+            "Consulta custos/previsão/budgets/benefícios no escopo selecionado. Dois últimos meses são meses civis completos anteriores.",
           parameters: z.toJSONSchema(toolParameters) as any,
           call: async (args) => {
             assertApiSelection(input.selection);
@@ -203,7 +204,9 @@ export class LocalAgentRuntime {
                 operation: args.operation,
                 identityLabel: ctx.userId,
               };
-              emit({ type: "result", result: value });
+              if (value.forecastTotals)
+                emit({ type: "forecastEvidence", result: value });
+              else emit({ type: "result", result: value });
             }
             return result;
           },
@@ -264,6 +267,9 @@ export class LocalAgentRuntime {
             403,
           );
         const id = input.selection.mcpConnectionId;
+        const profile = await this.mcps.get(id);
+        if (profile.preset === "arm")
+          assertArmChatScope(profile.resourceContext.scope || "", input.scope);
         const descriptors = await this.mcps.tools(context, id);
         for (const [index, t] of descriptors.entries())
           if (

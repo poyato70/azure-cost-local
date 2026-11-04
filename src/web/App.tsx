@@ -1,3 +1,4 @@
+import { Forecast } from "./pages/Forecast.js";
 import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -27,6 +28,7 @@ const tabs = [
   { id: "hubs", label: "FinOps hub", icon: "◈" },
   { id: "costs", label: "Custos", icon: "◷" },
   { id: "benefits", label: "Compromissos", icon: "◇" },
+  { id: "forecast", label: "Forecast", icon: "↗" },
   { id: "budgets", label: "Budgets", icon: "▤" },
   { id: "diagnostics", label: "Diagnóstico", icon: "≡" },
   { id: "chat", label: "Chat", icon: "✳" },
@@ -544,7 +546,9 @@ export function App() {
             />
           )}
           {source === "mcp" &&
-            ["costs", "budgets", "benefits", "chat"].includes(tab) && (
+            ["costs", "forecast", "budgets", "benefits", "chat"].includes(
+              tab,
+            ) && (
               <section className="notice" role="status">
                 <strong>Fonte selecionada: servidor MCP.</strong>
                 <p>
@@ -603,6 +607,33 @@ export function App() {
                 accesses={accesses}
                 mcps={mcpProfiles}
                 onChanged={() => void reloadSettings()}
+              />
+            )}
+            {tab === "forecast" && (
+              <Forecast
+                key={boot?.activeAccessId + "|" + source}
+                scope={scope}
+                period={period}
+                basis={basis}
+                onMonth={() => {
+                  const parts = new Intl.DateTimeFormat("en-CA", {
+                    timeZone: "America/Sao_Paulo",
+                    year: "numeric",
+                    month: "2-digit",
+                  }).formatToParts(new Date());
+                  const y = Number(parts.find((p) => p.type === "year")!.value),
+                    m =
+                      Number(parts.find((p) => p.type === "month")!.value) - 1;
+                  setPeriod({
+                    from: new Date(Date.UTC(y, m, 1))
+                      .toISOString()
+                      .slice(0, 10),
+                    toExclusive: new Date(Date.UTC(y, m + 1, 1))
+                      .toISOString()
+                      .slice(0, 10),
+                    timeZone: "America/Sao_Paulo",
+                  });
+                }}
               />
             )}
             {tab === "costs" && (

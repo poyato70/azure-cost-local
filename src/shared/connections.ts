@@ -37,7 +37,7 @@ export const mcpInput = z
     id: id.optional(),
     expectedVersion: z.number().int().positive().optional(),
     name,
-    preset: z.enum(["azure", "adx", "foundry", "fabric", "powerbi"]),
+    preset: z.enum(["azure", "adx", "foundry", "fabric", "powerbi", "arm"]),
     transport: z.enum(["stdio", "http"]),
     endpoint: z.string().max(2048).optional(),
     accessId: id.optional(),

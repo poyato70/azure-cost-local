@@ -1,6 +1,14 @@
+import { ARM_MCP_AUDIENCE } from "../auth/resource-scopes.js";
 import { AppError } from "../errors.js";
 import type { McpProfile, CapabilityRecord } from "../../shared/connections.js";
 export const presets = [
+  {
+    id: "arm",
+    name: "Azure Resource Manager — Cost Management (preview)",
+    endpoint: "https://mcp.management.azure.com",
+    namespace: "",
+    audience: ARM_MCP_AUDIENCE,
+  },
   {
     id: "azure",
     name: "Microsoft Azure",
@@ -63,6 +71,14 @@ export function capability(
     reason =
       "O Foundry MCP remoto usa fluxo delegado/OBO; Client Secret não é presumido como suporte a autenticação app-only.";
   }
+  if (
+    p.preset === "arm" &&
+    (p.transport !== "http" || p.authMode !== "delegated")
+  ) {
+    status = "unsupported";
+    reason =
+      "ARM MCP oficial nesta prova de conceito requer HTTP e login de usuário com consentimento MCP.Access; app-only com Secret não está habilitado.";
+  }
   if (p.authMode === "none") {
     status = "unsupported";
     reason = "Este preset Microsoft requer autenticação.";
@@ -74,11 +90,13 @@ export function capability(
     status,
     reason,
     sourceUrl:
-      p.preset === "foundry"
-        ? "https://learn.microsoft.com/en-us/azure/foundry/mcp/get-started"
-        : p.preset === "powerbi"
-          ? "https://learn.microsoft.com/pt-br/power-bi/developer/mcp/remote-mcp-server-get-started"
-          : "https://github.com/microsoft/mcp",
+      p.preset === "arm"
+        ? "https://github.com/Azure/Azure-Resource-Manager-MCP"
+        : p.preset === "foundry"
+          ? "https://learn.microsoft.com/en-us/azure/foundry/mcp/get-started"
+          : p.preset === "powerbi"
+            ? "https://learn.microsoft.com/pt-br/power-bi/developer/mcp/remote-mcp-server-get-started"
+            : "https://github.com/microsoft/mcp",
     checkedAt: new Date().toISOString(),
   };
 }

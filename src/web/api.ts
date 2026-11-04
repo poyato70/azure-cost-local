@@ -67,6 +67,15 @@ async function request<T>(
   return result;
 }
 export const api = {
+  forecast: (
+    q: import("../shared/forecast.js").ForecastQuery,
+    signal?: AbortSignal,
+  ) =>
+    request<import("../shared/forecast.js").ForecastResult>(
+      "/forecast/query",
+      q,
+      signal,
+    ),
   async bootstrap() {
     const b = await request<Bootstrap>("/bootstrap");
     csrf = b.csrf;

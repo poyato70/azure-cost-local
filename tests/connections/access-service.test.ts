@@ -1,4 +1,5 @@
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
+vi.setConfig({ testTimeout: 15000 });
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

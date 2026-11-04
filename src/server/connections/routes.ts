@@ -55,6 +55,13 @@ export function registerConnectionRoutes(
     s.controller = new AbortController();
     s.userId = "";
     await d.identity.connectApplication(s.id, accessId);
+    d.context(r).diagnose?.({
+      source: "Identidade de aplicação",
+      operation: "conectar",
+      status: "sucesso",
+      detail:
+        "Token ARM obtido. Autenticação concluída; permissões de custo serão verificadas na consulta.",
+    });
     return { connected: true };
   });
   app.post("/api/accesses/:id/test", async (r) => {
@@ -114,7 +121,7 @@ export function registerConnectionRoutes(
       connected: true,
       tools: await d.mcps.tools(d.context(r), getId(r)),
       message:
-        "MCP conectado e ferramentas descobertas. Uma chamada permitida ainda é necessária para validar a consulta.",
+        "Servidor respondeu ao protocolo MCP e listou tools. Essa etapa não consulta dados Azure. Salve as tools permitidas, preencha os parâmetros de uma tool e execute para testar essa operação.",
     }));
   app.post("/api/mcp-connections/:id/disconnect", async (r) => {
     await d.mcps.disconnect(getId(r));

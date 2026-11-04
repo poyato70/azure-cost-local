@@ -5,6 +5,7 @@ import { descriptor } from "../../src/server/mcp/tool-policy.js";
 import { Invalidation } from "../../src/server/connections/invalidation.js";
 it("uses actual MCP initialize/list/call and rejects a changed tool schema", async () => {
   let failed = false;
+  let commandFailed = false;
   let changed = false,
     calls = 0;
   const schema = () => ({
@@ -39,7 +40,17 @@ it("uses actual MCP initialize/list/call and rejects a changed tool schema", asy
       calls++;
       result = {
         isError: failed,
-        content: [{ type: "text", text: "synthetic MCP result" }],
+        content: [
+          {
+            type: "text",
+            text: commandFailed
+              ? JSON.stringify({
+                  status: 400,
+                  message: "synthetic invalid SKU",
+                })
+              : "synthetic MCP result",
+          },
+        ],
       };
     }
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -104,11 +115,16 @@ it("uses actual MCP initialize/list/call and rejects a changed tool schema", asy
       registry.call(ctx, "m", "pricing_get", {}),
     ).rejects.toMatchObject({ code: "mcp_tool_failed" });
     failed = false;
+    commandFailed = true;
+    await expect(
+      registry.call(ctx, "m", "pricing_get", {}),
+    ).rejects.toMatchObject({ code: "mcp_tool_failed" });
+    commandFailed = false;
     changed = true;
     await expect(
       registry.call(ctx, "m", "pricing_get", { sku: "test" }),
     ).rejects.toMatchObject({ code: "forbidden" });
-    expect(calls).toBe(2);
+    expect(calls).toBe(3);
   } finally {
     await registry.close();
     await new Promise<void>((r) => server.close(() => r()));

@@ -1,3 +1,4 @@
+import { Diagnostics } from "./diagnostics/service.js";
 import { HubService } from "./hubs/service.js";
 import { registerHubRoutes } from "./hubs/routes.js";
 import Fastify from "fastify";
@@ -62,6 +63,7 @@ export async function buildApp(deps: AppDeps = {}) {
     costs = new AzureCosts(http),
     budgets = new Budgets(http),
     benefits = new Benefits(http);
+  const diagnostics = new Diagnostics();
   const app = Fastify({ logger: false, bodyLimit: 32000 });
   await app.register(cookie);
   const hubs = new HubService(saved, gate, identities, mcps, {
@@ -98,6 +100,7 @@ export async function buildApp(deps: AppDeps = {}) {
     if (!s.userId)
       throw new AppError("unauthenticated", "Entre com Microsoft.", 401);
     return {
+      diagnose: (event) => diagnostics.record(s.id, event),
       principalKind: s.principalKind || "user",
       accessId: s.accessId,
       configurationVersion: s.accessVersion,
@@ -151,7 +154,22 @@ export async function buildApp(deps: AppDeps = {}) {
         );
     }
   });
-  app.addHook("onResponse", async (req) => {
+  app.addHook("onResponse", async (req, reply) => {
+    const path = req.url.split("?")[0];
+    const sid = store.get((req.cookies as any).sid)?.id;
+    if (
+      sid &&
+      path.startsWith("/api/") &&
+      !["/api/bootstrap", "/api/health", "/api/diagnostics"].includes(path)
+    )
+      diagnostics.record(sid, {
+        source: "Aplicação local",
+        operation: req.method + " " + path,
+        status: String(reply.statusCode),
+        detail:
+          (req as any).diagnosticError ||
+          "A rota local respondeu. HTTP 200 no chat indica abertura do fluxo; consulte também os eventos de tools e erros.",
+      });
     (req as any).operationCleanup?.();
   });
   app.addHook("onSend", async (_req, reply, payload) => {
@@ -166,6 +184,10 @@ export async function buildApp(deps: AppDeps = {}) {
     return payload;
   });
   app.setErrorHandler((error, req, reply) => {
+    (req as any).diagnosticError =
+      error instanceof AppError
+        ? error.code + ": " + error.message
+        : "Parâmetros inválidos ou falha interna; dados brutos omitidos.";
     if (error instanceof z.ZodError)
       return reply.status(400).send({
         code: "invalid_request",
@@ -190,6 +212,11 @@ export async function buildApp(deps: AppDeps = {}) {
     session,
     context,
     setCookie,
+  });
+  app.get("/api/diagnostics", async (req) => diagnostics.list(session(req).id));
+  app.delete("/api/diagnostics", async (req) => {
+    diagnostics.clear(session(req).id);
+    return { ok: true };
   });
   app.get("/api/health", async () => ({ ok: true }));
   app.get("/api/bootstrap", async (req, reply) => {
@@ -255,6 +282,12 @@ export async function buildApp(deps: AppDeps = {}) {
         q.code,
       );
       setCookie(reply, id);
+      diagnostics.record(id, {
+        source: "Login Microsoft",
+        operation: "callback",
+        status: "sucesso",
+        detail: "Login concluído. Tokens e URL OAuth omitidos.",
+      });
       return reply.redirect("/auth/complete");
     } catch (error) {
       const safe =
@@ -270,6 +303,12 @@ export async function buildApp(deps: AppDeps = {}) {
         current = store.get(id)!;
         setCookie(reply, id);
       }
+      diagnostics.record(current.id, {
+        source: "Login Microsoft",
+        operation: "callback",
+        status: safe.code,
+        detail: safe.message,
+      });
       current.loginError = { code: safe.code, message: safe.message };
       return reply.redirect("/auth/complete");
     }
@@ -392,7 +431,14 @@ export async function buildApp(deps: AppDeps = {}) {
     const controller = new AbortController();
     const disconnect = () => controller.abort();
     reply.raw.on("close", disconnect);
-    const emit = (event: unknown) => {
+    const emit = (event: any) => {
+      if (event?.type === "error")
+        ctx.diagnose?.({
+          source: "Chat",
+          operation: "resposta",
+          status: event.code,
+          detail: event.message,
+        });
       if (!controller.signal.aborted && !reply.raw.destroyed)
         reply.raw.write(JSON.stringify(event) + "\n");
     };

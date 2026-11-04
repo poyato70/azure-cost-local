@@ -1,3 +1,4 @@
+import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type {
@@ -27,6 +28,7 @@ const tabs = [
   { id: "costs", label: "Custos", icon: "◷" },
   { id: "benefits", label: "Compromissos", icon: "◇" },
   { id: "budgets", label: "Budgets", icon: "▤" },
+  { id: "diagnostics", label: "Diagnóstico", icon: "≡" },
   { id: "chat", label: "Chat", icon: "✳" },
 ];
 export function App() {
@@ -397,7 +399,7 @@ export function App() {
             <p role="status">Iniciando serviço local…</p>
           ) : (
             !boot.authenticated &&
-            !["accesses", "mcps", "agents"].includes(tab) && (
+            !["accesses", "mcps", "agents", "diagnostics"].includes(tab) && (
               <section className="setup">
                 <div className="setup-copy">
                   <span className="eyebrow">COMECE PELA CONEXÃO</span>
@@ -526,7 +528,7 @@ export function App() {
               </small>
             </section>
           )}
-          {!["accesses", "mcps", "agents"].includes(tab) && (
+          {!["accesses", "mcps", "agents", "diagnostics"].includes(tab) && (
             <ScopeFilters
               subscriptions={subs}
               subscription={sub}
@@ -541,7 +543,32 @@ export function App() {
               disabled={!boot?.authenticated}
             />
           )}
+          {source === "mcp" &&
+            ["costs", "budgets", "benefits", "chat"].includes(tab) && (
+              <section className="notice" role="status">
+                <strong>Fonte selecionada: servidor MCP.</strong>
+                <p>
+                  Os cartões de gastos e budgets usam Cost Management nesta
+                  versão. Uma tool de preços, como pricing_get, não informa
+                  despesas do RG. Isso não indica falha no login. No chat, o MCP
+                  só oferece as tools permitidas; para perguntar quanto gastou,
+                  escolha APIs Azure ou um FinOps hub com dados.
+                </p>
+                <button
+                  onClick={() => {
+                    setSource("api");
+                    setHubId("");
+                  }}
+                >
+                  Usar APIs Azure para consultar gastos
+                </button>
+                <button onClick={() => setTab("diagnostics")}>
+                  Ver diagnóstico
+                </button>
+              </section>
+            )}
           <section className="content-card">
+            {tab === "diagnostics" && <DiagnosticPanel />}
             {tab === "hubs" && (
               <Hubs
                 key={boot?.activeAccessId}

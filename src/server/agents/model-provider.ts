@@ -82,6 +82,14 @@ export class ModelProvider {
       }),
       signal,
     });
+    this.ctx.diagnose?.({
+      source: "Modelo do agente",
+      operation: "inferência",
+      status: String(response.status),
+      detail: response.ok
+        ? "Modelo respondeu; verifique as chamadas de tools nos eventos seguintes."
+        : "O provedor de inferência recusou a solicitação. Verifique deployment, credencial e suporte ao modelo.",
+    });
     if (!response.ok) {
       await response.body?.cancel();
       throw new AppError(

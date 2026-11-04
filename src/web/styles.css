@@ -999,7 +999,7 @@ pre {
   }
 }
 
-.config-card .access-feedback {
+:is(.config-card, .tool-review) .access-feedback {
   margin: 16px 0 0;
   padding: 12px 14px;
   border-radius: 6px;
@@ -1010,13 +1010,24 @@ pre {
   font-weight: 600;
   line-height: 1.5;
 }
-.config-card .access-feedback.pending {
+:is(.config-card, .tool-review) .access-feedback.pending {
   background: #eef3f5;
   color: #294e61;
   border-color: #47758c;
 }
-.config-card .access-feedback.error {
+:is(.config-card, .tool-review) .access-feedback.error {
   background: #fff0ec;
   color: #8b3023;
   border-color: #b94834;
+}
+
+.settings-form label.consent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.settings-form label.consent input[type="checkbox"] {
+  width: auto;
+  margin: 0;
 }

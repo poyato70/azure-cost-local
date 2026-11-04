@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   Subscription,
   DateRange,
@@ -28,8 +29,31 @@ export function ScopeFilters({
   setBasis: (b: CostQuery["basis"]) => void;
   disabled: boolean;
 }) {
+  const [search, setSearch] = useState("");
+  const needle = search.replace(/\*/g, "").trim().toLocaleLowerCase();
+  const shown = subscriptions.filter(
+    (s) =>
+      s.id === subscription ||
+      !needle ||
+      s.name.toLocaleLowerCase().includes(needle) ||
+      s.id.toLowerCase().includes(needle),
+  );
   return (
     <section className="filters" aria-label="Filtros de consulta">
+      <label>
+        Buscar subscription
+        <input
+          aria-label="Buscar subscription"
+          type="search"
+          placeholder="Nome ou ID, ex.: *grnuv*"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <small>
+          {shown.length} de {subscriptions.length} subscriptions. A seleção
+          atual é preservada.
+        </small>
+      </label>
       <label>
         Subscription
         <select
@@ -39,7 +63,7 @@ export function ScopeFilters({
           onChange={(e) => setSubscription(e.target.value)}
         >
           <option value="">Selecione</option>
-          {subscriptions.map((s) => (
+          {shown.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>

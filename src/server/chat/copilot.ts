@@ -174,14 +174,15 @@ export class CopilotChat {
                 "invalid_request",
                 "Ferramenta não informada.",
               );
-            return JSON.stringify(
-              await this.mcps!.call(
-                localCtx,
-                id,
-                args.name,
-                args.arguments || {},
-              ),
+            const result = await this.mcps!.call(
+              localCtx,
+              id,
+              args.name,
+              args.arguments || {},
             );
+            assertActive(localCtx.signal);
+            emit({ type: "mcpEvidence", result });
+            return JSON.stringify(result);
           },
         });
       }
@@ -213,6 +214,17 @@ export class CopilotChat {
           },
         });
       }
+      localCtx.diagnose?.({
+        source: "Copilot",
+        operation: "tools disponíveis nesta pergunta",
+        status: "catálogo",
+        detail:
+          tool.name +
+          ". " +
+          (tool.name === "mcp_query"
+            ? "Modo MCP: custos reais só podem ser consultados se uma tool aprovada oferecer esses dados. pricing_get fornece preços, não gastos."
+            : "Ferramentas mediadas pela aplicação; consulta de dados depende de chamada do modelo."),
+      });
       const allowedName = tool.name;
       session = await client.createSession(restrictedSessionConfig([tool]));
       await session.rpc.tools.initializeAndValidate();
@@ -242,6 +254,14 @@ export class CopilotChat {
           120000,
         );
         assertActive(localCtx.signal);
+        localCtx.diagnose?.({
+          source: "Copilot",
+          operation: "resposta concluída",
+          status: "concluído",
+          detail:
+            calls +
+            " interação(ões) com tools nesta pergunta. Se não houver evento de execução de leitura MCP/Azure, o modelo respondeu sem consultar esses dados.",
+        });
         emit({
           type: "text",
           text: (

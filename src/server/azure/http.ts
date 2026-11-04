@@ -33,6 +33,18 @@ export class ArmHttp {
         signal: ctx.signal,
         redirect: "error",
       });
+      ctx.diagnose?.({
+        source: "Azure Resource Manager",
+        operation: url.pathname,
+        status: String(r.status),
+        detail: r.ok
+          ? "Azure respondeu à consulta."
+          : r.status === 403
+            ? "Azure negou acesso ao escopo. Verifique RBAC da identidade ativa; não é falha de configuração MCP."
+            : r.status === 401
+              ? "Token não aceito ou sessão expirada."
+              : "Falha na consulta Azure; pode haver limite, recurso indisponível ou parâmetros incompatíveis.",
+      });
       if (r.ok) {
         assertActive(ctx.signal);
         return r.status === 204 ? {} : await r.json();
@@ -54,6 +66,25 @@ export class ArmHttp {
         await this.sleep(Math.max(0, wait));
         continue;
       }
+      let providerCode = "";
+      try {
+        const b: any = await r.json();
+        const code = b?.error?.code;
+        if (typeof code === "string" && /^[A-Za-z0-9_.-]{1,100}$/.test(code))
+          providerCode = code;
+      } catch {
+        /* O corpo de erro não é registrado. */
+      }
+      if (providerCode)
+        ctx.diagnose?.({
+          source: "Azure Resource Manager",
+          operation: url.pathname,
+          status: String(r.status),
+          detail:
+            "Código retornado pelo Azure: " +
+            providerCode +
+            ". Corpo bruto omitido para proteger dados e credenciais.",
+        });
       const status = r.status;
       throw new AppError(
         status === 401

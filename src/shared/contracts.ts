@@ -45,6 +45,12 @@ export type Scope = z.infer<typeof scopeSchema>;
 export type DateRange = z.infer<typeof periodSchema>;
 export type CostQuery = z.infer<typeof costQuerySchema>;
 export type RequestContext = {
+  diagnose?: (event: {
+    source: string;
+    operation: string;
+    status: string;
+    detail: string;
+  }) => void;
   principalKind?: "user" | "application";
   accessId?: string;
   configurationVersion?: number;
@@ -108,6 +114,7 @@ export type BenefitAnalysis = {
 };
 export type Subscription = { id: string; name: string; tenantId: string };
 export type ChatEvent =
+  | { type: "mcpEvidence"; result: unknown }
   | { type: "hubEvidence"; result: unknown }
   | { type: "text"; text: string }
   | { type: "result"; result: CostResult | BudgetStatus | BenefitAnalysis }

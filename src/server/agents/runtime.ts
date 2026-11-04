@@ -275,9 +275,23 @@ export class LocalAgentRuntime {
               name: "mcp_tool_" + index,
               description: t.description || t.name,
               parameters: t.inputSchema,
-              call: (args) => this.mcps.call(context, id, t.name, args),
+              call: async (args) => {
+                const r = await this.mcps.call(context, id, t.name, args);
+                await check();
+                assertActive(signal);
+                emit({ type: "mcpEvidence", result: r });
+                return r;
+              },
             });
       }
+      context.diagnose?.({
+        source: "Agente cadastrado",
+        operation: "catálogo autorizado",
+        status: tools.length ? "pronto" : "sem tools",
+        detail:
+          tools.map((t) => t.name).join(", ") ||
+          "Nenhuma tool autorizada para a fonte, o acesso e o agente selecionados.",
+      });
       if (!tools.length)
         throw new AppError(
           "unsupported",

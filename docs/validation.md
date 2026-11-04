@@ -58,3 +58,8 @@ Veja [conexões e agentes](connections-validation.md) para o estado atual: 42 te
 ## Analista FinOps e Hub — 03/11/2026
 
 Implementação descrita no [guia](finops-hub-guide.md): perfil rastreável, fonte Hub por API/MCP, comparação informativa bidirecional e evidência independente no chat. 57 testes do serviço e dez testes Edge passaram; typecheck/build e auditoria npm de produção passaram (zero vulnerabilidades reportadas). Inspeção da tela Hub em 1440 px sem rolagem horizontal. Serviço reiniciado com identificadores preservados; GET /api/hubs respondeu 200. Quatro achados da revisão independente foram corrigidos com regressões. Consultas reais ADX, exportações, conciliação financeira certificada e inferência com dados reais continuam pendentes.
+
+
+## Usabilidade MCP e diagnóstico — 04/11/2026
+
+Formulário gerado do schema, lista/quantidade de tools, aprovação separada de permissão Azure, execução com retorno visível, busca de subscriptions por nome/ID e diagnóstico por sessão. 59 testes de serviço (26 arquivos) e 13 testes Edge passaram; typecheck/build passaram. A inspeção visual verificou formulário hierárquico e resultado de pricing_get sintético. Endpoint de diagnóstico validado em execução local (HTTP 200 e evento de rota). Em teste de carga paralela, o teste Windows DPAPI de acessos excedeu 5s; orçamento desse arquivo ajustado para 15s, compatível com o teste de storage existente. Sem alteração de lógica DPAPI. O histórico real anterior não foi reconstruído; conta Azure e consultas reais não foram reexecutadas nesta mudança. Veja [guia](mcp-usability-diagnostics.md).

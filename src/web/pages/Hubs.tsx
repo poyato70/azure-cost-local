@@ -285,7 +285,11 @@ export function Hubs({
       </div>
       {cost?.meta && (
         <section>
-          <h3>{result?.arm && !result?.hub ? "Custos do Cost Management — Hub indisponível" : "Custos do Hub"}</h3>
+          <h3>
+            {result?.arm && !result?.hub
+              ? "Custos do Cost Management — Hub indisponível"
+              : "Custos do Hub"}
+          </h3>
           <p>
             {cost.meta.source} · {cost.meta.period.from} até{" "}
             {cost.meta.period.toExclusive} (exclusivo) · {cost.focusBasis}

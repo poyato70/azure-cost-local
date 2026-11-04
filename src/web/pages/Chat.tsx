@@ -66,11 +66,14 @@ export function Chat({
                 text: e.text,
               },
             ]);
-          if (e.type === "hubEvidence")
+          if (e.type === "hubEvidence" || e.type === "mcpEvidence")
             setEntries((x) => [
               ...x,
               {
-                role: "Evidência FinOps hub",
+                role:
+                  e.type === "mcpEvidence"
+                    ? "Retorno MCP"
+                    : "Evidência FinOps hub",
                 text: "Resultado do serviço, independente do texto do modelo",
                 evidence: e.result,
               },

@@ -333,12 +333,40 @@ export class McpRegistry {
         { once: true },
       );
       this.live.set(key, live);
+      ctx.diagnose?.({
+        source: "MCP",
+        operation: p.name + " / tools/list",
+        status: "conectado",
+        detail:
+          tools.length +
+          " tools descobertas: " +
+          tools.map((t) => t.name).join(", ") +
+          ". Catálogo não comprova permissão de acesso aos dados.",
+      });
       this.states.set(id, "conectado — ferramentas descobertas");
       return live;
     } catch (e) {
       unwatch();
       controller.abort();
       await client.close().catch(() => {});
+      const message = e instanceof Error ? e.message : "";
+      const httpStatus = message.match(
+        /\b(401|403|404|429|500|502|503)\b/,
+      )?.[1];
+      ctx.diagnose?.({
+        source: "MCP",
+        operation: p.name + " / conectar",
+        status:
+          e instanceof AppError ? e.code : httpStatus || "mcp_unavailable",
+        detail:
+          e instanceof AppError
+            ? e.message
+            : httpStatus === "401"
+              ? "Servidor MCP não aceitou a autenticação."
+              : httpStatus === "403"
+                ? "Servidor MCP negou permissão."
+                : "Falha ao iniciar ou negociar o protocolo MCP. Verifique endpoint, transporte e disponibilidade do servidor; nenhuma mensagem bruta de credencial é registrada.",
+      });
       if (e instanceof AppError) throw e;
       throw new AppError(
         "mcp_unavailable",
@@ -391,6 +419,13 @@ export class McpRegistry {
     });
     const t = latest.tools.map(descriptor).find((t) => t.name === name);
     if (!t) throw new AppError("unsupported", "Ferramenta não encontrada.");
+    ctx.diagnose?.({
+      source: "MCP",
+      operation: current.name + " / " + name,
+      status: "validando",
+      detail:
+        "Verificando aprovação, schema e escopo. Argumentos e credenciais não são registrados.",
+    });
     authorizeTool(current, t, args, registeredQuery);
     const validate = new AjvJsonSchemaValidator().getValidator(
       t.inputSchema as any,
@@ -398,7 +433,8 @@ export class McpRegistry {
     if (!validate(args).valid)
       throw new AppError(
         "invalid_request",
-        "Argumentos não correspondem ao schema da ferramenta.",
+        "Os argumentos não correspondem ao schema desta tool. Confira os campos obrigatórios e os tipos no formulário. Obrigatórios: " +
+          ((t.inputSchema as any).required || []).join(", "),
       );
     const versions = await this.gate.capture([
       "mcp:" + id,
@@ -411,14 +447,56 @@ export class McpRegistry {
     );
     await this.gate.assertCurrent(versions);
     assertActive(ctx.signal);
-    if (result.isError) {
+    let commandStatus: number | undefined;
+    const payload = (result as any).structuredContent;
+    if (typeof payload?.status === "number") commandStatus = payload.status;
+    if (commandStatus === undefined)
+      for (const c of Array.isArray(result.content) ? result.content : [])
+        if (c.type === "text") {
+          try {
+            const v = JSON.parse(String(c.text));
+            if (typeof v.status === "number") commandStatus = v.status;
+          } catch {}
+        }
+    if (
+      result.isError ||
+      (commandStatus !== undefined && commandStatus >= 400)
+    ) {
+      ctx.diagnose?.({
+        source: "MCP",
+        operation: name,
+        status: "mcp_tool_failed",
+        detail:
+          "O MCP retornou erro de execução" +
+          (commandStatus !== undefined
+            ? " (status " + commandStatus + ")"
+            : "") +
+          "; a consulta não foi validada.",
+      });
       this.states.set(id, "falha na consulta");
       throw new AppError(
         "mcp_tool_failed",
-        "A ferramenta MCP informou falha na consulta.",
+        commandStatus === 400
+          ? "A tool MCP recusou os parâmetros (status 400). Confira os campos, SKU e filtros; esta resposta não comprova falha no login."
+          : commandStatus === 401
+            ? "A tool MCP não aceitou a autenticação (status 401). Reconecte o acesso vinculado."
+            : commandStatus === 403
+              ? "A tool MCP negou acesso aos dados (status 403). Confira as permissões da identidade ativa."
+              : "A tool MCP informou falha na consulta" +
+                (commandStatus !== undefined
+                  ? " (status " + commandStatus + ")"
+                  : "") +
+                ". Veja a operação no Diagnóstico.",
         502,
       );
     }
+    ctx.diagnose?.({
+      source: "MCP",
+      operation: current.name + " / " + name,
+      status: "sucesso",
+      detail:
+        "tools/call retornou sem isError; resposta disponível no painel da execução. Isso valida esta chamada, não todas as capacidades Azure.",
+    });
     this.states.set(id, "consulta validada");
     return {
       source: "mcp",

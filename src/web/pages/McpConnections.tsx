@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import {
+  SchemaInputs,
+  schemaDefaults,
+  resolveSchema,
+} from "../components/SchemaInputs.js";
+import { useEffect, useState, useRef } from "react";
 import type {
   McpProfile,
   PublicAccessProfile,
@@ -39,6 +44,7 @@ export function McpConnections({
   onChanged: () => void;
   onLogin: (id: string) => void;
 }) {
+  const reviewRef = useRef<HTMLElement>(null);
   const [form, setForm] = useState<any>(empty),
     [context, setContext] = useState(
       JSON.stringify(empty.resourceContext, null, 2),
@@ -50,13 +56,20 @@ export function McpConnections({
     [chosen, setChosen] = useState<string[]>([]),
     [toolName, setToolName] = useState(""),
     [args, setArgs] = useState("{}"),
-    [result, setResult] = useState<unknown>(),
+    [result, setResult] = useState<any>(),
+    [argumentsValue, setArgumentsValue] = useState<Record<string, unknown>>({}),
+    [advanced, setAdvanced] = useState(false),
+    [execution, setExecution] = useState<{ kind: string; message: string }>(),
     [matrix, setMatrix] = useState<any[]>([]);
   useEffect(() => {
     void manageRequest("/mcp-presets").then((x) =>
       setMatrix(Array.isArray(x) ? x : []),
     );
   }, []);
+  useEffect(() => {
+    if (inspected && tools.length)
+      reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [inspected, tools.length]);
   async function run(fn: () => Promise<any>) {
     setBusy(true);
     setNotice("");
@@ -66,6 +79,69 @@ export function McpConnections({
       return r;
     } catch (e) {
       setNotice((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  let contextFields: Record<string, string> = {};
+  try {
+    const parsed = JSON.parse(context);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+      contextFields = parsed;
+  } catch {
+    /* O editor avançado pode estar incompleto. */
+  }
+  const setContextField = (name: string, value: string) =>
+    setContext(JSON.stringify({ ...contextFields, [name]: value }, null, 2));
+  const selectedTool = tools.find((t) => t.name === toolName);
+  function chooseTool(name: string) {
+    setToolName(name);
+    const value =
+      schemaDefaults(tools.find((t) => t.name === name)?.inputSchema) || {};
+    setArgumentsValue(value);
+    setArgs(JSON.stringify(value, null, 2));
+    setResult(undefined);
+    setExecution(undefined);
+    setAdvanced(false);
+  }
+  async function executeTool(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setResult(undefined);
+    setExecution({
+      kind: "pending",
+      message: "Executando " + toolName + " no servidor selecionado…",
+    });
+    const start = Date.now();
+    try {
+      const argumentsData = advanced ? JSON.parse(args) : argumentsValue;
+      const r = await manageRequest(
+        "/mcp-connections/" + inspected + "/call",
+        "POST",
+        { name: toolName, arguments: argumentsData },
+      );
+      setResult({
+        tool: toolName,
+        connection: profiles.find((p) => p.id === inspected)?.name,
+        at: new Date().toLocaleString("pt-BR"),
+        durationMs: Date.now() - start,
+        response: r,
+      });
+      setExecution({
+        kind: "success",
+        message:
+          "Consulta " +
+          toolName +
+          " concluída. Veja o retorno abaixo; esta chamada não comprova outras permissões Azure.",
+      });
+      onChanged();
+    } catch (e) {
+      setExecution({
+        kind: "error",
+        message:
+          (e as Error).message +
+          " Consulte Diagnóstico para identificar a etapa que falhou.",
+      });
     } finally {
       setBusy(false);
     }
@@ -225,28 +301,81 @@ export function McpConnections({
               <option value="application">Identidade de aplicação</option>
             </select>
           </label>
-          <label>
-            Contexto de recursos (JSON)
-            <textarea
-              rows={5}
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-            />
-          </label>
-          <small>
-            Os nomes dos campos devem corresponder aos parâmetros das
-            ferramentas. ADX exige clusterUri/database; Power BI exige modelId.
-            Azure local: namespace
-            pricing/advisor/optimization/subscription/group.
-          </small>
-          <label className="consent">
-            <input
-              type="checkbox"
-              checked={form.allowPrivateNetwork}
-              onChange={(e) => field("allowPrivateNetwork", e.target.checked)}
-            />
-            Autorizar rede privada / loopback deste endpoint
-          </label>
+          {form.preset === "azure" && form.transport === "stdio" && (
+            <label>
+              Grupo de tools a carregar
+              <select
+                aria-label="Grupo de tools a carregar"
+                value={contextFields.namespace || "pricing"}
+                onChange={(e) =>
+                  setContext(
+                    JSON.stringify({ namespace: e.target.value }, null, 2),
+                  )
+                }
+              >
+                <option value="pricing">Preços de catálogo (pricing)</option>
+                <option value="advisor">Recomendações Advisor (advisor)</option>
+                <option value="optimization">Otimização (optimization)</option>
+                <option value="subscription">
+                  Inventário de subscriptions (subscription)
+                </option>
+                <option value="group">
+                  Inventário de resource groups (group)
+                </option>
+              </select>
+              <small>
+                Seleciona o grupo carregado pelo servidor, não uma lista manual
+                de tools. pricing costuma descobrir apenas pricing_get. Não
+                consulta gastos reais.
+              </small>
+            </label>
+          )}
+          {["adx", "powerbi", "fabric"].includes(form.preset) && (
+            <fieldset>
+              <legend>Recursos autorizados</legend>
+              {(form.preset === "adx"
+                ? ["clusterUri", "database", "tenant", "subscription"]
+                : form.preset === "powerbi"
+                  ? ["modelId", "workspaceId"]
+                  : ["workspaceId"]
+              ).map((k) => (
+                <label key={k}>
+                  {k}
+                  <input
+                    value={contextFields[k] || ""}
+                    onChange={(e) => setContextField(k, e.target.value)}
+                  />
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <details>
+            <summary>Contexto de recursos — configuração avançada</summary>
+            <label>
+              Contexto de recursos (JSON)
+              <textarea
+                rows={5}
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+              />
+            </label>
+            <small>
+              Os nomes dos campos devem corresponder aos parâmetros das
+              ferramentas. ADX exige clusterUri/database; Power BI exige
+              modelId. Azure local: namespace
+              pricing/advisor/optimization/subscription/group.
+            </small>
+          </details>
+          {form.transport === "http" && (
+            <label className="consent">
+              <input
+                type="checkbox"
+                checked={form.allowPrivateNetwork}
+                onChange={(e) => field("allowPrivateNetwork", e.target.checked)}
+              />
+              Autorizar rede privada / loopback deste endpoint
+            </label>
+          )}
           <button className="primary" disabled={busy}>
             Salvar MCP
           </button>
@@ -262,15 +391,35 @@ export function McpConnections({
               <p>
                 {p.preset} · {p.transport} · {p.authMode}
               </p>
-              <p>{p.status || "cadastrado"}</p>
+              <p>
+                {p.status === "cadastrado" && inspected === p.id && tools.length
+                  ? "Catálogo recebido; execute uma tool para verificar a leitura."
+                  : p.status ||
+                    "Cadastrado; servidor ainda não consultado nesta sessão."}
+              </p>
               <small>
-                {p.capability?.status}: {p.capability?.reason}
+                {p.capability?.status === "unsupported"
+                  ? p.capability.reason
+                  : (inspected === p.id && tools.length) ||
+                      (p.status && p.status !== "cadastrado")
+                    ? "Servidor já respondeu. Permissão de leitura dos dados depende da tool executada; descoberta não comprova todas as permissões."
+                    : "Ainda não testado nesta sessão. Clique em Conectar e listar tools."}
               </small>
+              {inspected === p.id && notice && (
+                <p className="access-feedback" role="status">
+                  {notice}
+                </p>
+              )}
               <div className="actions">
                 <button
                   disabled={busy || p.capability?.status === "unsupported"}
                   onClick={() =>
                     void run(async () => {
+                      setInspected(p.id);
+                      setResult(undefined);
+                      setExecution(undefined);
+                      setTools([]);
+                      setToolName("");
                       const r = await manageRequest(
                         "/mcp-connections/" + p.id + "/test",
                         "POST",
@@ -283,12 +432,14 @@ export function McpConnections({
                           .map((t: any) => t.name),
                       );
                       setInspected(p.id);
-                      setNotice(r.message);
+                      setNotice(
+                        `Servidor respondeu e listou ${r.tools.length} tool(s): ${r.tools.map((t: any) => t.name).join(", ")}. Revise a lista abaixo, salve as tools permitidas e preencha uma consulta. Isso ainda não testa acesso aos dados.`,
+                      );
                       return r;
                     })
                   }
                 >
-                  Testar / descobrir
+                  Conectar e listar tools
                 </button>
                 {p.transport === "http" && p.authMode === "delegated" && (
                   <button onClick={() => onLogin(p.id)}>
@@ -359,11 +510,21 @@ export function McpConnections({
         </div>
       </div>
       {inspected && (
-        <section className="tool-review">
-          <h3>Ferramentas descobertas</h3>
+        <section ref={reviewRef} className="tool-review">
+          <h3>
+            Tools descobertas ({tools.length}) —{" "}
+            {profiles.find((p) => p.id === inspected)?.name}
+          </h3>
+          <p>
+            Esta lista veio do servidor MCP. No grupo pricing, uma única tool
+            pricing_get é esperada: ela consulta preços públicos, não despesas
+            do RG. Para gastos, escolha APIs Azure ou configure um FinOps hub
+            com dados carregados.
+          </p>
           <p className="fine">
-            Somente ferramentas conhecidas de leitura podem ser aprovadas.
-            Aprovação é vinculada ao schema.
+            Marque as tools que esta aplicação poderá executar e clique em
+            Salvar tools permitidas. Só são liberadas operações de leitura
+            reconhecidas. Se o schema mudar, será necessário revisar novamente.
           </p>
           {tools.map((t) => (
             <label className="tool-row" key={t.name}>
@@ -383,9 +544,17 @@ export function McpConnections({
                 <strong>{t.name}</strong>
                 <small>
                   {t.reviewable
-                    ? "Elegível para aprovação"
-                    : "Bloqueada pela política"}{" "}
-                  · {t.description}
+                    ? "Leitura reconhecida — pode ser liberada para uso"
+                    : "Bloqueada — operação ainda não revisada nesta aplicação"}{" "}
+                  ·{" "}
+                  {t.name === "pricing_get"
+                    ? "Consulta preços por SKU; não retorna gasto real."
+                    : "Confira a descrição e os parâmetros definidos pelo servidor."}
+                  <details>
+                    <summary>Descrição original e schema</summary>
+                    <p>{t.description}</p>
+                    <pre>{JSON.stringify(t.inputSchema, null, 2)}</pre>
+                  </details>
                 </small>
               </span>
             </label>
@@ -399,57 +568,123 @@ export function McpConnections({
                   "POST",
                   { names: chosen },
                 );
+                setTools((prev) =>
+                  prev.map((t) => ({
+                    ...t,
+                    approved: chosen.includes(t.name),
+                  })),
+                );
+                chooseTool("");
                 setNotice(
-                  "Aprovação salva. Conexão anterior encerrada; o próximo teste usará a nova revisão.",
+                  "Tools permitidas salvas. Selecione uma tool abaixo, preencha os campos e execute a consulta.",
                 );
               })
             }
           >
-            Salvar ferramentas aprovadas
+            Salvar tools permitidas
           </button>
-          <div className="settings-form">
-            <h3>Consulta de teste</h3>
+
+          <form className="settings-form" onSubmit={executeTool}>
+            <h3>Executar uma consulta</h3>
             <label>
-              Ferramenta
+              Tools
               <select
+                aria-label="Tools"
                 value={toolName}
-                onChange={(e) => setToolName(e.target.value)}
+                onChange={(e) => chooseTool(e.target.value)}
               >
-                <option value="">Selecione</option>
+                <option value="">Selecione uma tool permitida</option>
                 {tools
-                  .filter((t) => chosen.includes(t.name))
+                  .filter((t) => t.approved)
                   .map((t) => (
                     <option key={t.name}>{t.name}</option>
                   ))}
               </select>
             </label>
-            <label>
-              Argumentos JSON
-              <textarea
-                value={args}
-                onChange={(e) => setArgs(e.target.value)}
-              />
-            </label>
-            <button
-              disabled={!toolName || busy}
-              onClick={() =>
-                void run(async () => {
-                  const r = await manageRequest(
-                    "/mcp-connections/" + inspected + "/call",
-                    "POST",
-                    { name: toolName, arguments: JSON.parse(args) },
-                  );
-                  setResult(r);
-                  return r;
-                })
-              }
-            >
-              Executar leitura aprovada
-            </button>
-            {result !== undefined && (
-              <pre>{JSON.stringify(result, null, 2)}</pre>
+            {chosen.some((n) => !tools.find((t) => t.name === n)?.approved) && (
+              <p>
+                Há alterações na seleção. Salve as tools permitidas antes de
+                executá-las.
+              </p>
             )}
-          </div>
+            {selectedTool && (
+              <>
+                <p>
+                  Os campos abaixo foram lidos do schema de {selectedTool.name}.
+                  * indica obrigatório. Campos vazios opcionais são omitidos.
+                </p>
+                {!advanced && (
+                  <SchemaInputs
+                    key={toolName}
+                    schema={selectedTool.inputSchema}
+                    value={argumentsValue}
+                    onChange={(v) => {
+                      setArgumentsValue(v);
+                      setArgs(JSON.stringify(v, null, 2));
+                    }}
+                  />
+                )}
+                {!resolveSchema(
+                  selectedTool.inputSchema,
+                  selectedTool.inputSchema,
+                )?.properties && (
+                  <p>
+                    O schema usa uma estrutura avançada. Abra o JSON e o schema
+                    original para preencher; esta estrutura ainda não possui
+                    formulário automático.
+                  </p>
+                )}
+                <label className="consent">
+                  <input
+                    type="checkbox"
+                    checked={advanced}
+                    onChange={(e) => setAdvanced(e.target.checked)}
+                  />
+                  Usar JSON avançado
+                </label>
+                {advanced && (
+                  <label>
+                    Argumentos JSON
+                    <textarea
+                      rows={7}
+                      value={args}
+                      onChange={(e) => setArgs(e.target.value)}
+                    />
+                  </label>
+                )}
+              </>
+            )}
+            <button disabled={!toolName || busy} type="submit">
+              {busy ? "Aguarde…" : "Executar tool selecionada"}
+            </button>
+            {execution && (
+              <p
+                role={execution.kind === "error" ? "alert" : "status"}
+                className={"access-feedback " + execution.kind}
+              >
+                {execution.message}
+              </p>
+            )}
+            {result && (
+              <section aria-label="Resultado da tool">
+                <h3>Resultado de {result.tool}</h3>
+                <p>
+                  Conexão: {result.connection} · {result.at} ·{" "}
+                  {result.durationMs} ms
+                </p>
+                <p>Retorno recebido do MCP:</p>
+                {result.response?.result?.content
+                  ?.filter((c: any) => c.type === "text")
+                  .map((c: any, i: number) => (
+                    <pre key={i}>{c.text}</pre>
+                  ))}
+                <details>
+                  <summary>Ver resposta técnica completa</summary>
+                  <pre>{JSON.stringify(result.response, null, 2)}</pre>
+                </details>
+              </section>
+            )}
+          </form>
         </section>
       )}
       <details>
@@ -459,7 +694,13 @@ export function McpConnections({
             <h3>{p.name}</h3>
             {p.modes.map((m: any, i: number) => (
               <p key={i} className="fine">
-                {m.transport} / {m.authMode}: {m.status} — {m.reason}
+                {m.transport} / {m.authMode}:{" "}
+                {m.status === "pending"
+                  ? "Suporte sujeito a teste por operação"
+                  : m.status === "unsupported"
+                    ? "Não suportado"
+                    : "Disponível"}{" "}
+                — {m.reason}
               </p>
             ))}
           </div>

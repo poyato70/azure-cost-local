@@ -81,3 +81,8 @@ Nome provisório, símbolo azul, tokens da paleta fornecida, navegação azul/am
 ## Publicação da UX e teste preliminar — 06/11/2026
 
 Nova conferência: 67 testes de serviço, 14 testes Edge, typecheck, build e diff-check passaram. Usuário autorizou publicar a identidade TESSERACT. Incluídos checklist e triagem sanitizada do relato preliminar; anexo bruto e identificadores do ambiente não foram incorporados. O relato comprova obtenção de token, leitura de inventário e pricing_get, mas a consulta de custos teve HTTP 429. Limitação de chamadas, clareza de provedor e diagnóstico são prioridades documentadas, ainda sem correção funcional nesta publicação.
+
+
+## Correções para apresentação — versão 0.2.0, 06/11/2026
+
+73 testes de serviço em 32 arquivos e 17 testes Edge passaram; typecheck/build e diff-check passaram. Testes novos cobrem cabeçalhos de throttling, repetição bloqueada, isolamento por acesso/escopo, cancelamento, concorrência preservando maior cooldown, bloqueio de seleção MCP ambígua, filtros RG/log, uso informado e revogação ativa. Revisão final independente encontrou concorrência no cooldown e cancelamento na revogação; ambos corrigidos com regressões. Inspeção das telas de MCPs/Agentes/Diagnóstico/Chat em 1440, 1024 e 390 px sem overflow horizontal de página. Uso Copilot é lido do evento assistant.usage do SDK instalado; Azure Chat Completions do campo usage validado. Tokens informados podem ser parciais e não são preço final. Sem nova consulta Azure real: a aplicação não remove quotas nem comprova obtenção do gasto após 429. Roteiro operacional em [apresentação](apresentacao-tesseract.md).

@@ -66,3 +66,8 @@ Fontes: [automação Cost Management](https://learn.microsoft.com/en-us/azure/co
 ## Próxima rodada
 
 Publicar a identidade aprovada e o checklist separadamente do futuro trabalho funcional. Priorizar PRE-01/PRE-02/PRE-03, então executar os casos financeiros reais do [checklist](checklist-testes.md). O teste preliminar não aprova os 76 casos nem substitui conciliação com o portal. Nesta publicação não foram alteradas credenciais, permissões, configuração de agentes ou política de retry.
+
+
+## Implementação posterior autorizada — 06/11/2026
+
+As correções de comportamento/clareza PRE-01 a PRE-09 foram tratadas na versão seguinte: cabeçalhos/cooldown de 429, bloqueio de fonte ambígua, fases/uso informado do chat, log pesquisável, busca RG, ajuda de defaults MCP, execução local/remota explícita e consentimento revogável por sessão/provedor. O [roteiro de apresentação](apresentacao-tesseract.md) descreve os resultados e limites. Não foram adicionados catálogo dinâmico de SKUs, inferência offline, persona Copilot cadastrável, cobrança monetária, EULA corporativa ou servidor multiusuário. A triagem acima preserva o estado observado no teste original; não equivale a reexecução financeira real.

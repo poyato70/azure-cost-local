@@ -57,72 +57,97 @@ export async function runAgentLoop(
     },
     { role: "user", content: input.message },
   ];
+  const started = Date.now();
+  let inputTokens: number | undefined, outputTokens: number | undefined;
   let calls = 0;
-  for (let turn = 0; turn <= input.limits.toolCalls; turn++) {
-    assertActive(deadline);
-    await check();
-    const result = await model.complete({ messages, tools }, deadline);
-    assertActive(deadline);
-    await check();
-    if (!result.toolCalls.length) {
-      emit({
-        type: "text",
-        text: (result.text || "O modelo não retornou texto.").slice(
-          0,
-          input.limits.responseChars,
-        ),
-      });
-      return;
-    }
-    messages.push({
-      role: "assistant",
-      content: result.text || null,
-      tool_calls: result.toolCalls.map((t) => ({
-        id: t.id,
-        type: "function",
-        function: { name: t.name, arguments: t.arguments },
-      })),
-    });
-    for (const t of result.toolCalls) {
-      if (++calls > input.limits.toolCalls)
-        throw new AppError(
-          "limit_exceeded",
-          "Limite de consultas do agente atingido.",
-        );
-      const tool = tools.find((x) => x.name === t.name);
-      if (!tool)
-        throw new AppError(
-          "forbidden",
-          "O modelo solicitou ferramenta não autorizada.",
-          403,
-        );
-      let args;
-      try {
-        args = JSON.parse(t.arguments);
-      } catch {
-        throw new AppError(
-          "invalid_request",
-          "Argumentos de ferramenta inválidos.",
-        );
-      }
-      await check();
-      const value = await tool.call(args);
-      await check();
+  try {
+    for (let turn = 0; turn <= input.limits.toolCalls; turn++) {
       assertActive(deadline);
-      let text = JSON.stringify(value);
-      if (text.length > 131072)
-        text = JSON.stringify({
-          partial: true,
-          message: "Resultado limitado.",
-          text: text.slice(0, 120000),
+      await check();
+      emit({
+        type: "progress",
+        message: "Agente: consultando o modelo de inferência…",
+      });
+      const result = await model.complete({ messages, tools }, deadline);
+      assertActive(deadline);
+      await check();
+      if (typeof result.usage?.inputTokens === "number")
+        inputTokens = (inputTokens || 0) + result.usage.inputTokens;
+      if (typeof result.usage?.outputTokens === "number")
+        outputTokens = (outputTokens || 0) + result.usage.outputTokens;
+      if (!result.toolCalls.length) {
+        emit({
+          type: "text",
+          text: (result.text || "O modelo não retornou texto.").slice(
+            0,
+            input.limits.responseChars,
+          ),
         });
-      messages.push({ role: "tool", tool_call_id: t.id, content: text });
+        return;
+      }
+      messages.push({
+        role: "assistant",
+        content: result.text || null,
+        tool_calls: result.toolCalls.map((t) => ({
+          id: t.id,
+          type: "function",
+          function: { name: t.name, arguments: t.arguments },
+        })),
+      });
+      for (const t of result.toolCalls) {
+        if (++calls > input.limits.toolCalls)
+          throw new AppError(
+            "limit_exceeded",
+            "Limite de consultas do agente atingido.",
+          );
+        const tool = tools.find((x) => x.name === t.name);
+        if (!tool)
+          throw new AppError(
+            "forbidden",
+            "O modelo solicitou ferramenta não autorizada.",
+            403,
+          );
+        let args;
+        try {
+          args = JSON.parse(t.arguments);
+        } catch {
+          throw new AppError(
+            "invalid_request",
+            "Argumentos de ferramenta inválidos.",
+          );
+        }
+        await check();
+        emit({
+          type: "progress",
+          message: `Agente: executando ${tool.name} · leitura ${calls}…`,
+        });
+        const value = await tool.call(args);
+        await check();
+        assertActive(deadline);
+        let text = JSON.stringify(value);
+        if (text.length > 131072)
+          text = JSON.stringify({
+            partial: true,
+            message: "Resultado limitado.",
+            text: text.slice(0, 120000),
+          });
+        messages.push({ role: "tool", tool_call_id: t.id, content: text });
+      }
     }
+    throw new AppError(
+      "limit_exceeded",
+      "O agente excedeu o número de turnos permitido.",
+    );
+  } finally {
+    emit({
+      type: "usage",
+      inputTokens,
+      outputTokens,
+      toolCalls: calls,
+      durationMs: Date.now() - started,
+      provider: "Modelo do agente",
+    });
   }
-  throw new AppError(
-    "limit_exceeded",
-    "O agente excedeu o número de turnos permitido.",
-  );
 }
 export class LocalAgentRuntime {
   constructor(
@@ -303,6 +328,19 @@ export class LocalAgentRuntime {
           "unsupported",
           "Nenhuma ferramenta autorizada para esta fonte e agente.",
         );
+      emit({
+        type: "context",
+        requestId: ctx.requestId || "",
+        runtime: `Agente ${agent.name} · modelo remoto ${agent.model}`,
+        source: input.selection.hubId
+          ? "FinOps hub"
+          : input.selection.source === "mcp"
+            ? "MCP · " +
+              (await this.mcps.get(input.selection.mcpConnectionId!)).name
+            : "APIs Azure Cost Management",
+        tools: tools.map((t) => t.name),
+        scope: input.scope,
+      });
       const model = new ModelProvider(
         agent,
         this.vault,

@@ -10,7 +10,11 @@ it("runs tool calls locally and feeds verified results back to the model", async
         turns++;
         return turns === 1
           ? { toolCalls: [{ id: "x", name: "azure_query", arguments: "{}" }] }
-          : { text: "Resultado consultado", toolCalls: [] };
+          : {
+              text: "Resultado consultado",
+              toolCalls: [],
+              usage: { inputTokens: 12, outputTokens: 4 },
+            };
       },
     },
     [
@@ -35,7 +39,15 @@ it("runs tool calls locally and feeds verified results back to the model", async
   );
   expect(calls).toBe(1);
   expect(turns).toBe(2);
-  expect(output[0].text).toBe("Resultado consultado");
+  expect(output.find((e) => e.type === "text")?.text).toBe(
+    "Resultado consultado",
+  );
+  expect(output.find((e) => e.type === "usage")).toMatchObject({
+    inputTokens: 12,
+    outputTokens: 4,
+    toolCalls: 1,
+  });
+  expect(output.some((e) => e.type === "progress")).toBe(true);
 });
 it("rejects arbitrary tools and enforces call budgets", async () => {
   await expect(

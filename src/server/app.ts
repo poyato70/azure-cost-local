@@ -103,7 +103,9 @@ export async function buildApp(deps: AppDeps = {}) {
     if (!s.userId)
       throw new AppError("unauthenticated", "Entre com Microsoft.", 401);
     return {
-      diagnose: (event) => diagnostics.record(s.id, event),
+      requestId: String(request.id),
+      diagnose: (event) =>
+        diagnostics.record(s.id, { ...event, requestId: String(request.id) }),
       principalKind: s.principalKind || "user",
       accessId: s.accessId,
       configurationVersion: s.accessVersion,
@@ -166,12 +168,15 @@ export async function buildApp(deps: AppDeps = {}) {
       !["/api/bootstrap", "/api/health", "/api/diagnostics"].includes(path)
     )
       diagnostics.record(sid, {
+        requestId: String(req.id),
         source: "Aplicação local",
         operation: req.method + " " + path,
         status: String(reply.statusCode),
         detail:
           (req as any).diagnosticError ||
-          "A rota local respondeu. HTTP 200 no chat indica abertura do fluxo; consulte também os eventos de tools e erros.",
+          (path === "/api/chat"
+            ? "Fluxo de chat aberto; este HTTP não comprova sucesso de consulta. Confira eventos de tools e erros da mesma operação."
+            : "Rota local concluída; status refere-se a esta operação."),
       });
     (req as any).operationCleanup?.();
   });
@@ -434,6 +439,20 @@ export async function buildApp(deps: AppDeps = {}) {
       })
       .strict()
       .parse(req.body);
+    if (
+      req.headers["x-data-source"] === "mcp" &&
+      input.selection?.source !== "mcp"
+    )
+      throw new AppError(
+        "invalid_request",
+        "A fonte MCP exige uma conexão e um acesso salvo ativos. Reconecte o acesso; nenhuma consulta API foi executada.",
+      );
+    if (input.selection && input.selection.accessId !== ctx.accessId)
+      throw new AppError(
+        "forbidden",
+        "O acesso selecionado difere da sessão ativa. Reconecte o acesso.",
+        403,
+      );
     if (input.scope) await inventory.authorize(ctx, input.scope);
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -455,6 +474,21 @@ export async function buildApp(deps: AppDeps = {}) {
       if (!controller.signal.aborted && !reply.raw.destroyed)
         reply.raw.write(JSON.stringify(event) + "\n");
     };
+    const streamCtx = {
+      ...ctx,
+      signal: AbortSignal.any([ctx.signal, controller.signal]),
+      diagnose: (
+        event: Parameters<NonNullable<RequestContext["diagnose"]>>[0],
+      ) => {
+        ctx.diagnose?.(event);
+        if (event.status === "aguardando")
+          emit({ type: "progress", message: event.detail });
+      },
+    };
+    emit({
+      type: "progress",
+      message: "Preparando provedor e verificando ferramentas autorizadas…",
+    });
     try {
       if (input.runtime === "agent") {
         if (!input.agentId || !input.selection)
@@ -463,17 +497,12 @@ export async function buildApp(deps: AppDeps = {}) {
             "Selecione um agente e acesso.",
           );
         await localAgents.ask(
-          { ...ctx, signal: AbortSignal.any([ctx.signal, controller.signal]) },
+          streamCtx,
           await agents.get(input.agentId),
           { ...input, selection: input.selection },
           emit,
         );
-      } else
-        await chat.ask(
-          { ...ctx, signal: AbortSignal.any([ctx.signal, controller.signal]) },
-          input,
-          emit,
-        );
+      } else await chat.ask(streamCtx, input, emit);
     } catch (e) {
       emit({
         type: "error",

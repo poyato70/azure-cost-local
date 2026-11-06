@@ -404,13 +404,25 @@ export function McpConnections({
             <article className="config-card" key={p.id}>
               <h3>{p.name}</h3>
               <p>
-                {p.preset} · {p.transport} · {p.authMode}
+                {p.preset} ·{" "}
+                {p.transport === "stdio"
+                  ? "Processo MCP local no notebook"
+                  : "MCP remoto via HTTPS"}{" "}
+                ·{" "}
+                {p.authMode === "application"
+                  ? "Identidade de aplicação"
+                  : "Usuário delegado"}
               </p>
               <p>
                 {p.status === "cadastrado" && inspected === p.id && tools.length
                   ? "Catálogo recebido; execute uma tool para verificar a leitura."
                   : p.status ||
                     "Cadastrado; servidor ainda não consultado nesta sessão."}
+              </p>
+              <p className="fine">
+                {p.transport === "stdio"
+                  ? "Pacote oficial iniciado no notebook; pode ser baixado no primeiro uso. Este processo consulta serviços Microsoft pela rede; não é um MCP hospedado pela Microsoft."
+                  : `Servidor remoto: ${p.endpoint}. A aplicação local envia chamadas autenticadas para esse endpoint.`}
               </p>
               <small>
                 {p.capability?.status === "unsupported"

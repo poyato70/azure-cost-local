@@ -124,7 +124,11 @@ export const api = {
   ) {
     const r = await fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrf,
+        "X-Data-Source": dataSource.source,
+      },
       body: JSON.stringify(input),
       signal,
     });

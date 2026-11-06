@@ -1,5 +1,7 @@
 export type DiagnosticEvent = {
   time: string;
+  requestId?: string;
+  attempt?: number;
   source: string;
   operation: string;
   status: string;
@@ -21,6 +23,11 @@ export class Diagnostics {
     const rows = this.sessions.get(id) || [];
     rows.push({
       time: new Date().toISOString(),
+      requestId: event.requestId ? clean(event.requestId) : undefined,
+      attempt:
+        Number.isSafeInteger(event.attempt) && event.attempt! > 0
+          ? event.attempt
+          : undefined,
       source: clean(event.source),
       operation: clean(event.operation),
       status: clean(event.status),

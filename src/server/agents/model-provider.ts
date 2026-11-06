@@ -13,6 +13,7 @@ export type ModelTurn = {
   }[];
 };
 export type ModelResult = {
+  usage?: { inputTokens?: number; outputTokens?: number };
   text?: string;
   toolCalls: { id: string; name: string; arguments: string }[];
 };
@@ -106,7 +107,15 @@ export class ModelProvider {
         "Resposta do modelo sem mensagem compatível.",
         502,
       );
+    const count = (v: unknown) =>
+      typeof v === "number" && Number.isSafeInteger(v) && v >= 0
+        ? v
+        : undefined;
     return {
+      usage: {
+        inputTokens: count(data.usage?.prompt_tokens),
+        outputTokens: count(data.usage?.completion_tokens),
+      },
       text: typeof m.content === "string" ? m.content : undefined,
       toolCalls: (m.tool_calls || []).map((t: any) => ({
         id: t.id,

@@ -1,6 +1,6 @@
 # TESSERACT — Azure Cost Local
 
-Dashboard pessoal de custos Azure com serviço local, chat GitHub Copilot ou agente cadastrado, acessos salvos e conexões MCP Microsoft. Interface em português, custos reais/amortizados, budgets, recomendações de Reservations/Savings Plans e consultas em linguagem natural.
+Workspace local para o time FinOps cadastrar acessos, conexões MCP Microsoft e agentes, consultar dados e conversar com GitHub Copilot ou modelo configurado. Interface em português, custos reais/amortizados, budgets, recomendações de Reservations/Savings Plans e consultas em linguagem natural.
 
 ```powershell
 npm ci
@@ -29,3 +29,5 @@ O modo normal usa APIs reais. Sem login, nenhuma despesa é inventada. Integraç
 [Identidade visual TESSERACT](docs/tesseract-identity.md) — paleta, símbolo, critérios visuais e limites.
 
 [Teste preliminar de 06/11/2026](docs/teste-preliminar-2026-11-06.md) — evidências relatadas, dúvidas e prioridades ainda pendentes.
+
+[Roteiro de apresentação e correções do teste preliminar](docs/apresentacao-tesseract.md). Inclui limites atuais, operação e uso dos provedores.

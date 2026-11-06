@@ -12,7 +12,11 @@ export function Chat({
   basis,
   agents = [],
   selection,
+  selectedSource,
+  connectionLabel,
 }: {
+  selectedSource?: "api" | "mcp";
+  connectionLabel?: string;
   agents?: PublicAgent[];
   selection?: DataSelection;
   scope?: Scope;
@@ -27,18 +31,50 @@ export function Chat({
     [entries, setEntries] = useState<
       { role: string; text: string; result?: CostResult; evidence?: unknown }[]
     >([]);
+  const actualSource = selectedSource || selection?.source || "api";
+  const mcpReady =
+    actualSource !== "mcp" ||
+    (selection?.source === "mcp" && !!selection.mcpConnectionId);
+  const consentKey = `tesseract:context:v1:${runtime === "copilot" ? "copilot" : "agent:" + agentId + ":" + (agents.find((a) => a.id === agentId)?.configurationVersion || 0)}`;
+  const [remember, setRemember] = useState(false),
+    [progress, setProgress] = useState<string[]>([]);
+  useEffect(() => {
+    let saved = false;
+    try {
+      saved = sessionStorage.getItem(consentKey) === "yes";
+    } catch {}
+    setConsent(saved);
+    setRemember(saved);
+  }, [consentKey]);
+  function authorize(allowed: boolean, keep = remember) {
+    if (!allowed) {
+      controller.current?.abort();
+      setBusy(false);
+      setProgress([
+        "Autorização revogada; execução cancelada. Dados já enviados ao provedor não podem ser recolhidos.",
+      ]);
+    }
+    setConsent(allowed);
+    setRemember(keep);
+    try {
+      if (allowed && keep) sessionStorage.setItem(consentKey, "yes");
+      else sessionStorage.removeItem(consentKey);
+    } catch {}
+  }
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
     controller.current?.abort();
     setEntries([]);
     setBusy(false);
+    setProgress([]);
     return () => controller.current?.abort();
-  }, [scope, basis, runtime, agentId, selection]);
+  }, [scope, basis, runtime, agentId, selection, actualSource]);
   async function send() {
     if (!message.trim() || !consent) return;
     const c = new AbortController();
     controller.current = c;
     setBusy(true);
+    setProgress(["Enviando pergunta ao serviço local…"]);
     const question = message;
     setMessage("");
     setEntries((e) => [...e, { role: "Você", text: question }]);
@@ -55,6 +91,24 @@ export function Chat({
         },
         (e) => {
           if (c.signal.aborted) return;
+          if (e.type === "progress")
+            setProgress((x) => [...x.slice(-7), e.message]);
+          if (e.type === "context")
+            setEntries((x) => [
+              ...x,
+              {
+                role: "Contexto efetivo da consulta",
+                text: `${e.runtime} · fonte: ${e.source} · tools: ${e.tools.join(", ")} · operação ${e.requestId || "sem ID"} · ${e.scope?.resourceGroup || "subscription inteira"}`,
+              },
+            ]);
+          if (e.type === "usage")
+            setEntries((x) => [
+              ...x,
+              {
+                role: "Uso desta pergunta",
+                text: `${e.provider} · ${(e.durationMs / 1000).toFixed(1)}s · ${e.toolCalls} interação(ões) com tools (inclui tentativas) · tokens de entrada: ${e.inputTokens ?? "não informado"} · saída: ${e.outputTokens ?? "não informado"}. Tokens informados pelo provedor; podem ser parciais. Custo monetário indisponível; contagem de tools não é cobrança.`,
+              },
+            ]);
           if (e.type === "text")
             setEntries((x) => [
               ...x,
@@ -142,11 +196,22 @@ export function Chat({
           Fonte:{" "}
           {selection?.hubId
             ? "FinOps hub selecionado (dois meses civis completos)"
-            : selection?.source === "mcp"
-              ? "MCP selecionado"
+            : actualSource === "mcp"
+              ? `MCP selecionado · ${connectionLabel || "selecione uma conexão"}`
               : "APIs Azure"}
         </small>
       </div>
+      <p className="notice">
+        {runtime === "copilot"
+          ? "Copilot local: CLI no notebook, usando a conta GitHub autenticada e a política corporativa. O modelo pode executar remotamente; não requer endpoint Azure neste modo."
+          : "Agente cadastrado: tools no serviço local, inferência no endpoint Azure configurado. Selecione um agente com modelo e credencial válidos."}
+      </p>
+      {!mcpReady && (
+        <p className="error" role="alert">
+          Conecte um acesso salvo e selecione uma conexão MCP antes de
+          perguntar. Nenhuma consulta por APIs será usada automaticamente.
+        </p>
+      )}
       <div className="section-head">
         <div>
           <h2>Converse com seus custos</h2>
@@ -231,20 +296,48 @@ export function Chat({
           ))
         )}
       </div>
+      {(busy || progress.length > 0) && (
+        <div className="chat-progress" role="status">
+          <strong>{busy ? "Em execução" : "Execução encerrada"}</strong>
+          <ol>
+            {progress.map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ol>
+        </div>
+      )}
       <div className="chat-compose">
         <label className="consent">
           <input
             type="checkbox"
             checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
+            onChange={(e) => authorize(e.target.checked)}
           />
           {runtime === "copilot"
             ? "Autorizo enviar o contexto necessário ao GitHub Copilot"
             : "Autorizo enviar o contexto necessário ao provedor do agente"}
         </label>
+        <label className="consent">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => authorize(consent, e.target.checked)}
+          />
+          Lembrar autorização para este provedor nesta sessão do navegador
+        </label>
+        {consent && (
+          <button onClick={() => authorize(false, false)}>
+            Revogar autorização de contexto
+          </button>
+        )}
         <p className="fine">
-          Nomes de recursos e valores consultados podem ser enviados à GitHub.
-          As políticas e o consumo do provedor selecionado se aplicam.
+          Nomes de recursos, pergunta e resultados podem ser enviados ao{" "}
+          {runtime === "copilot"
+            ? "GitHub Copilot"
+            : "provedor de inferência do agente"}
+          . A autorização é por provedor, pode ser revogada e não substitui a
+          política corporativa. Nenhuma senha ou Secret é enviado ao modelo. Uso
+          de tokens depende do provedor; valores ausentes não são custo zero.
         </p>
         <label className="sr-only" htmlFor="question">
           Sua pergunta
@@ -267,6 +360,7 @@ export function Chat({
               !message.trim() ||
               busy ||
               !scope ||
+              !mcpReady ||
               (runtime === "agent" && (!agentId || !selection))
             }
             onClick={send}

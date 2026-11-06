@@ -103,6 +103,9 @@ export class CopilotChat {
       ...ctx,
       signal: AbortSignal.any([ctx.signal, controller.signal]),
     };
+    const started = Date.now();
+    let inputTokens: number | undefined, outputTokens: number | undefined;
+    let unwatchUsage: (() => void) | undefined;
     let calls = 0;
     let unwatchHub: (() => void) | undefined;
     try {
@@ -129,6 +132,10 @@ export class CopilotChat {
               "Limite de dez consultas por pergunta atingido.",
             );
           }
+          emit({
+            type: "progress",
+            message: `Consultando APIs Azure · ${args.operation} · leitura ${calls}…`,
+          });
           const result = await executeQuestionTool(
             this.services,
             localCtx,
@@ -169,6 +176,10 @@ export class CopilotChat {
                 "limit_exceeded",
                 "Limite de consultas atingido.",
               );
+            emit({
+              type: "progress",
+              message: `MCP · ${args.operation === "list" ? "descobrindo tools aprovadas" : args.name || "leitura"}…`,
+            });
             if (args.operation === "list")
               return JSON.stringify(
                 (await this.mcps!.tools(localCtx, id)).filter(
@@ -207,6 +218,10 @@ export class CopilotChat {
               );
             if (!this.hubs || !input.scope)
               throw new AppError("invalid_request", "Selecione um RG e Hub.");
+            emit({
+              type: "progress",
+              message: `FinOps hub · ${args.operation}…`,
+            });
             const r = await this.hubs.run(
               localCtx,
               hubId,
@@ -231,8 +246,29 @@ export class CopilotChat {
             ? "Modo MCP: custos reais só podem ser consultados se uma tool aprovada oferecer esses dados. pricing_get fornece preços, não gastos."
             : "Ferramentas mediadas pela aplicação; consulta de dados depende de chamada do modelo."),
       });
+      emit({
+        type: "context",
+        requestId: ctx.requestId || "",
+        runtime: "Copilot local (CLI; modelo remoto)",
+        source: input.selection?.hubId
+          ? "FinOps hub"
+          : input.selection?.source === "mcp"
+            ? "MCP · " +
+              (await this.mcps!.get(input.selection.mcpConnectionId!)).name
+            : "APIs Azure Cost Management",
+        tools: [tool.name],
+        scope: input.scope,
+      });
       const allowedName = tool.name;
       session = await client.createSession(restrictedSessionConfig([tool]));
+      unwatchUsage = session.on((event) => {
+        if (event.type !== "assistant.usage") return;
+        const { inputTokens: i, outputTokens: o } = event.data;
+        if (typeof i === "number" && Number.isFinite(i) && i >= 0)
+          inputTokens = (inputTokens || 0) + i;
+        if (typeof o === "number" && Number.isFinite(o) && o >= 0)
+          outputTokens = (outputTokens || 0) + o;
+      });
       await session.rpc.tools.initializeAndValidate();
       const metadata = await session.rpc.tools.getCurrentMetadata();
       const items = (metadata as any).tools;
@@ -253,6 +289,11 @@ export class CopilotChat {
       localCtx.signal.addEventListener("abort", onAbort, { once: true });
       timer = setTimeout(() => controller.abort(), 120000);
       try {
+        emit({
+          type: "progress",
+          message:
+            "Copilot analisando a pergunta; aguardando chamadas de tools…",
+        });
         const response = await session.sendAndWait(
           {
             prompt: `Data atual: ${new Date().toISOString()}. Escopo autorizado: ${JSON.stringify(input.scope || null)}. Base: ${input.basis}. Pergunta: ${input.message}`,
@@ -278,6 +319,15 @@ export class CopilotChat {
         localCtx.signal.removeEventListener("abort", onAbort);
       }
     } finally {
+      unwatchUsage?.();
+      emit({
+        type: "usage",
+        inputTokens,
+        outputTokens,
+        toolCalls: calls,
+        durationMs: Date.now() - started,
+        provider: "GitHub Copilot",
+      });
       unwatchHub?.();
       if (timer) clearTimeout(timer);
       controller.abort();

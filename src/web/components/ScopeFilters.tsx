@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   Subscription,
   DateRange,
@@ -30,6 +30,15 @@ export function ScopeFilters({
   disabled: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
+  useEffect(() => setGroupSearch(""), [subscription]);
+  const groupNeedle = groupSearch.replace(/\*/g, "").trim().toLocaleLowerCase();
+  const shownGroups = groups.filter(
+    (g) =>
+      g === group ||
+      !groupNeedle ||
+      g.toLocaleLowerCase().includes(groupNeedle),
+  );
   const needle = search.replace(/\*/g, "").trim().toLocaleLowerCase();
   const shown = subscriptions.filter(
     (s) =>
@@ -45,7 +54,7 @@ export function ScopeFilters({
         <input
           aria-label="Buscar subscription"
           type="search"
-          placeholder="Nome ou ID, ex.: *grnuv*"
+          placeholder="Nome ou ID, ex.: *genuv*"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -71,6 +80,21 @@ export function ScopeFilters({
         </select>
       </label>
       <label>
+        Buscar resource group
+        <input
+          aria-label="Buscar resource group"
+          type="search"
+          disabled={disabled || !subscription}
+          placeholder="Nome ou trecho do RG"
+          value={groupSearch}
+          onChange={(e) => setGroupSearch(e.target.value)}
+        />
+        <small>
+          {shownGroups.length} de {groups.length} grupos. A seleção atual é
+          preservada.
+        </small>
+      </label>
+      <label>
         Resource group
         <select
           disabled={disabled || !subscription}
@@ -79,7 +103,7 @@ export function ScopeFilters({
           onChange={(e) => setGroup(e.target.value)}
         >
           <option value="">Todos da subscription</option>
-          {groups.map((g) => (
+          {shownGroups.map((g) => (
             <option key={g}>{g}</option>
           ))}
         </select>

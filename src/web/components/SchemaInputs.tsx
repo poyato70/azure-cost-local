@@ -1,4 +1,17 @@
 import { useState } from "react";
+const help: Record<string, string> = {
+  sku: "SKU exata. Ex.: Standard_D4s_v5. Não há catálogo de SKUs carregado automaticamente.",
+  service: "Nome do serviço no catálogo Azure. Ex.: Virtual Machines.",
+  region:
+    "Identificador da região. Ex.: westus2 ou brazilsouth. Informe a região desejada.",
+  "service-family": "Família do serviço. Ex.: Compute.",
+  "price-type":
+    "Modalidade de preço. Ex.: Consumption ou Reservation. Não é gasto realizado.",
+  filter:
+    "Filtro avançado opcional. Deixe vazio se SKU/serviço/região já atendem à consulta; vazio não envia este parâmetro.",
+  currency:
+    "Moeda do catálogo; o retorno identifica a moeda efetiva. Não há conversão implícita do gasto.",
+};
 export function schemaDefaults(schema: any): any {
   if (schema?.default !== undefined) return schema.default;
   if (schema?.type === "object" || schema?.properties) {
@@ -140,6 +153,9 @@ export function SchemaInputs({
               <input
                 aria-label={name}
                 required={required}
+                placeholder={
+                  field.examples?.[0] ? String(field.examples[0]) : ""
+                }
                 type={
                   ["number", "integer"].includes(field.type) ? "number" : "text"
                 }
@@ -158,6 +174,13 @@ export function SchemaInputs({
                 }
               />
             )}
+            <small className="schema-hint">
+              {required ? "Obrigatório" : "Opcional"} ·{" "}
+              {field.default !== undefined
+                ? `Padrão declarado pelo servidor: ${JSON.stringify(field.default)}`
+                : "Sem padrão declarado no schema; em branco, o parâmetro é omitido."}
+              {help[key] && <span className="field-help">{help[key]}</span>}
+            </small>
             <small>
               {field.description ||
                 "Parâmetro definido pelo schema desta tool."}

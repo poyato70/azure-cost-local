@@ -359,7 +359,7 @@ export function App() {
             <br />
             Você mantém o controle.
           </p>
-          <span className="version">MVP · 0.1</span>
+          <span className="version">MVP · 0.2.0</span>
         </div>
       </aside>
       <main>
@@ -379,13 +379,14 @@ export function App() {
         <div className="workspace">
           <div className="page-heading">
             <div>
-              <span className="eyebrow">CLAREZA PARA CADA DECISÃO</span>
+              <span className="eyebrow">WORKSPACE FINOPS</span>
               <h1>Sua nuvem, em perspectiva.</h1>
               <p>
-                FinOps e IA. Custos, compromissos e inteligência para sua nuvem.
+                Cadastre MCPs e agentes. Consulte dados e apoie as decisões do
+                time FinOps.
               </p>
             </div>
-            <span className="workspace-label">● LOCAL / PESSOAL</span>
+            <span className="workspace-label">● WORKSPACE LOCAL</span>
           </div>
           {error && (
             <div role="alert" className="error">
@@ -521,7 +522,11 @@ export function App() {
                 </label>
               )}
               <small>
-                Acesso ativo:{" "}
+                Serviço da aplicação: local · Identidade:{" "}
+                {boot?.principalKind === "application"
+                  ? "aplicação"
+                  : "usuário"}{" "}
+                · Acesso ativo:{" "}
                 {accesses.find((a) => a.id === boot?.activeAccessId)?.name ||
                   "login pessoal existente / desconectado"}
               </small>
@@ -600,6 +605,7 @@ export function App() {
             )}
             {tab === "agents" && (
               <Agents
+                onOpenChat={() => setTab("chat")}
                 profiles={agentProfiles}
                 accesses={accesses}
                 mcps={mcpProfiles}
@@ -716,6 +722,8 @@ export function App() {
                 }
                 scope={scope}
                 basis={basis}
+                selectedSource={source}
+                connectionLabel={mcpProfiles.find((p) => p.id === mcpId)?.name}
                 agents={agentProfiles}
                 selection={
                   boot?.activeAccessId

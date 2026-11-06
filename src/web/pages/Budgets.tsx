@@ -46,6 +46,10 @@ export function Budgets({ scope }: { scope?: Scope }) {
           {error}
         </div>
       )}
+      <p className="budget-legend">
+        Sinalização visual: atenção a partir de 80%; crítico a partir de 100%.
+        Os alertas configurados no Azure permanecem independentes.
+      </p>
       {result ? (
         <>
           {!result.items.length ? (
@@ -56,16 +60,28 @@ export function Budgets({ scope }: { scope?: Scope }) {
           ) : (
             <div className="budget-grid">
               {result.items.map((b) => (
-                <article className="budget-card" key={b.id}>
+                <article
+                  className={`budget-card ${b.percent === null ? "unknown" : Number(b.percent) >= 100 ? "critical" : Number(b.percent) >= 80 ? "attention" : "normal"}`}
+                  key={b.id}
+                >
                   <span className="eyebrow">ORÇAMENTO</span>
                   <h3>{b.name}</h3>
+                  <div className="budget-state">
+                    {b.percent === null
+                      ? "Consumo indisponível"
+                      : Number(b.percent) >= 100
+                        ? "Limite atingido ou excedido"
+                        : Number(b.percent) >= 80
+                          ? "Atenção ao consumo"
+                          : "Abaixo de 80% do limite"}
+                  </div>
                   <strong>
                     {b.spent === null
                       ? "Consumo indisponível"
                       : money(b.spent, b.currency)}{" "}
                     <small>
                       {b.spent === null
-                        ? "Consumo indisponível"
+                        ? null
                         : `de ${money(b.amount, b.currency)}`}
                     </small>
                   </strong>

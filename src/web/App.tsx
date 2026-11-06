@@ -1,3 +1,4 @@
+import { Brand } from "./components/Brand.js";
 import { Forecast } from "./pages/Forecast.js";
 import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
@@ -334,20 +335,14 @@ export function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="/">
-          <span className="brand-mark">
-            A<span>↗</span>
-          </span>
-          <div>
-            AZURE COST<small>VISÃO DA NUVEM</small>
-          </div>
-        </a>
+        <Brand />
         <div className="sidebar-section">WORKSPACE LOCAL</div>
         <nav aria-label="Navegação principal">
           {tabs.map((t) => (
             <button
               aria-label={t.label}
               key={t.id}
+              aria-current={tab === t.id ? "page" : undefined}
               className={tab === t.id ? "active" : ""}
               onClick={() => setTab(t.id)}
             >
@@ -371,7 +366,9 @@ export function App() {
         <header className="topbar">
           <span>
             Workspace <span className="slash">/</span>{" "}
-            <strong>Visão geral</strong>
+            <strong>
+              {tabs.find((t) => t.id === tab)?.label || "Visão geral"}
+            </strong>
           </span>
           <div className="topbar-right">
             <span className="badge">Somente leitura</span>
@@ -385,7 +382,7 @@ export function App() {
               <span className="eyebrow">CLAREZA PARA CADA DECISÃO</span>
               <h1>Sua nuvem, em perspectiva.</h1>
               <p>
-                Custos, compromissos e conversas. Uma visão conectada ao Azure.
+                FinOps e IA. Custos, compromissos e inteligência para sua nuvem.
               </p>
             </div>
             <span className="workspace-label">● LOCAL / PESSOAL</span>
@@ -734,7 +731,7 @@ export function App() {
             )}
           </section>
           <footer className="page-footer">
-            <span>Azure Cost · fontes oficiais, decisões informadas.</span>
+            <span>TESSERACT · FinOps e IA, decisões informadas.</span>
             <span>America/Sao_Paulo · valores na moeda de origem</span>
           </footer>
         </div>

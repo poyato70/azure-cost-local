@@ -1,4 +1,4 @@
-# Azure Cost Local
+# TESSERACT — Azure Cost Local
 
 Dashboard pessoal de custos Azure com serviço local, chat GitHub Copilot ou agente cadastrado, acessos salvos e conexões MCP Microsoft. Interface em português, custos reais/amortizados, budgets, recomendações de Reservations/Savings Plans e consultas em linguagem natural.
 
@@ -23,3 +23,9 @@ O modo normal usa APIs reais. Sem login, nenhuma despesa é inventada. Integraç
 [Cost Management: ARM MCP oficial, APIs e opção de MCP próprio](docs/cost-management-mcp-options.md) — análise de 04/11/2026.
 
 [Forecast e ARM MCP: operação e limites](docs/forecast-arm-operation.md). Previsão oficial separada do realizado; preset ARM delegado preparado para login e teste de leitura. Inclui avaliação de MCP local com identidade de aplicação.
+
+[Checklist de testes e aceite](docs/checklist-testes.md) — instalação, autenticação, dados financeiros, MCPs, chat, Hub, segurança e migração Windows.
+
+[Identidade visual TESSERACT](docs/tesseract-identity.md) — paleta, símbolo, critérios visuais e limites.
+
+[Teste preliminar de 06/11/2026](docs/teste-preliminar-2026-11-06.md) — evidências relatadas, dúvidas e prioridades ainda pendentes.

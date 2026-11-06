@@ -111,7 +111,13 @@ export function Benefits({ scope }: { scope?: Scope }) {
                       </p>
                       <small>{s.id}</small>
                       <span>Economia estimada na janela histórica</span>
-                      <strong>
+                      <strong
+                        className={
+                          s.estimatedSavings !== null && s.currency
+                            ? "potential-savings"
+                            : undefined
+                        }
+                      >
                         {s.estimatedSavings !== null && s.currency
                           ? money(s.estimatedSavings, s.currency)
                           : "Moeda/valor não informado"}

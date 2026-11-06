@@ -1,3 +1,4 @@
+import { Brand } from "./components/Brand.js";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 export function LoginComplete() {
@@ -28,7 +29,7 @@ export function LoginComplete() {
   }, []);
   return (
     <main className="login-complete">
-      <span className="eyebrow">AZURE COST</span>
+      <Brand />
       <h1>Login Microsoft</h1>
       <p role="status">{message}</p>
       <button className="primary" onClick={() => window.close()}>

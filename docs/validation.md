@@ -71,3 +71,13 @@ Formulário gerado do schema, lista/quantidade de tools, aprovação separada de
 Testes de serviço cobrem totais por moeda/estado, fim exclusivo, ausência de dados sem zero, rejeição de status desconhecido, paginação externa, escopo ARM, audience/permissão e transporte HTTP com initialize/list/call. Corrigida a classificação de rede que tratava IPv4 públicos como privados: a faixa IPv6 mapeada agora é checada separadamente; regressão mantém bloqueio de IPs privados, metadata e IPv4 mapeado em IPv6.
 
 Teste público real sem credenciais confirmou metadados ARM HTTP 200 e initialize anônimo HTTP 401. Não foi realizada consulta financeira autenticada. Serviço local reiniciado preservando os identificadores públicos configurados; /api/health respondeu 200 com ok=true. O usuário informou autorização Entra e foi orientado a concluir o popup e testar descoberta/leitura. Consulte [operação e limites](forecast-arm-operation.md).
+
+
+## Identidade TESSERACT — 06/11/2026
+
+Nome provisório, símbolo azul, tokens da paleta fornecida, navegação azul/amarelo, gráficos e KPIs azuis, economia potencial verde e estados de budget com rótulos. Dashboard e conclusão de login compartilham a marca; título/favicon atualizados. 14 testes Edge passaram após correções; typecheck/build e diff-check passaram. Inspeção com fixtures em 1440, 1024 e 390 px sem overflow horizontal de página nas dez abas. Revisão independente apontou contraste em textos pequenos, corrigido com texto azul escuro e branco opaco na sidebar; barra de ações Hub ajustada para quebra de linha. Health local ok=true. Não houve consulta Azure real nesta alteração visual; aceite visual do usuário permanece aberto. Veja [identidade](tesseract-identity.md).
+
+
+## Publicação da UX e teste preliminar — 06/11/2026
+
+Nova conferência: 67 testes de serviço, 14 testes Edge, typecheck, build e diff-check passaram. Usuário autorizou publicar a identidade TESSERACT. Incluídos checklist e triagem sanitizada do relato preliminar; anexo bruto e identificadores do ambiente não foram incorporados. O relato comprova obtenção de token, leitura de inventário e pricing_get, mas a consulta de custos teve HTTP 429. Limitação de chamadas, clareza de provedor e diagnóstico são prioridades documentadas, ainda sem correção funcional nesta publicação.

@@ -1427,3 +1427,36 @@ input[type="checkbox"] {
   padding-left: 20px;
   line-height: 1.7;
 }
+
+.terminal-log {
+  background: #0c0c0c;
+  color: #cccccc;
+  font:
+    12.5px/1.5 Consolas,
+    "Cascadia Mono",
+    monospace;
+  padding: 12px 14px;
+  border-radius: 6px;
+  max-height: 60vh;
+  overflow: auto;
+}
+.term-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.term-time {
+  color: #767676;
+}
+.term-status {
+  color: #16c60c;
+}
+.term-src {
+  color: #3b78ff;
+}
+.term-id {
+  color: #c19c00;
+}
+.term-line.failed .term-status,
+.term-line.failed {
+  color: #f14c4c;
+}

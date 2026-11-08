@@ -57,7 +57,7 @@ export class HubService {
   }
   async save(raw: unknown) {
     const v = hubInput.parse(raw),
-      url = await validateEndpoint(v.endpoint);
+      url = await validateEndpoint(v.endpoint, v.allowPrivateNetwork);
     if (
       !/^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.kusto\.windows\.net\/?$/.test(
         v.endpoint,
@@ -190,25 +190,29 @@ export class HubService {
         let data: any;
         if (h.transport === "api") {
           const token = await this.identity.getToken(context, h.endpoint);
-          const response = await fetchBound(h.endpoint + "/v1/rest/query", {
-            method: "POST",
-            signal: context.signal,
-            headers: {
-              Authorization: "Bearer " + token,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              db: h.database,
-              csl: query,
-              properties: JSON.stringify({
-                Options: {
-                  servertimeout: "00:00:45",
-                  truncationmaxrecords: 10000,
-                  truncationmaxsize: 1048576,
-                },
+          const response = await fetchBound(
+            h.endpoint + "/v1/rest/query",
+            {
+              method: "POST",
+              signal: context.signal,
+              headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                db: h.database,
+                csl: query,
+                properties: JSON.stringify({
+                  Options: {
+                    servertimeout: "00:00:45",
+                    truncationmaxrecords: 10000,
+                    truncationmaxsize: 1048576,
+                  },
+                }),
               }),
-            }),
-          });
+            },
+            h.allowPrivateNetwork,
+          );
           if (!response.ok) {
             await response.body?.cancel();
             throw new AppError(

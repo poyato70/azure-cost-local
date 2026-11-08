@@ -123,48 +123,39 @@ export function DiagnosticPanel() {
       ) : !filtered.length ? (
         <p>Nenhum evento corresponde aos filtros.</p>
       ) : (
-        <div className="table-wrap diagnostic-log">
-          <table>
-            <thead>
-              <tr>
-                <th>Horário</th>
-                <th>Origem / operação</th>
-                <th>Status</th>
-                <th>Correlação</th>
-                <th>Detalhe</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, i) => (
-                <tr key={i}>
-                  <td>{new Date(r.time).toLocaleString("pt-BR")}</td>
-                  <td>
-                    <strong>{r.source}</strong>
-                    <br />
-                    {r.operation}
-                  </td>
-                  <td>
-                    <span
-                      className={
-                        /^(429|4\d\d|5\d\d|forbidden|upstream|throttled)$/.test(
-                          r.status,
-                        )
-                          ? "log-status failed"
-                          : "log-status"
-                      }
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td>
-                    {r.requestId || "—"}
-                    {r.attempt ? ` · tentativa ${r.attempt}` : ""}
-                  </td>
-                  <td>{r.detail}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div
+          className="terminal-log"
+          role="log"
+          aria-label="Log de diagnóstico"
+        >
+          {filtered.map((r, i) => (
+            <div
+              key={i}
+              className={
+                /^(429|4\d\d|5\d\d|forbidden|upstream|throttled)$/.test(
+                  r.status,
+                )
+                  ? "term-line failed"
+                  : "term-line"
+              }
+            >
+              <span className="term-time">
+                {new Date(r.time).toLocaleTimeString("pt-BR")}
+              </span>{" "}
+              <span className="term-status">[{r.status}]</span>{" "}
+              <span className="term-src">
+                {r.source}/{r.operation}
+              </span>
+              {r.requestId ? (
+                <span className="term-id">
+                  {" "}
+                  #{r.requestId}
+                  {r.attempt ? `:${r.attempt}` : ""}
+                </span>
+              ) : null}
+              {r.detail ? <span> — {r.detail}</span> : null}
+            </div>
+          ))}
         </div>
       )}
     </>

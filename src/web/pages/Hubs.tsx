@@ -10,6 +10,7 @@ const fresh = {
   database: "Hub",
   schemaVersion: "v1_2",
   mcpConnectionId: "",
+  allowPrivateNetwork: false,
 };
 export function Hubs({
   accesses,
@@ -48,7 +49,7 @@ export function Hubs({
       requestRef.current?.abort();
     };
   }, [scope, basis, selected]);
-  const field = (k: string, v: string) =>
+  const field = (k: string, v: string | boolean) =>
     setForm((f: any) => ({ ...f, [k]: v }));
   async function run(fn: () => Promise<any>) {
     setBusy(true);
@@ -161,6 +162,14 @@ export function Hubs({
               placeholder="https://cluster.region.kusto.windows.net"
               onChange={(e) => field("endpoint", e.target.value)}
             />
+          </label>
+          <label className="consent">
+            <input
+              type="checkbox"
+              checked={!!form.allowPrivateNetwork}
+              onChange={(e) => field("allowPrivateNetwork", e.target.checked)}
+            />
+            Autorizar rede privada (cluster com private endpoint)
           </label>
           <label>
             Transporte do Hub

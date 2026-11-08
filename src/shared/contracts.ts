@@ -91,6 +91,18 @@ export type BudgetItem = {
   thresholds: number[];
 };
 export type BudgetStatus = { meta: ResultMeta; items: BudgetItem[] };
+export type BudgetLockTag = {
+  level: "subscription" | "resourceGroup" | "resource";
+  name: string;
+  key: string;
+  value: string;
+};
+export type BudgetLocks = {
+  meta: ResultMeta;
+  showAll: boolean;
+  resourcesScanned: number;
+  items: BudgetLockTag[];
+};
 export type Scenario = {
   id: string;
   sku: string | null;

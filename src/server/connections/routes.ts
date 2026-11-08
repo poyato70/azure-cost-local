@@ -9,6 +9,7 @@ import type { McpRegistry } from "../mcp/registry.js";
 import { presets, capability, httpAudience } from "../mcp/presets.js";
 import type { AgentService } from "../agents/service.js";
 import { ModelProvider } from "../agents/model-provider.js";
+import { HttpAgentClient } from "../agents/http-agent.js";
 import type { SecretStore } from "../storage/secret-store.js";
 import { AppError } from "../errors.js";
 export function registerConnectionRoutes(
@@ -55,6 +56,11 @@ export function registerConnectionRoutes(
     s.controller = new AbortController();
     s.userId = "";
     await d.identity.connectApplication(s.id, accessId);
+    const access = await d.accesses.get(accessId),
+      info = await d.identity.applications.details(
+        accessId,
+        "https://management.azure.com",
+      );
     d.context(r).diagnose?.({
       source: "Identidade de aplicação",
       operation: "conectar",
@@ -62,7 +68,13 @@ export function registerConnectionRoutes(
       detail:
         "Token ARM obtido. Autenticação concluída; permissões de custo serão verificadas na consulta.",
     });
-    return { connected: true };
+    return {
+      connected: true,
+      accessName: access.name,
+      clientId: access.clientId,
+      tenantId: access.tenantId,
+      expiresAt: new Date(info.expires).toISOString(),
+    };
   });
   app.post("/api/accesses/:id/test", async (r) => {
     const a = await d.accesses.get(getId(r));
@@ -71,11 +83,17 @@ export function registerConnectionRoutes(
         "auth_configuration",
         "O teste sem popup requer Secret Value; use Conectar para login de usuário.",
       );
-    await d.identity.applications.token(a.id, "https://management.azure.com");
+    const started = Date.now(),
+      info = await d.identity.applications.details(
+        a.id,
+        "https://management.azure.com",
+      );
     return {
       authenticated: true,
       message:
-        "Token de aplicação obtido. Permissões de dados serão verificadas na consulta.",
+        `Secret válido para "${a.name}": token ARM ${info.cached ? "reutilizado do cache" : "obtido no Entra ID"} em ${Date.now() - started} ms, ` +
+        `client ${a.clientId}, expira em ${new Date(info.expires).toLocaleString("pt-BR")}. ` +
+        "Permissões de dados serão verificadas na consulta.",
     };
   });
   app.get("/api/mcp-presets", async (r) => {
@@ -170,6 +188,15 @@ export function registerConnectionRoutes(
     z.object({ consent: z.literal(true) }).parse(r.body);
     const agent = await d.agents.get(getId(r)),
       ctx = d.context(r);
+    if (agent.provider === "http-agent-v1") {
+      const h = await new HttpAgentClient(agent, d.vault).health(
+        AbortSignal.any([ctx.signal, AbortSignal.timeout(30000)]),
+      );
+      return {
+        connected: true,
+        message: `O agente HTTP respondeu ao health check (${typeof h === "string" ? h : JSON.stringify(h)}). Sem consumo de modelo.`,
+      };
+    }
     const model = new ModelProvider(agent, d.vault, d.identity, ctx);
     const result = await model.complete(
       {

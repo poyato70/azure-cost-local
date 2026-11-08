@@ -46,6 +46,7 @@ export function McpConnections({
   onLogin: (id: string) => void;
 }) {
   const reviewRef = useRef<HTMLElement>(null);
+  const noticeRef = useRef<HTMLParagraphElement>(null);
   const [form, setForm] = useState<any>(empty),
     [context, setContext] = useState(
       JSON.stringify(empty.resourceContext, null, 2),
@@ -71,6 +72,13 @@ export function McpConnections({
     if (inspected && tools.length)
       reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [inspected, tools.length]);
+  useEffect(() => {
+    if (notice)
+      noticeRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+  }, [notice]);
   async function run(fn: () => Promise<any>) {
     setBusy(true);
     setNotice("");
@@ -95,6 +103,9 @@ export function McpConnections({
   const setContextField = (name: string, value: string) =>
     setContext(JSON.stringify({ ...contextFields, [name]: value }, null, 2));
   const selectedTool = tools.find((t) => t.name === toolName);
+  const selectionDirty = tools.some(
+    (t) => chosen.includes(t.name) !== !!t.approved,
+  );
   function chooseTool(name: string) {
     setToolName(name);
     const value =
@@ -169,7 +180,7 @@ export function McpConnections({
         </button>
       </div>
       {notice && (
-        <p className="notice" role="status">
+        <p className="notice" role="status" ref={noticeRef}>
           {notice}
         </p>
       )}
@@ -586,7 +597,14 @@ export function McpConnections({
               </span>
             </label>
           ))}
+          {selectionDirty && (
+            <p role="alert" className="notice">
+              Há alterações na seleção. Clique em Salvar tools permitidas para
+              liberá-las em Executar uma consulta.
+            </p>
+          )}
           <button
+            className={selectionDirty ? "primary" : undefined}
             disabled={busy}
             onClick={() =>
               void run(async () => {

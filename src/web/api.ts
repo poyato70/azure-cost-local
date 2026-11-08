@@ -102,6 +102,12 @@ export const api = {
     }>("/costs/compare", q, signal),
   getBudgets: (scope: Scope, signal?: AbortSignal) =>
     request<BudgetStatus>("/budgets/query", scope, signal),
+  getBudgetLocks: (scope: Scope, showAll: boolean, signal?: AbortSignal) =>
+    request<import("../shared/contracts.js").BudgetLocks>(
+      "/budgets/locks",
+      { scope, showAll },
+      signal,
+    ),
   analyzeBenefits: (
     scope: Scope,
     kind: BenefitAnalysis["kind"],

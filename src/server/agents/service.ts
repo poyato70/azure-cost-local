@@ -37,16 +37,34 @@ export class AgentService {
   }
   async save(raw: unknown) {
     const v = agentInput.parse(raw);
-    const endpoint = await validateEndpoint(v.endpoint);
-    if (
+    const http = v.provider === "http-agent-v1";
+    const endpoint = await validateEndpoint(
+      v.endpoint,
+      http && v.allowPrivateNetwork,
+      undefined,
+      http && v.allowInsecureHttp,
+    );
+    if (http) {
+      if (v.modelCredential.kind !== "apiKey")
+        throw new AppError(
+          "invalid_request",
+          "Agente HTTP usa token Bearer cadastrado como chave.",
+        );
+      if (endpoint.url.search || endpoint.url.pathname.replace(/\/$/, ""))
+        throw new AppError(
+          "invalid_endpoint",
+          "Informe apenas a raiz do agente (ex.: http://host).",
+        );
+    } else if (
       !/\.(openai\.azure\.com|services\.ai\.azure\.com)$/.test(
         endpoint.url.hostname,
       ) ||
-      endpoint.url.search
+      endpoint.url.search ||
+      !v.model
     )
       throw new AppError(
         "invalid_endpoint",
-        "Use um endpoint Azure OpenAI/Foundry compatível com v1.",
+        "Use um endpoint Azure OpenAI/Foundry compatível com v1 e informe o deployment.",
       );
     let saved!: AgentProfile,
       oldRef: string | undefined,

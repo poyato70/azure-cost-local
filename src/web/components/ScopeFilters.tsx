@@ -57,10 +57,18 @@ export function ScopeFilters({
           placeholder="Nome ou ID, ex.: *genuv*"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const first = needle
+              ? shown.find((s) => s.id !== subscription) || shown[0]
+              : undefined;
+            if (first) setSubscription(first.id);
+          }}
         />
         <small>
-          {shown.length} de {subscriptions.length} subscriptions. A seleção
-          atual é preservada.
+          {shown.length} de {subscriptions.length} subscriptions. Enter
+          seleciona o primeiro resultado.
         </small>
       </label>
       <label>
@@ -88,10 +96,18 @@ export function ScopeFilters({
           placeholder="Nome ou trecho do RG"
           value={groupSearch}
           onChange={(e) => setGroupSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const first = groupNeedle
+              ? shownGroups.find((g) => g !== group) || shownGroups[0]
+              : undefined;
+            if (first) setGroup(first);
+          }}
         />
         <small>
-          {shownGroups.length} de {groups.length} grupos. A seleção atual é
-          preservada.
+          {shownGroups.length} de {groups.length} grupos. Enter seleciona o
+          primeiro resultado.
         </small>
       </label>
       <label>

@@ -38,6 +38,7 @@ export async function validateEndpoint(
     host: string,
     options: { all: true; verbatim: true },
   ) => Promise<{ address: string; family: number }[]> = lookup,
+  allowHttp = false,
 ) {
   let url: URL;
   try {
@@ -59,6 +60,7 @@ export async function validateEndpoint(
     );
   if (
     url.protocol === "http:" &&
+    !allowHttp &&
     !(allowPrivate && ["localhost", "127.0.0.1", "::1"].includes(host))
   )
     throw new AppError(
@@ -87,8 +89,14 @@ export async function fetchBound(
   endpoint: string,
   init: RequestInit = {},
   allowPrivate = false,
+  allowHttp = false,
 ) {
-  const { url, addresses } = await validateEndpoint(endpoint, allowPrivate);
+  const { url, addresses } = await validateEndpoint(
+    endpoint,
+    allowPrivate,
+    undefined,
+    allowHttp,
+  );
   const agent = new Agent({
     connect: {
       lookup: ((_host: any, options: any, callback: any) =>

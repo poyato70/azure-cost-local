@@ -83,9 +83,13 @@ export const agentInput = z
           .max(10),
       })
       .optional(),
-    provider: z.literal("azure-chat-v1"),
+    provider: z
+      .enum(["azure-chat-v1", "http-agent-v1"])
+      .default("azure-chat-v1"),
     endpoint: z.string().max(2048),
-    model: z.string().min(1).max(200),
+    model: z.string().max(200).default(""),
+    allowPrivateNetwork: z.boolean().default(false),
+    allowInsecureHttp: z.boolean().default(false),
     modelCredential: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("apiKey") }),
       z.object({ kind: z.literal("entra"), accessId: id }),

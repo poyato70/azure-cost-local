@@ -3,6 +3,8 @@ import {
   meta,
   scopePath,
   type BudgetItem,
+  type BudgetLocks,
+  type BudgetLockTag,
   type BudgetStatus,
   type Scope,
   type RequestContext,
@@ -48,8 +50,67 @@ export function normalizeBudget(b: any): BudgetItem {
     ),
   };
 }
+const lockKey = /budget|or[cç]ament|trava|lock|limite|teto|cota/i;
 export class Budgets {
   constructor(private http: ArmHttp) {}
+  async getLocks(
+    ctx: RequestContext,
+    scope: Scope,
+    showAll = false,
+  ): Promise<BudgetLocks> {
+    const subscription = encodeURIComponent(scope.subscriptionId),
+      items: BudgetLockTag[] = [],
+      keep = (k: string) => showAll || lockKey.test(k),
+      collect = (
+        level: BudgetLockTag["level"],
+        name: string,
+        tags: unknown,
+      ) => {
+        for (const [key, value] of Object.entries(
+          (tags && typeof tags === "object" ? tags : {}) as Record<
+            string,
+            unknown
+          >,
+        ))
+          if (keep(key))
+            items.push({ level, name, key, value: String(value ?? "") });
+      };
+    const result: BudgetLocks = {
+      meta: meta(scope, "Tags Azure Resource Manager"),
+      showAll,
+      resourcesScanned: 0,
+      items,
+    };
+    const sub = await this.http.request(
+      ctx,
+      `/subscriptions/${subscription}?api-version=2022-12-01`,
+    );
+    collect(
+      "subscription",
+      String(sub?.displayName || scope.subscriptionId),
+      sub?.tags,
+    );
+    if (scope.resourceGroup) {
+      const group = encodeURIComponent(scope.resourceGroup);
+      const rg = await this.http.request(
+        ctx,
+        `/subscriptions/${subscription}/resourcegroups/${group}?api-version=2021-04-01`,
+      );
+      collect("resourceGroup", scope.resourceGroup, rg?.tags);
+      const resources = await this.http.list(
+        ctx,
+        `/subscriptions/${subscription}/resourceGroups/${group}/resources?api-version=2021-04-01`,
+      );
+      result.resourcesScanned = resources.items.length;
+      for (const res of resources.items)
+        collect("resource", String(res.name || res.id), res.tags);
+      if (resources.partial) result.meta.status = "partial";
+    } else
+      result.meta.warnings.push(
+        "Selecione um resource group para incluir as tags dos recursos; apenas a subscription foi consultada.",
+      );
+    return result;
+  }
   async getBudgets(ctx: RequestContext, scope: Scope): Promise<BudgetStatus> {
     const r = await this.http.list(
       ctx,

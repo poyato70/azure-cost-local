@@ -4,6 +4,7 @@ import type { HubService } from "../hubs/service.js";
 import { hubOperation } from "../../shared/hubs.js";
 import type { ModelTurn, ModelResult } from "./model-provider.js";
 import { ModelProvider } from "./model-provider.js";
+import { HttpAgentClient } from "./http-agent.js";
 import type { AgentProfile, DataSelection } from "../../shared/connections.js";
 import type {
   RequestContext,
@@ -179,6 +180,37 @@ export class LocalAgentRuntime {
         "O agente não está autorizado para o acesso ativo.",
         403,
       );
+    if (agent.provider === "http-agent-v1") {
+      const signal = AbortSignal.any([
+        ctx.signal,
+        AbortSignal.timeout(agent.limits.timeoutMs),
+      ]);
+      const started = Date.now();
+      emit({
+        type: "context",
+        requestId: ctx.requestId || "",
+        runtime: `Agente HTTP ${agent.name}`,
+        source: agent.endpoint,
+        tools: [],
+        scope: input.scope,
+      });
+      emit({ type: "progress", message: "Agente HTTP: consultando…" });
+      try {
+        const text = await new HttpAgentClient(agent, this.vault).ask(
+          input.message,
+          signal,
+        );
+        emit({ type: "text", text: text.slice(0, agent.limits.responseChars) });
+      } finally {
+        emit({
+          type: "usage",
+          toolCalls: 0,
+          durationMs: Date.now() - started,
+          provider: "Agente HTTP",
+        });
+      }
+      return;
+    }
     ensureQuestionScope(input.message, input.scope);
     const keys = [
       "agent:" + agent.id,

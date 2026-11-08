@@ -19,6 +19,9 @@ export class ApplicationProvider {
     > = (c) => new ConfidentialClientApplication(c),
   ) {}
   async token(accessId: string, audience: string) {
+    return (await this.details(accessId, audience)).token;
+  }
+  async details(accessId: string, audience: string) {
     const p = await this.accesses.get(accessId);
     if (!p.secretRef)
       throw new AppError(
@@ -46,7 +49,8 @@ export class ApplicationProvider {
         audience,
       ].join("|"),
       old = this.cache.get(key);
-    if (old && old.expires > Date.now() + 60000) return old.token;
+    if (old && old.expires > Date.now() + 60000)
+      return { token: old.token, expires: old.expires, cached: true };
     const client = this.factory({
       auth: {
         clientId: p.clientId,
@@ -78,11 +82,9 @@ export class ApplicationProvider {
         "O acesso mudou durante a autenticação.",
         409,
       );
-    this.cache.set(key, {
-      token: result.accessToken,
-      expires: result.expiresOn?.getTime() || Date.now() + 300000,
-    });
-    return result.accessToken;
+    const expires = result.expiresOn?.getTime() || Date.now() + 300000;
+    this.cache.set(key, { token: result.accessToken, expires });
+    return { token: result.accessToken, expires, cached: false };
   }
   clear() {
     this.cache.clear();

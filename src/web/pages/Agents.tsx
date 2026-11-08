@@ -13,6 +13,8 @@ const fresh = {
   provider: "azure-chat-v1",
   endpoint: "",
   model: "",
+  allowPrivateNetwork: false,
+  allowInsecureHttp: false,
   modelCredential: { kind: "apiKey" },
   allowedAccessIds: [] as string[],
   mcpConnectionIds: [] as string[],
@@ -39,6 +41,7 @@ export function Agents({
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [toolNames, setToolNames] = useState("azure_query");
+  const isHttp = form.provider === "http-agent-v1";
   const field = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   async function run(fn: () => Promise<any>) {
     setBusy(true);
@@ -198,23 +201,77 @@ export function Agents({
                 />
               </label>
               <label>
-                Endpoint Azure OpenAI / Foundry
+                Tipo de agente
+                <select
+                  value={form.provider}
+                  onChange={(e) => {
+                    field("provider", e.target.value);
+                    if (e.target.value === "http-agent-v1")
+                      field("modelCredential", { kind: "apiKey" });
+                  }}
+                >
+                  <option value="azure-chat-v1">
+                    Modelo Azure OpenAI / Foundry
+                  </option>
+                  <option value="http-agent-v1">
+                    Agente HTTP corporativo (/api/conversas)
+                  </option>
+                </select>
+              </label>
+              <label>
+                {isHttp
+                  ? "URL base do agente"
+                  : "Endpoint Azure OpenAI / Foundry"}
                 <input
                   type="url"
                   required
                   value={form.endpoint}
                   onChange={(e) => field("endpoint", e.target.value)}
-                  placeholder="https://recurso.openai.azure.com"
+                  placeholder={
+                    isHttp
+                      ? "http://bi.genuv.dev.desenv.bb.com.br"
+                      : "https://recurso.openai.azure.com"
+                  }
                 />
               </label>
-              <label>
-                Deployment / modelo
-                <input
-                  required
-                  value={form.model}
-                  onChange={(e) => field("model", e.target.value)}
-                />
-              </label>
+              {isHttp ? (
+                <>
+                  <p className="fine">
+                    O agente recebe a pergunta em POST /api/conversas e
+                    /mensagens e responde sozinho; ferramentas e dados ficam do
+                    lado dele. O token Bearer abaixo é guardado cifrado.
+                  </p>
+                  <label className="consent">
+                    <input
+                      type="checkbox"
+                      checked={form.allowPrivateNetwork}
+                      onChange={(e) =>
+                        field("allowPrivateNetwork", e.target.checked)
+                      }
+                    />
+                    Permitir endereço de rede privada
+                  </label>
+                  <label className="consent">
+                    <input
+                      type="checkbox"
+                      checked={form.allowInsecureHttp}
+                      onChange={(e) =>
+                        field("allowInsecureHttp", e.target.checked)
+                      }
+                    />
+                    Permitir HTTP sem TLS (o token trafega sem criptografia)
+                  </label>
+                </>
+              ) : (
+                <label>
+                  Deployment / modelo
+                  <input
+                    required
+                    value={form.model}
+                    onChange={(e) => field("model", e.target.value)}
+                  />
+                </label>
+              )}
               <label>
                 Credencial do modelo
                 <select
@@ -229,13 +286,13 @@ export function Agents({
                   }
                 >
                   <option value="apiKey">Chave de inferência</option>
-                  <option value="entra">Acesso Entra salvo</option>
+                  {!isHttp && <option value="entra">Acesso Entra salvo</option>}
                 </select>
               </label>
               {form.modelCredential.kind === "apiKey" ? (
                 <>
                   <label>
-                    Chave do modelo
+                    {isHttp ? "Token Bearer do agente" : "Chave do modelo"}
                     <select
                       value={keyAction}
                       onChange={(e) => setKeyAction(e.target.value)}
@@ -247,7 +304,9 @@ export function Agents({
                   </label>
                   {keyAction === "replace" && (
                     <label>
-                      Valor da chave de inferência
+                      {isHttp
+                        ? "Valor do token Bearer"
+                        : "Valor da chave de inferência"}
                       <input
                         type="password"
                         autoComplete="new-password"
@@ -417,7 +476,8 @@ export function Agents({
                 <article className="config-card" key={a.id}>
                   <h3>{a.name}</h3>
                   <p>
-                    {a.model} · v{a.configurationVersion}
+                    {a.provider === "http-agent-v1" ? "Agente HTTP" : a.model} ·
+                    v{a.configurationVersion}
                   </p>
                   <small>
                     {a.endpoint}
@@ -494,7 +554,9 @@ export function Agents({
                       )
                     }
                   >
-                    Testar inferência (com consumo)
+                    {a.provider === "http-agent-v1"
+                      ? "Testar conexão (health)"
+                      : "Testar inferência (com consumo)"}
                   </button>
                 </article>
               ))}

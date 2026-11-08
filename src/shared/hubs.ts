@@ -10,6 +10,7 @@ export const hubInput = z
     database: z.literal("Hub").default("Hub"),
     schemaVersion: z.literal("v1_2").default("v1_2"),
     mcpConnectionId: z.string().uuid().optional(),
+    allowPrivateNetwork: z.boolean().default(false),
   })
   .strict();
 export type HubProfile = Omit<

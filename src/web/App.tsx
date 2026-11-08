@@ -173,20 +173,29 @@ export function App() {
           message: "Conectando aplicação…",
         });
       try {
-        await manageRequest("/accesses/" + accessId + "/connect", "POST", {
-          mode,
-        });
+        const r = await manageRequest(
+          "/accesses/" + accessId + "/connect",
+          "POST",
+          {
+            mode,
+          },
+        );
         const b = await api.bootstrap();
         setBoot(b);
+        const detail = r?.accessName
+          ? `"${r.accessName}" (client ${r.clientId}, tenant ${r.tenantId}) — token ARM válido até ${new Date(r.expiresAt).toLocaleString("pt-BR")}.`
+          : "";
         if (inline)
           setConnectionFeedback({
             id: accessId,
             kind: "success",
-            message: "Aplicação conectada com sucesso.",
+            message: "Aplicação conectada com sucesso. " + detail,
           });
         else
           setInfo(
-            "Identidade de aplicação conectada. Nenhum login de usuário foi solicitado.",
+            "Identidade de aplicação conectada " +
+              detail +
+              " Nenhum login de usuário foi solicitado.",
           );
       } catch (e) {
         if (inline)

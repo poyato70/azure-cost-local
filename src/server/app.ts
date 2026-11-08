@@ -394,6 +394,15 @@ export async function buildApp(deps: AppDeps = {}) {
     await inventory.authorize(ctx, scope);
     return budgets.getBudgets(ctx, scope);
   });
+  app.post("/api/budgets/locks", async (req) => {
+    const body = z
+        .object({ scope: scopeSchema, showAll: z.boolean().default(false) })
+        .strict()
+        .parse(req.body),
+      ctx = context(req);
+    await inventory.authorize(ctx, body.scope);
+    return budgets.getLocks(ctx, body.scope, body.showAll);
+  });
   app.post("/api/forecast/query", async (req) => {
     const ctx = context(req);
     assertApiSelection({

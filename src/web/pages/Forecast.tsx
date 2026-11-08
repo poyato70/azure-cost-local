@@ -1,4 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import type { Scope, DateRange, CostQuery } from "../../shared/contracts.js";
 import type { ForecastResult } from "../../shared/forecast.js";
 import { api, money } from "../api.js";
@@ -18,6 +29,31 @@ export function Forecast({
     [busy, setBusy] = useState(false),
     [includeActual, setIncludeActual] = useState(false);
   const active = useRef<AbortController | null>(null);
+  const [currency, setCurrency] = useState("");
+  const currencies = useMemo(
+    () => [...new Set((result?.rows || []).map((r) => r.currency))],
+    [result],
+  );
+  const activeCurrency = currencies.includes(currency)
+    ? currency
+    : currencies[0] || "";
+  const chartData = useMemo(() => {
+    const byDate = new Map<
+      string,
+      { date: string; actual?: number; forecast?: number }
+    >();
+    for (const r of result?.rows || []) {
+      if (r.currency !== activeCurrency) continue;
+      const key = r.date,
+        item = byDate.get(key) || { date: key },
+        value = (Number(r.amount) || 0) + 0;
+      if (r.costStatus === "Forecast")
+        item.forecast = (item.forecast || 0) + value;
+      else item.actual = (item.actual || 0) + value;
+      byDate.set(key, item);
+    }
+    return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }, [result, activeCurrency]);
   useEffect(() => {
     active.current?.abort();
     setResult(undefined);
@@ -105,6 +141,63 @@ export function Forecast({
                   {money(t.amount, t.currency)} ({t.currency})
                 </p>
               ))}
+            </>
+          )}
+          {chartData.length > 0 && (
+            <>
+              <div className="chart-head">
+                <h3>Evolução prevista</h3>
+                {currencies.length > 1 && (
+                  <label>
+                    Moeda
+                    <select
+                      value={activeCurrency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                    >
+                      {currencies.map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+              <div className="chart" aria-label="Gráfico da previsão">
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={chartData}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(s) => String(s).slice(5)}
+                      fontSize={11}
+                    />
+                    <YAxis axisLine={false} tickLine={false} fontSize={11} />
+                    <Tooltip
+                      formatter={(v) => money(String(v), activeCurrency)}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="actual"
+                      name="Realizado"
+                      stroke="var(--primary)"
+                      fill="var(--primary)"
+                      fillOpacity={0.12}
+                      strokeWidth={2.5}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="forecast"
+                      name="Previsto"
+                      stroke="#f59e0b"
+                      strokeWidth={2.5}
+                      strokeDasharray="6 4"
+                      dot={false}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </>
           )}
           <table>

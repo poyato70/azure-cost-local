@@ -120,3 +120,13 @@ Preserve alterações locais antes de atualizar. Não exponha o serviço local �
 ## Ampliação FinOps hub
 
 Ao migrar, recadastre também os Hubs depois dos acessos e MCPs; configure Database Viewer e valide o schema v1_2. Nenhuma dependência adicional é exigida para consultar ADX remoto. Não instale Docker, módulos FinOpsToolkit ou plugins globais apenas para usar esta integração. Veja [roteiro específico](finops-hub-guide.md).
+
+## Atualização 0.3.0 — multicloud
+
+No novo notebook, use `D:\DEV\FinOps\Tesseract`, Node.js 24 e `npm ci`, `npm run build`, `npm start`. As dependências AWS (`@aws-sdk/client-cost-explorer`, `@aws-sdk/credential-providers`) e GCP (`@google-cloud/bigquery`) estão fixadas no lockfile e são instaladas por `npm ci`.
+
+Opcionais por fonte: AWS CLI com perfil/SSO; Google Cloud CLI com ADC; kubectl/oc apenas quando necessário para alcançar OpenCost. Copilot não é necessário para esses três conectores. MCPs e chat mantêm seus requisitos anteriores. [Guia multicloud](multicloud-guide.md).
+
+Reautentique AWS/ADC no novo Windows. O cofre DPAPI é vinculado ao usuário/máquina: copiar arquivos não garante descriptografia em outro notebook. Preserve a cópia original e recadastre os segredos pelo fluxo autorizado; não os publique no GitHub.
+
+Para desenvolvimento visual, Product Design foi usado para auditoria de fluxos com capturas atuais, complementado por testes de navegador. É ferramenta de desenvolvimento, não dependência de execução da aplicação. Nenhum plugin/skill precisa ser instalado para abrir o dashboard.

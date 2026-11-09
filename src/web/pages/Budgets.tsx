@@ -57,14 +57,19 @@ export function Budgets({ scope }: { scope?: Scope }) {
   }
   async function load() {
     if (!scope) return;
+    controller.current?.abort();
+    locksController.current?.abort();
     const c = new AbortController();
     controller.current = c;
+    locksController.current = c;
     setBusy(true);
     setError("");
     setResult(undefined);
-    void loadLocks(showAllTags, c.signal);
     try {
-      const r = await api.getBudgets(scope, c.signal);
+      const [r] = await Promise.all([
+        api.getBudgets(scope, c.signal),
+        loadLocks(showAllTags, c.signal),
+      ]);
       if (!c.signal.aborted) setResult(r);
     } catch (e) {
       if (!c.signal.aborted) setError((e as Error).message);
@@ -236,6 +241,7 @@ export function Budgets({ scope }: { scope?: Scope }) {
             <label className="consent">
               <input
                 type="checkbox"
+                disabled={busy}
                 checked={showAllTags}
                 onChange={(e) => {
                   setShowAllTags(e.target.checked);

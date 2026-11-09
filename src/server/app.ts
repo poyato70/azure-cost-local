@@ -1,4 +1,5 @@
 import { ForecastService } from "./forecast/service.js";
+import { registerMulticloudRoutes } from "./multicloud/routes.js";
 import { forecastQuery } from "../shared/forecast.js";
 import { Diagnostics } from "./diagnostics/service.js";
 import { HubService } from "./hubs/service.js";
@@ -222,6 +223,7 @@ export async function buildApp(deps: AppDeps = {}) {
     setCookie,
   });
   app.get("/api/diagnostics", async (req) => diagnostics.list(session(req).id));
+  registerMulticloudRoutes(app, session, (ref) => vault.read(ref));
   app.delete("/api/diagnostics", async (req) => {
     diagnostics.clear(session(req).id);
     return { ok: true };
@@ -395,6 +397,10 @@ export async function buildApp(deps: AppDeps = {}) {
     return budgets.getBudgets(ctx, scope);
   });
   app.post("/api/budgets/locks", async (req) => {
+    assertApiSelection({
+      accessId: context(req).accessId || "",
+      source: req.headers["x-data-source"] === "mcp" ? "mcp" : "api",
+    });
     const body = z
         .object({ scope: scopeSchema, showAll: z.boolean().default(false) })
         .strict()

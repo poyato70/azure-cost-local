@@ -1,6 +1,8 @@
-# TESSERACT — Azure Cost Local
+# TESSERACT — FinOps multicloud
 
 Workspace local para o time FinOps cadastrar acessos, conexões MCP Microsoft e agentes, consultar dados e conversar com GitHub Copilot ou modelo configurado. Interface em português, custos reais/amortizados, budgets, recomendações de Reservations/Savings Plans e consultas em linguagem natural.
+
+**Versão 0.3.0:** identidade própria, navegação por tarefas e **Visão multicloud** com Azure, AWS Cost Explorer, GCP Cloud Billing/BigQuery e alocação Kubernetes/OpenShift via OpenCost. Resultados em gráfico, tabela e JSON; moedas/bases e alocação são separadas para evitar dupla contagem. [Configuração, pré-requisitos e limites](docs/multicloud-guide.md).
 
 ```powershell
 npm ci

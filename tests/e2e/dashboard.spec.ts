@@ -134,6 +134,75 @@ test("ignores a late cost response after switching resource groups", async ({
   releaseOld();
   await expect(page.getByTestId("totals")).not.toContainText("999");
 });
+test("cancels pending budget tags on RG switch and never restores the previous group", async ({
+  page,
+}) => {
+  let started!: () => void, release!: () => void;
+  const pending = new Promise<void>((r) => {
+    release = r;
+  });
+  const reached = new Promise<void>((r) => {
+    started = r;
+  });
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    let json: any = [];
+    if (path === "/api/bootstrap")
+      json = {
+        authenticated: true,
+        csrf: "test",
+        configured: true,
+        tenantId,
+        period,
+      };
+    if (path === "/api/subscriptions")
+      json = [{ id: subscriptionId, name: "Fixture", tenantId }];
+    if (path === "/api/resource-groups") json = ["rg-a", "rg-b"];
+    if (path === "/api/budgets/query") json = { meta, items: [] };
+    if (path === "/api/budgets/locks") {
+      const old = route.request().postDataJSON().scope.resourceGroup === "rg-a";
+      if (old) {
+        started();
+        await pending;
+      }
+      json = {
+        meta,
+        showAll: false,
+        resourcesScanned: 1,
+        items: [
+          {
+            level: "resourceGroup",
+            name: old ? "rg-a" : "rg-b",
+            key: "budget-lock",
+            value: old ? "old-tag" : "current-tag",
+          },
+        ],
+      };
+    }
+    await route.fulfill({ json }).catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByLabel("Resource group", { exact: true }).selectOption("rg-a");
+  await page.getByRole("button", { name: "Budgets", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Consultar budgets", exact: true })
+    .click();
+  await reached;
+  await expect(
+    page.getByRole("button", { name: "Consultando…", exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel("Resource group", { exact: true }).selectOption("rg-b");
+  await page
+    .getByRole("button", { name: "Consultar budgets", exact: true })
+    .click();
+  await expect(
+    page.getByRole("cell", { name: "current-tag", exact: true }),
+  ).toBeVisible();
+  release();
+  await expect(
+    page.getByRole("cell", { name: "old-tag", exact: true }),
+  ).toHaveCount(0);
+});
 test("shows setup without fake spend or password fields", async ({ page }) => {
   await page.goto("/");
   await expect(
@@ -189,6 +258,8 @@ test("keeps currencies distinct, budgets empty and chat uses returned costs", as
     else if (path === "/api/costs/compare")
       body = { comparison: [{ currency: "USD", delta: "2", percent: "5" }] };
     else if (path === "/api/budgets/query") body = { meta, items: [] };
+    else if (path === "/api/budgets/locks")
+      body = { meta, items: [], showAll: false, resourcesScanned: 0 };
     else if (path === "/api/chat/status")
       body = { available: true, message: "Copilot simulado no teste" };
     else if (path === "/api/chat")

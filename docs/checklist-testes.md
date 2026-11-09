@@ -1,5 +1,21 @@
 # Checklist de testes — Azure Cost Local
 
+## Extensão 0.3.0 — multicloud (aceite humano pendente)
+
+- [ ] Navegar pelos grupos Explorar, Planejar, Assistentes, Conexões e Operação em desktop e notebook; confirmar que os cadastros existentes foram preservados.
+- [ ] Preencher GCP/AWS/OpenCost, abrir Configurar escopo Azure e voltar: formulário permanece preenchido.
+- [ ] AWS: autenticar perfil/SSO autorizado, consultar intervalo e conciliar UnblendedCost diário por serviço com Cost Explorer; registrar moeda e marca Estimated.
+- [ ] GCP: conferir projeto executor, tabela exportada e localização; autorizar limite de bytes; conciliar custos e créditos com Cloud Billing no mesmo período UTC.
+- [ ] GCP: cancelar consulta em andamento e verificar estado do job e cobrança no provedor; cancelamento não garante custo zero.
+- [ ] OpenCost/OpenShift: confirmar implantação compatível, retenção, endpoint, moeda e política de acesso; conciliar alocação por namespace com a API no mesmo período.
+- [ ] Conferir que OpenCost não é somado à fatura do provedor do cluster e que bases/moedas distintas não geram total geral.
+- [ ] Induzir falha em uma fonte: outras fontes permanecem visíveis; indisponível não aparece como zero.
+- [ ] Conferir gráfico, tabela pesquisável e JSON sanitizado; nenhuma credencial deve aparecer. Revisar confidencialidade dos identificadores antes de compartilhar JSON.
+- [ ] Azure: alternar RG durante consulta de budgets/tags; nenhum resultado antigo deve voltar.
+- [ ] Agente HTTP corporativo: verificar contrato remoto; confirmar que filtros/instruções locais não são alegados como enviados. Revogar acesso durante chamada deve impedir resposta antiga.
+
+Pré-requisitos e limites: [guia multicloud](multicloud-guide.md). Testes automatizados registrados em [validation.md](validation.md) não marcam estes itens como aprovados.
+
 Elaborado em 06/11/2026 a partir do código, testes e guias do projeto. Este documento é um roteiro de execução: nenhum item está aprovado por antecipação. Testes automatizados com dados sintéticos não comprovam login, permissões ou valores financeiros reais.
 
 ## Registro da rodada

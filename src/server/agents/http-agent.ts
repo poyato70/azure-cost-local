@@ -58,7 +58,7 @@ export class HttpAgentClient {
     if (!response.ok)
       throw new AppError(
         "upstream",
-        `O agente HTTP respondeu ${response.status}: ${text.slice(0, 300)}`,
+        `O agente HTTP respondeu HTTP ${response.status}. Consulte o administrador do endpoint com o horário da tentativa.`,
         502,
       );
     try {

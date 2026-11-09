@@ -1,7 +1,7 @@
 {
   "name": "azure-cost-local",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server/main.ts",
@@ -12,10 +12,13 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@aws-sdk/client-cost-explorer": "3.1164.0",
+    "@aws-sdk/credential-providers": "3.1164.0",
     "@azure/msal-node": "7.1.2",
     "@fastify/cookie": "11.1.5",
     "@fastify/static": "10.1.8",
     "@github/copilot-sdk": "1.0.28",
+    "@google-cloud/bigquery": "9.6.0",
     "@modelcontextprotocol/sdk": "1.32.2",
     "decimal.js": "10.6.0",
     "fastify": "5.12.7",

@@ -181,8 +181,15 @@ export class LocalAgentRuntime {
         403,
       );
     if (agent.provider === "http-agent-v1") {
+      const revisions = await this.gate.capture([
+        "agent:" + agent.id,
+        "access:" + ctx.accessId,
+      ]);
+      const controller = new AbortController();
+      const unwatch = this.gate.watch(revisions, controller);
       const signal = AbortSignal.any([
         ctx.signal,
+        controller.signal,
         AbortSignal.timeout(agent.limits.timeoutMs),
       ]);
       const started = Date.now();
@@ -192,16 +199,25 @@ export class LocalAgentRuntime {
         runtime: `Agente HTTP ${agent.name}`,
         source: agent.endpoint,
         tools: [],
-        scope: input.scope,
       });
-      emit({ type: "progress", message: "Agente HTTP: consultando…" });
+      emit({
+        type: "progress",
+        message:
+          "Agente HTTP: enviando a pergunta ao endpoint. O contrato remoto não recebe os filtros, instruções ou permissões locais; a fonte e o escopo da resposta devem ser confirmados no agente remoto.",
+      });
       try {
+        await this.gate.assertCurrent(revisions);
+        assertActive(signal);
         const text = await new HttpAgentClient(agent, this.vault).ask(
           input.message,
           signal,
         );
+        await this.gate.assertCurrent(revisions);
+        assertActive(signal);
         emit({ type: "text", text: text.slice(0, agent.limits.responseChars) });
       } finally {
+        unwatch();
+        controller.abort();
         emit({
           type: "usage",
           toolCalls: 0,

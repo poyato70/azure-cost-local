@@ -85,10 +85,10 @@ test("filters RGs and searches compact diagnostics by status and operation", asy
   await page.getByRole("button", { name: "Diagnóstico", exact: true }).click();
   await page.getByLabel("Status do log", { exact: true }).selectOption("429");
   await expect(
-    page.getByRole("cell", { name: "Espera Azure de teste", exact: true }),
+    page.getByRole("log").getByText(/Espera Azure de teste/),
   ).toBeVisible();
   await expect(
-    page.getByRole("cell", { name: "Inventário de teste", exact: true }),
+    page.getByRole("log").getByText(/Inventário de teste/),
   ).toHaveCount(0);
   await page.getByLabel("Pesquisar no log", { exact: true }).fill("req-2");
   await expect(
@@ -96,7 +96,7 @@ test("filters RGs and searches compact diagnostics by status and operation", asy
   ).toBeVisible();
   await page.getByLabel("Status do log", { exact: true }).selectOption("");
   await expect(
-    page.getByRole("cell", { name: "Inventário de teste", exact: true }),
+    page.getByRole("log").getByText(/Inventário de teste/),
   ).toBeVisible();
 });
 test("offers Copilot without Azure endpoint and shows source progress usage and revocable session consent", async ({

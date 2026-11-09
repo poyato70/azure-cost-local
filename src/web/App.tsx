@@ -1,4 +1,5 @@
 import { Brand } from "./components/Brand.js";
+import { Multicloud } from "./pages/Multicloud.js";
 import { Forecast } from "./pages/Forecast.js";
 import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
@@ -22,17 +23,18 @@ import type {
 import { Accesses } from "./pages/Accesses.js";
 import { McpConnections } from "./pages/McpConnections.js";
 import { Agents } from "./pages/Agents.js";
-const tabs = [
-  { id: "accesses", label: "Acessos", icon: "⚿" },
-  { id: "mcps", label: "MCPs", icon: "⌘" },
-  { id: "agents", label: "Agentes", icon: "✧" },
-  { id: "hubs", label: "FinOps hub", icon: "◈" },
-  { id: "costs", label: "Custos", icon: "◷" },
-  { id: "benefits", label: "Compromissos", icon: "◇" },
-  { id: "forecast", label: "Forecast", icon: "↗" },
-  { id: "budgets", label: "Budgets", icon: "▤" },
-  { id: "diagnostics", label: "Diagnóstico", icon: "≡" },
-  { id: "chat", label: "Chat", icon: "✳" },
+const tabs: { id: string; label: string; group?: string }[] = [
+  { id: "multicloud", label: "Visão multicloud", group: "EXPLORAR" },
+  { id: "costs", label: "Custos" },
+  { id: "benefits", label: "Compromissos", group: "PLANEJAR" },
+  { id: "forecast", label: "Forecast" },
+  { id: "budgets", label: "Budgets" },
+  { id: "agents", label: "Agentes", group: "ASSISTENTES" },
+  { id: "chat", label: "Chat" },
+  { id: "accesses", label: "Acessos", group: "CONEXÕES" },
+  { id: "mcps", label: "MCPs" },
+  { id: "hubs", label: "FinOps hub" },
+  { id: "diagnostics", label: "Diagnóstico", group: "OPERAÇÃO" },
 ];
 export function App() {
   const [connectionFeedback, setConnectionFeedback] = useState<{
@@ -348,27 +350,29 @@ export function App() {
         <div className="sidebar-section">WORKSPACE LOCAL</div>
         <nav aria-label="Navegação principal">
           {tabs.map((t) => (
-            <button
-              aria-label={t.label}
-              key={t.id}
-              aria-current={tab === t.id ? "page" : undefined}
-              className={tab === t.id ? "active" : ""}
-              onClick={() => setTab(t.id)}
-            >
-              <span>{t.icon}</span>
-              {t.label}
-              {t.id === "chat" && <small>AI</small>}
-            </button>
+            <div className="nav-entry" key={t.id}>
+              {t.group && <div className="nav-group">{t.group}</div>}
+              <button
+                aria-label={t.label}
+                key={t.id}
+                aria-current={tab === t.id ? "page" : undefined}
+                className={tab === t.id ? "active" : ""}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+                {t.id === "chat" && <small>AI</small>}
+              </button>
+            </div>
           ))}
         </nav>
         <div className="sidebar-bottom">
           <div className="local-light" /> Serviço no notebook
           <p>
-            Conectado às fontes oficiais.
+            Consultas com fonte verificável.
             <br />
             Você mantém o controle.
           </p>
-          <span className="version">MVP · 0.2.0</span>
+          <span className="version">MVP · 0.3.0</span>
         </div>
       </aside>
       <main>
@@ -389,7 +393,11 @@ export function App() {
           <div className="page-heading">
             <div>
               <span className="eyebrow">WORKSPACE FINOPS</span>
-              <h1>Sua nuvem, em perspectiva.</h1>
+              <h1>
+                {tab === "multicloud"
+                  ? "FinOps sem fronteiras."
+                  : tabs.find((t) => t.id === tab)?.label || "Tesseract"}
+              </h1>
               <p>
                 Cadastre MCPs e agentes. Consulte dados e apoie as decisões do
                 time FinOps.
@@ -408,7 +416,13 @@ export function App() {
             <p role="status">Iniciando serviço local…</p>
           ) : (
             !boot.authenticated &&
-            !["accesses", "mcps", "agents", "diagnostics"].includes(tab) && (
+            ![
+              "accesses",
+              "mcps",
+              "agents",
+              "diagnostics",
+              "multicloud",
+            ].includes(tab) && (
               <section className="setup">
                 <div className="setup-copy">
                   <span className="eyebrow">COMECE PELA CONEXÃO</span>
@@ -468,80 +482,93 @@ export function App() {
               </section>
             )
           )}
-          {accesses.length > 0 && (
-            <section className="connection-toolbar">
-              <label>
-                Acesso salvo
-                <select
-                  value={chosenAccess}
-                  onChange={(e) => {
-                    setChosenAccess(e.target.value);
-                    const a = accesses.find((x) => x.id === e.target.value);
-                    if (a) setAccessMode(a.preferredMode);
-                  }}
-                >
-                  <option value="">Selecione um acesso</option>
-                  {accesses.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Autenticação
-                <select
-                  value={accessMode}
-                  onChange={(e) => setAccessMode(e.target.value as any)}
-                >
-                  <option value="user">Usuário</option>
-                  <option value="application">Aplicação com Secret</option>
-                </select>
-              </label>
-              <button
-                disabled={!chosenAccess || loginPending}
-                onClick={() => void connect(chosenAccess, accessMode)}
-              >
-                Conectar acesso
-              </button>
-              <label>
-                Fonte dos dados
-                <select
-                  value={source}
-                  onChange={(e) => setSource(e.target.value as any)}
-                >
-                  <option value="api">APIs Azure</option>
-                  <option value="mcp">Servidor MCP</option>
-                </select>
-              </label>
-              {source === "mcp" && (
+          {accesses.length > 0 &&
+            ![
+              "accesses",
+              "mcps",
+              "agents",
+              "diagnostics",
+              "multicloud",
+            ].includes(tab) && (
+              <section className="connection-toolbar">
                 <label>
-                  Conexão MCP
+                  Acesso salvo
                   <select
-                    value={mcpId}
-                    onChange={(e) => setMcpId(e.target.value)}
+                    value={chosenAccess}
+                    onChange={(e) => {
+                      setChosenAccess(e.target.value);
+                      const a = accesses.find((x) => x.id === e.target.value);
+                      if (a) setAccessMode(a.preferredMode);
+                    }}
                   >
-                    <option value="">Selecione</option>
-                    {mcpProfiles.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+                    <option value="">Selecione um acesso</option>
+                    {accesses.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
                       </option>
                     ))}
                   </select>
                 </label>
-              )}
-              <small>
-                Serviço da aplicação: local · Identidade:{" "}
-                {boot?.principalKind === "application"
-                  ? "aplicação"
-                  : "usuário"}{" "}
-                · Acesso ativo:{" "}
-                {accesses.find((a) => a.id === boot?.activeAccessId)?.name ||
-                  "login pessoal existente / desconectado"}
-              </small>
-            </section>
-          )}
-          {!["accesses", "mcps", "agents", "diagnostics"].includes(tab) && (
+                <label>
+                  Autenticação
+                  <select
+                    value={accessMode}
+                    onChange={(e) => setAccessMode(e.target.value as any)}
+                  >
+                    <option value="user">Usuário</option>
+                    <option value="application">Aplicação com Secret</option>
+                  </select>
+                </label>
+                <button
+                  disabled={!chosenAccess || loginPending}
+                  onClick={() => void connect(chosenAccess, accessMode)}
+                >
+                  Conectar acesso
+                </button>
+                <label>
+                  Fonte dos dados
+                  <select
+                    value={source}
+                    onChange={(e) => setSource(e.target.value as any)}
+                  >
+                    <option value="api">APIs Azure</option>
+                    <option value="mcp">Servidor MCP</option>
+                  </select>
+                </label>
+                {source === "mcp" && (
+                  <label>
+                    Conexão MCP
+                    <select
+                      value={mcpId}
+                      onChange={(e) => setMcpId(e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {mcpProfiles.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <small>
+                  Serviço da aplicação: local · Identidade:{" "}
+                  {boot?.principalKind === "application"
+                    ? "aplicação"
+                    : "usuário"}{" "}
+                  · Acesso ativo:{" "}
+                  {accesses.find((a) => a.id === boot?.activeAccessId)?.name ||
+                    "login pessoal existente / desconectado"}
+                </small>
+              </section>
+            )}
+          {![
+            "accesses",
+            "mcps",
+            "agents",
+            "diagnostics",
+            "multicloud",
+          ].includes(tab) && (
             <ScopeFilters
               subscriptions={subs}
               subscription={sub}
@@ -582,7 +609,16 @@ export function App() {
                 </button>
               </section>
             )}
-          <section className="content-card">
+          <div hidden={tab !== "multicloud"}>
+            <section className="content-card">
+              <Multicloud
+                scope={scope}
+                period={period}
+                onAzure={() => setTab("costs")}
+              />
+            </section>
+          </div>
+          <section className="content-card" hidden={tab === "multicloud"}>
             {tab === "diagnostics" && <DiagnosticPanel />}
             {tab === "hubs" && (
               <Hubs

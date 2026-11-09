@@ -1,5 +1,15 @@
 # Identidade visual TESSERACT
 
+## Identidade própria — 09/11/2026, versão 0.3.0
+
+O usuário aprovou reformular também a identidade e a organização completa das telas. Esta seção substitui as diretrizes cromáticas de aplicação abaixo, preservadas como histórico de 06/11.
+
+Navegação escura #171D30, destaque índigo #5556D9, texto principal #20273B, superfícies claras #F5F6FA/#FFFFFF e destaque secundário #F0CC66. O nome e símbolo geométrico permanecem; o símbolo existente mantém seu azul. Grupos de navegação: Explorar, Planejar, Assistentes, Conexões e Operação. Rótulos de status acompanham cores. Tipografia de sistema, foco visível e rolagem restrita a tabelas/JSON/nav mobile quando necessário.
+
+Capturas atuais desktop e 390 px revisadas em `.superpowers/ux/after-multicloud.png` e `after-mobile.png`. Não representam aceite visual humano nem validação financeira. Histórico abaixo não afirma que a nova identidade seja uma marca oficial BB.
+
+## Histórico — 06/11/2026
+
 Atualização de 06/11/2026, aprovada pelo usuário: nome público provisório TESSERACT; subtítulo FinOps & IA; símbolo fornecido adaptado ao azul. O repositório e os caminhos técnicos continuam azure-cost-local.
 
 ## Aplicação

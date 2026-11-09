@@ -1,5 +1,16 @@
 # Validação do MVP — 01/11/2026
 
+## Tesseract 0.3.0 — 09/11/2026
+
+- 88 testes de serviço em 36 arquivos passaram (`npm test`). Incluem paginação AWS, erro AWS incompleto, créditos/contrato BigQuery, limite faturado/localização, cancelamento de job, sanitização de token refletido, precisão decimal, proteção CSRF e seleção MCP em tags.
+- 19 testes Edge passaram (`npx playwright test`). Incluem visão multicloud com falha parcial, gráfico/tabela/JSON, preservação do formulário ao configurar Azure, resumo por base/camada, ausência de overflow de página em 390 px e descarte de tags do RG anterior.
+- `npm run typecheck`, `npm run build` e revisão independente final sem problema material remanescente. Inspeção visual no navegador integrado em desktop e 390 px, com capturas locais em `.superpowers/ux`.
+- `npm audit --omit=dev`: zero vulnerabilidades. Auditoria completa ainda informa uma vulnerabilidade baixa no conjunto de desenvolvimento. Build mantém aviso de bundle frontend maior que 500 kB; não houve erro de compilação.
+- Credenciais, arquivo de configuração e cofre existentes preservados. Nenhuma compra, mudança de infraestrutura ou consulta financeira real executada nesta rodada.
+- **Pendente de validação humana e ambiente:** login/autorização real AWS e ADC, exportação GCP, compatibilidade OpenCost/OpenShift, rede corporativa, conciliação financeira e aceite visual do time. A tarefa Linear permanece em andamento para este aceite.
+
+Guia: [multicloud-guide.md](multicloud-guide.md). Desenho aprovado: [especificação](superpowers/specs/2026-11-09-multicloud-experience-design.md). Auditoria UX: [registro](ux-audit-2026-11-09.md).
+
 ## Confirmado nesta execução
 
 - Node.js 24.20.0, npm 11.19.0, Copilot CLI 1.0.106-2 e SDK 1.0.28.

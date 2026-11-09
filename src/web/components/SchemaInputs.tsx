@@ -52,6 +52,7 @@ export function SchemaInputs({
   root = schema,
   path = "",
   depth = 0,
+  fallbackValues,
 }: {
   schema: any;
   value: any;
@@ -59,6 +60,7 @@ export function SchemaInputs({
   root?: any;
   path?: string;
   depth?: number;
+  fallbackValues?: any;
 }) {
   const s = resolveSchema(schema, root);
   if (depth > 6) return <p>Schema profundo: use o JSON avançado.</p>;
@@ -67,7 +69,9 @@ export function SchemaInputs({
       {Object.entries(s.properties || {}).map(([key, raw]: any) => {
         const field = resolveSchema(raw, root),
           name = path ? path + "." + key : key,
-          required = (s.required || []).includes(key),
+          required =
+            (s.required || []).includes(key) &&
+            fallbackValues?.[key] === undefined,
           val = value?.[key];
         const set = (v: any) => {
           const next = { ...value };
@@ -96,6 +100,7 @@ export function SchemaInputs({
                 onChange={set}
                 path={name}
                 depth={depth + 1}
+                fallbackValues={fallbackValues?.[key]}
               />
             </fieldset>
           );
@@ -154,7 +159,8 @@ export function SchemaInputs({
                 aria-label={name}
                 required={required}
                 placeholder={
-                  field.examples?.[0] ? String(field.examples[0]) : ""
+                  fallbackValues?.[key] ??
+                  (field.examples?.[0] ? String(field.examples[0]) : "")
                 }
                 type={
                   ["number", "integer"].includes(field.type) ? "number" : "text"
@@ -176,9 +182,11 @@ export function SchemaInputs({
             )}
             <small className="schema-hint">
               {required ? "Obrigatório" : "Opcional"} ·{" "}
-              {field.default !== undefined
-                ? `Padrão declarado pelo servidor: ${JSON.stringify(field.default)}`
-                : "Sem padrão declarado no schema; em branco, o parâmetro é omitido."}
+              {fallbackValues?.[key] !== undefined
+                ? `Padrão da aplicação quando vazio: ${JSON.stringify(fallbackValues[key])}`
+                : field.default !== undefined
+                  ? `Padrão declarado pelo servidor: ${JSON.stringify(field.default)}`
+                  : "Sem padrão declarado no schema; em branco, o parâmetro é omitido."}
               {help[key] && <span className="field-help">{help[key]}</span>}
             </small>
             <small>

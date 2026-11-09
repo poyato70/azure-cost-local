@@ -19,6 +19,10 @@ test("discovers tools, renders a nested schema and displays the executed result"
           required: ["sku"],
           properties: {
             sku: { type: "string", description: "SKU exata" },
+            currency: { type: "string", default: "USD" },
+            service: { type: "string" },
+            "service-family": { type: "string" },
+            "price-type": { type: "string" },
             region: { type: "string" },
             includeSavingsPlan: { type: "boolean" },
           },
@@ -77,6 +81,12 @@ test("discovers tools, renders a nested schema and displays the executed result"
   await page.locator(".tool-row input[type=checkbox]").check();
   await page.getByRole("button", { name: "Salvar tools permitidas" }).click();
   await page.getByLabel("Tools", { exact: true }).selectOption("pricing_get");
+  await expect(
+    page.getByLabel("request.currency", { exact: true }),
+  ).toHaveValue("BRL");
+  await expect(page.getByLabel("request.sku", { exact: true })).toHaveValue(
+    "Standard_D4s_v5",
+  );
   await page.getByLabel("request.sku", { exact: true }).fill("Standard_D2s_v5");
   await page.getByLabel("request.region", { exact: true }).fill("eastus");
   await page.getByRole("button", { name: "Executar tool selecionada" }).click();
@@ -84,8 +94,20 @@ test("discovers tools, renders a nested schema and displays the executed result"
     page.getByRole("heading", { name: "Resultado de pricing_get" }),
   ).toBeVisible();
   expect(called.arguments).toEqual({
-    request: { sku: "Standard_D2s_v5", region: "eastus" },
+    request: {
+      sku: "Standard_D2s_v5",
+      region: "eastus",
+      currency: "BRL",
+      service: "Virtual Machines",
+      "service-family": "Compute",
+      "price-type": "Consumption",
+    },
   });
+  await page.getByLabel("request.sku", { exact: true }).fill("");
+  await page.getByLabel("request.currency", { exact: true }).fill(" ");
+  await page.getByRole("button", { name: "Executar tool selecionada" }).click();
+  await expect.poll(() => called.arguments.request.sku).toBe("Standard_D4s_v5");
+  expect(called.arguments.request.currency).toBe("BRL");
   await expect(
     page.getByRole("region", { name: "Resultado da tool" }),
   ).toContainText("1.25 USD");

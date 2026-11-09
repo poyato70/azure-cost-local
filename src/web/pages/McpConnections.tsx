@@ -9,6 +9,7 @@ import type {
   PublicAccessProfile,
 } from "../../shared/connections.js";
 import { manageRequest } from "../api.js";
+import { applyPricingDefaults } from "../components/pricing-defaults.js";
 const defaults = {
   arm: { endpoint: "https://mcp.management.azure.com", transport: "http" },
   azure: { endpoint: "", transport: "stdio" },
@@ -108,8 +109,12 @@ export function McpConnections({
   );
   function chooseTool(name: string) {
     setToolName(name);
-    const value =
-      schemaDefaults(tools.find((t) => t.name === name)?.inputSchema) || {};
+    const value = applyPricingDefaults(
+      name,
+      tools.find((t) => t.name === name)?.inputSchema,
+      schemaDefaults(tools.find((t) => t.name === name)?.inputSchema) || {},
+      true,
+    );
     setArgumentsValue(value);
     setArgs(JSON.stringify(value, null, 2));
     setResult(undefined);
@@ -126,7 +131,13 @@ export function McpConnections({
     });
     const start = Date.now();
     try {
-      const argumentsData = advanced ? JSON.parse(args) : argumentsValue;
+      const argumentsData = applyPricingDefaults(
+        toolName,
+        selectedTool?.inputSchema,
+        advanced ? JSON.parse(args) : argumentsValue,
+      );
+      setArgumentsValue(argumentsData);
+      setArgs(JSON.stringify(argumentsData, null, 2));
       const r = await manageRequest(
         "/mcp-connections/" + inspected + "/call",
         "POST",
@@ -657,12 +668,23 @@ export function McpConnections({
                 <p>
                   Os campos abaixo foram lidos do schema de {selectedTool.name}.
                   * indica obrigatório. Campos vazios opcionais são omitidos.
+                  {selectedTool.name === "pricing_get" &&
+                    " Para pricing_get, campos vazios usam BRL, Standard_D4s_v5, Virtual Machines, Compute e Consumption, quando presentes no schema. Região não tem padrão."}
                 </p>
                 {!advanced && (
                   <SchemaInputs
                     key={toolName}
                     schema={selectedTool.inputSchema}
                     value={argumentsValue}
+                    fallbackValues={
+                      toolName === "pricing_get"
+                        ? applyPricingDefaults(
+                            toolName,
+                            selectedTool.inputSchema,
+                            {},
+                          )
+                        : undefined
+                    }
                     onChange={(v) => {
                       setArgumentsValue(v);
                       setArgs(JSON.stringify(v, null, 2));

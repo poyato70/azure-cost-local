@@ -1877,3 +1877,25 @@ summary:focus-visible {
     gap: 12px;
   }
 }
+
+/* Capability workbench: tree hierarchy and quiet active states. */
+.sidebar nav.tree-nav { display:block; overflow:visible; }
+.nav-tree-group { margin:12px 0; border:0; }
+.nav-tree-group summary { display:flex; align-items:center; gap:10px; padding:10px 8px; color:#d4dcef; font-size:13px; font-weight:650; list-style:none; cursor:pointer; }
+.nav-tree-group summary svg:last-child {margin-left:auto;}
+.nav-children {margin:2px 0 8px 16px;padding-left:12px;border-left:1px solid #3b435b;}
+.nav-subchildren {margin:3px 0 10px 10px;padding-left:12px;border-left:1px solid #454d65;}
+.sidebar nav.tree-nav button {font-size:12px;min-height:34px;border-radius:4px;box-shadow:none;white-space:normal;}
+.sidebar nav.tree-nav button.active {background:#303b50;color:white;box-shadow:none;font-weight:700;}
+.mobile-menu {display:none;}
+.channel-guard {border:0;padding:0;margin:0;min-width:0;}
+.welcome-dialog {max-width:480px;width:calc(100% - 32px);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;color:var(--text);}
+.welcome-dialog::backdrop {background:#10182bcc;}
+.welcome-dialog button {margin-top:18px;}
+.welcome-dialog label {text-align:left;}
+.welcome-symbol {object-fit:contain;animation:welcome-geometry 1.4s ease-out;}
+@keyframes welcome-geometry {from{opacity:0;transform:perspective(600px) rotateY(100deg) scale(.7)}to{opacity:1;transform:perspective(600px) rotateY(0) scale(1)}}
+.about-button {margin:12px 0;background:transparent;color:#c7cfe1;border-color:#3b435b;font-size:11px;}
+.help-topic {padding:16px 0;border-bottom:1px solid var(--border);}
+@media(max-width:760px){.mobile-menu{display:flex;align-items:center;gap:8px;}.sidebar nav.tree-nav {display:none;}.sidebar nav.tree-nav.mobile-open{display:block;}.sidebar nav.tree-nav button{width:100%;}.about-button{margin:10px 0 0;}}
+@media(prefers-reduced-motion:reduce){.welcome-symbol{animation:none;}.brand-mark{animation:none;}*{scroll-behavior:auto!important;}}

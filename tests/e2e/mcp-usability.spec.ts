@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 const a = "11111111-1111-4111-8111-111111111111",
   m = "22222222-2222-4222-8222-222222222222";
 test("discovers tools, renders a nested schema and displays the executed result", async ({

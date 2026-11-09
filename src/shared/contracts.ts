@@ -39,6 +39,7 @@ export const costQuerySchema = z
     basis: z.enum(["ActualCost", "AmortizedCost"]),
     groupBy: z.enum(["ServiceName", "ResourceId"]),
     granularity: z.enum(["Daily", "Monthly"]),
+    tagFilter: z.object({name:z.string().trim().min(1).max(512),values:z.array(z.string().min(1).max(256)).min(1).max(50)}).strict().optional(),
   })
   .strict();
 export type Scope = z.infer<typeof scopeSchema>;

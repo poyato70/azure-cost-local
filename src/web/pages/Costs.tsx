@@ -221,6 +221,14 @@ export function Costs({
             </>
           )}
           <StatusPanel meta={result.meta} />
+          <details>
+            <summary>Ver dados da consulta em JSON</summary>
+            <p>
+              Resposta normalizada do serviço de custos. Identificadores e
+              valores podem ser confidenciais.
+            </p>
+            <pre>{JSON.stringify(result, null, 2)}</pre>
+          </details>
         </>
       ) : (
         !busy && !error && <Empty />

@@ -1,0 +1,1 @@
+{"$schema":"https://ui.shadcn.com/schema.json","style":"new-york","rsc":false,"tsx":true,"tailwind":{"css":"app/theme.css","baseColor":"neutral","cssVariables":true},"aliases":{"components":"@/src/web/components","utils":"@/src/web/lib/utils","ui":"@/src/web/components/ui","lib":"@/src/web/lib"}}

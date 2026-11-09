@@ -235,9 +235,9 @@ export function Budgets({ scope }: { scope?: Scope }) {
         )
       )}
       {(locks || locksError) && (
-        <section aria-label="Travas orçamentárias">
+        <section aria-label="Tags de governança orçamentária">
           <div className="chart-head">
-            <h3>Travas orçamentárias (tags)</h3>
+            <h3>Tags de governança orçamentária</h3><p>Metadados lidos pela API ARM. Não são budgets, locks ARM nem bloqueios de gastos. Mostrar todas as tags inclui chaves fora do filtro de governança.</p>
             <label className="consent">
               <input
                 type="checkbox"

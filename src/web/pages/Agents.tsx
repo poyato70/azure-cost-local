@@ -23,17 +23,20 @@ const fresh = {
 };
 export function Agents({
   profiles,
+  evaluationOnly = false,
   accesses,
   mcps,
   onChanged,
   onOpenChat,
 }: {
+  evaluationOnly?: boolean;
   profiles: PublicAgent[];
   accesses: PublicAccessProfile[];
   mcps: any[];
   onChanged: () => void;
   onOpenChat?: () => void;
 }) {
+  const [testedId, setTestedId] = useState("");
   const [setup, setSetup] = useState<"custom" | "copilot">("custom");
   const [form, setForm] = useState<any>(fresh),
     [keyAction, setKeyAction] = useState("keep"),
@@ -144,6 +147,7 @@ export function Agents({
         <>
           <div className="settings-layout">
             <form
+              hidden={evaluationOnly}
               className="settings-form"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -488,7 +492,7 @@ export function Agents({
                     {a.allowedAccessIds.length} acesso(s) ·{" "}
                     {a.mcpConnectionIds.length} MCP(s)
                   </p>
-                  <div className="actions">
+                  <div className="actions" hidden={evaluationOnly}>
                     <button
                       onClick={() => {
                         const {
@@ -536,13 +540,41 @@ export function Agents({
                       Excluir
                     </button>
                   </div>
+                  <details>
+                    <summary>Capacidades configuradas e limites</summary>
+                    <pre>
+                      {JSON.stringify(
+                        {
+                          runtime: a.provider,
+                          model: a.model,
+                          allowedTools: a.allowedTools,
+                          allowedAccessIds: a.allowedAccessIds,
+                          mcpConnectionIds: a.mcpConnectionIds,
+                          limits: a.limits,
+                        },
+                        null,
+                        2,
+                      )}
+                    </pre>
+                    <p>
+                      Configuração local declarada; o teste de inferência/health
+                      não comprova execução de todas as tools. Use o chat com
+                      consentimento para avaliar uma consulta real.
+                    </p>
+                  </details>
+                  {testedId === a.id && notice && (
+                    <p className="notice" role="status">
+                      {notice}
+                    </p>
+                  )}
                   <p className="fine">
                     O teste envia uma mensagem sintética ao modelo e pode gerar
                     consumo.
                   </p>
                   <button
                     disabled={busy}
-                    onClick={() =>
+                    onClick={() => {
+                      setTestedId(a.id);
                       void run(() =>
                         manageRequest(
                           "/agents/" + a.id + "/test-model",
@@ -551,8 +583,8 @@ export function Agents({
                             consent: true,
                           },
                         ),
-                      )
-                    }
+                      );
+                    }}
                   >
                     {a.provider === "http-agent-v1"
                       ? "Testar conexão (health)"

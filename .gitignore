@@ -8,3 +8,9 @@ playwright-report/
 test-results/
 *.log
 .worktrees/
+
+.next/
+out/
+next-env.d.ts
+
+*.tsbuildinfo

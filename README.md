@@ -1,4 +1,6 @@
-# TESSERACT — FinOps multicloud
+# TESSERACT — Financial Intelligence
+
+**Versão 0.4.0:** centro de inteligência com Next.js/React, Tailwind, Framer Motion, componentes Radix no padrão shadcn, tema escuro/claro, navegação em árvore e breadcrumbs. Abertura 4D em HTML/Three.js, laboratórios de MCPs/APIs/agentes e consulta Azure por tag histórica da cobrança. [Operação e limites](docs/command-center-v0.4.md) · [Novo checklist de aceite](docs/checklist-v0.4.0.md).
 
 Workspace local para o time FinOps cadastrar acessos, conexões MCP Microsoft e agentes, consultar dados e conversar com GitHub Copilot ou modelo configurado. Interface em português, custos reais/amortizados, budgets, recomendações de Reservations/Savings Plans e consultas em linguagem natural.
 

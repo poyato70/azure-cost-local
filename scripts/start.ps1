@@ -1,3 +1,4 @@
+param([switch]$SkipBuild)
 $ErrorActionPreference = 'Stop'
 $projectDirectory = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $projectDirectory
@@ -6,8 +7,12 @@ try {
         & npm.cmd ci
         if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar dependências.' }
     }
-    & npm.cmd run build
-    if ($LASTEXITCODE -ne 0) { throw 'Falha ao preparar a aplicação.' }
+    if (-not $SkipBuild) {
+        & npm.cmd run build
+        if ($LASTEXITCODE -ne 0) { throw 'Falha ao preparar a aplicação.' }
+    } elseif (-not (Test-Path -LiteralPath (Join-Path $projectDirectory 'dist/web/index.html'))) {
+        throw 'Build ausente. Inicie sem -SkipBuild.'
+    }
     $runtimeDirectory = Join-Path $env:LOCALAPPDATA 'AzureCostLocal'
     New-Item -ItemType Directory -Path $runtimeDirectory -Force | Out-Null
     $entryPoint = Join-Path $projectDirectory 'dist/server/main.js'
@@ -24,6 +29,18 @@ try {
     $appProcess.Refresh()
     if ($appProcess.HasExited) { throw 'O serviço não iniciou. Verifique se a porta já está em uso.' }
     $localPort = if ($env:PORT) { $env:PORT } else { '4317' }
+    $ready = $false
+    $startupWatch = [Diagnostics.Stopwatch]::StartNew()
+    while ($startupWatch.Elapsed.TotalSeconds -lt 60) {
+        $appProcess.Refresh()
+        if ($appProcess.HasExited) { throw 'O serviço encerrou antes de ficar pronto. Verifique a porta e o build.' }
+        try {
+            $health = Invoke-RestMethod -Uri "http://127.0.0.1:$localPort/api/health" -NoProxy -TimeoutSec 2
+            if ($health.ok -eq $true) { $ready = $true; break }
+        } catch { }
+        Start-Sleep -Milliseconds 500
+    }
+    if (-not $ready) { throw 'O serviço ainda não respondeu ao health check. Aguarde ou verifique o processo antes de iniciar novamente.' }
     Start-Process "http://localhost:$localPort"
     Write-Host 'Aplicação iniciada. Use scripts/stop.ps1 para encerrar.'
 } finally { Pop-Location }

@@ -130,3 +130,11 @@ Opcionais por fonte: AWS CLI com perfil/SSO; Google Cloud CLI com ADC; kubectl/o
 Reautentique AWS/ADC no novo Windows. O cofre DPAPI é vinculado ao usuário/máquina: copiar arquivos não garante descriptografia em outro notebook. Preserve a cópia original e recadastre os segredos pelo fluxo autorizado; não os publique no GitHub.
 
 Para desenvolvimento visual, Product Design foi usado para auditoria de fluxos com capturas atuais, complementado por testes de navegador. É ferramenta de desenvolvimento, não dependência de execução da aplicação. Nenhum plugin/skill precisa ser instalado para abrir o dashboard.
+
+## Atualização 0.4.0 — Next.js e centro de inteligência
+
+Node.js 24 permanece obrigatório nesta rodada. `npm ci` instala Next.js, Tailwind, Framer Motion, Radix e dependências fixadas no lockfile. `npm run build` exporta o frontend para `dist/web` e compila o serviço local; `npm start` mantém a aplicação em localhost:4317. `npm run dev` observa o serviço após build; alterações de frontend exigem nova compilação. Não há proxy implícito de um servidor Next separado.
+
+`scripts/start.ps1 -SkipBuild` usa a última compilação concluída. O script sem parâmetro recompila. A inicialização espera health check antes de abrir o navegador. Animação 4D depende de Three.js via CDN e WebGL; confirme acesso à CDN na rede corporativa. A falha da animação não impede fechar o popup e usar o sistema. O arquivo original de referência em Assets foi preservado.
+
+[Roteiro completo de validação 0.4.0](checklist-v0.4.0.md). Reautenticar provedores e validar dados financeiros no novo notebook; nenhum teste sintético substitui essas etapas.

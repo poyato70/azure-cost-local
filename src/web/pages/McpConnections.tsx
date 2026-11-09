@@ -1,3 +1,4 @@
+import { McpLab } from "./McpLab.js";
 import {
   SchemaInputs,
   schemaDefaults,
@@ -37,15 +38,20 @@ const empty = {
 };
 export function McpConnections({
   profiles,
+  mode = "integration",
+  onInspect,
   accesses,
   onChanged,
   onLogin,
 }: {
+  mode?: "integration" | "analysis";
+  onInspect?: () => void;
   profiles: any[];
   accesses: PublicAccessProfile[];
   onChanged: () => void;
   onLogin: (id: string) => void;
 }) {
+  const [catalogBusy, setCatalogBusy] = useState(false);
   const reviewRef = useRef<HTMLElement>(null);
   const noticeRef = useRef<HTMLParagraphElement>(null);
   const [form, setForm] = useState<any>(empty),
@@ -70,7 +76,7 @@ export function McpConnections({
     );
   }, []);
   useEffect(() => {
-    if (inspected && tools.length)
+    if (inspected && tools.length && mode !== "analysis")
       reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [inspected, tools.length]);
   useEffect(() => {
@@ -171,6 +177,7 @@ export function McpConnections({
   }
   const field = (k: string, v: unknown) =>
     setForm((f: any) => ({ ...f, [k]: v }));
+  const working = busy || catalogBusy;
   return (
     <>
       <div className="section-head">
@@ -182,6 +189,7 @@ export function McpConnections({
           </p>
         </div>
         <button
+          hidden={mode === "analysis"}
           onClick={() => {
             setForm(empty);
             setContext(JSON.stringify(empty.resourceContext, null, 2));
@@ -195,8 +203,42 @@ export function McpConnections({
           {notice}
         </p>
       )}
-      <div className="settings-layout">
+      {mode === "analysis" && (
+        <McpLab
+          externalBusy={busy}
+          onBusy={setCatalogBusy}
+          onTools={(items) => {
+            setToolName("");
+            setArgumentsValue({});
+            setArgs("{}");
+            setResult(undefined);
+            setExecution(undefined);
+            setTools(items);
+            setChosen(
+              items.filter((t: any) => t.approved).map((t: any) => t.name),
+            );
+          }}
+          profiles={profiles}
+          id={inspected}
+          setId={(id) => {
+            setInspected(id);
+            setTools([]);
+            setChosen([]);
+            setToolName("");
+            setResult(undefined);
+            setExecution(undefined);
+          }}
+        />
+      )}
+      <div
+        className={
+          mode === "analysis"
+            ? "settings-layout mcp-analysis-layout"
+            : "settings-layout"
+        }
+      >
         <form
+          hidden={mode === "analysis"}
           className="settings-form"
           onSubmit={(e) => {
             e.preventDefault();
@@ -413,7 +455,7 @@ export function McpConnections({
               Autorizar rede privada / loopback deste endpoint
             </label>
           )}
-          <button className="primary" disabled={busy}>
+          <button className="primary" disabled={working}>
             Salvar MCP
           </button>
           <small>
@@ -461,10 +503,11 @@ export function McpConnections({
               )}
               <div className="actions">
                 <button
-                  disabled={busy || p.capability?.status === "unsupported"}
+                  disabled={working || p.capability?.status === "unsupported"}
                   onClick={() =>
                     void run(async () => {
                       setInspected(p.id);
+                      onInspect?.();
                       setResult(undefined);
                       setExecution(undefined);
                       setTools([]);
@@ -481,6 +524,7 @@ export function McpConnections({
                           .map((t: any) => t.name),
                       );
                       setInspected(p.id);
+                      onInspect?.();
                       setNotice(
                         `Servidor respondeu e listou ${r.tools.length} tool(s): ${r.tools.map((t: any) => t.name).join(", ")}. Revise a lista abaixo, salve as tools permitidas e preencha uma consulta. Isso ainda não testa acesso aos dados.`,
                       );
@@ -496,6 +540,7 @@ export function McpConnections({
                   </button>
                 )}
                 <button
+                  hidden={mode === "analysis"}
                   onClick={() => {
                     const {
                       id,
@@ -530,7 +575,7 @@ export function McpConnections({
                   Editar
                 </button>
                 <button
-                  disabled={busy}
+                  disabled={working}
                   onClick={() =>
                     void run(() =>
                       manageRequest(
@@ -544,7 +589,8 @@ export function McpConnections({
                   Desconectar
                 </button>
                 <button
-                  disabled={busy}
+                  hidden={mode === "analysis"}
+                  disabled={working}
                   onClick={() =>
                     void run(() =>
                       manageRequest("/mcp-connections/" + p.id, "DELETE"),
@@ -558,6 +604,7 @@ export function McpConnections({
           ))}
         </div>
       </div>
+
       {inspected && (
         <section ref={reviewRef} className="tool-review">
           <h3>
@@ -616,7 +663,7 @@ export function McpConnections({
           )}
           <button
             className={selectionDirty ? "primary" : undefined}
-            disabled={busy}
+            disabled={working}
             onClick={() =>
               void run(async () => {
                 await manageRequest(
@@ -721,8 +768,8 @@ export function McpConnections({
                 )}
               </>
             )}
-            <button disabled={!toolName || busy} type="submit">
-              {busy ? "Aguarde…" : "Executar tool selecionada"}
+            <button disabled={!toolName || working} type="submit">
+              {working ? "Aguarde…" : "Executar tool selecionada"}
             </button>
             {execution && (
               <p

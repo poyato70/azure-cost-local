@@ -9,12 +9,18 @@ import { api, money } from "../api.js";
 import type { PublicAgent, DataSelection } from "../../shared/connections.js";
 export function Chat({
   scope,
+  onInsight,
   basis,
   agents = [],
   selection,
   selectedSource,
   connectionLabel,
 }: {
+  onInsight?: (value: {
+    text: string;
+    source: string;
+    requestId: string;
+  }) => void;
   selectedSource?: "api" | "mcp";
   connectionLabel?: string;
   agents?: PublicAgent[];
@@ -78,6 +84,10 @@ export function Chat({
     const question = message;
     setMessage("");
     setEntries((e) => [...e, { role: "Você", text: question }]);
+    let insightText = "",
+      insightSource = "",
+      insightId = "",
+      failed = false;
     try {
       await api.ask(
         {
@@ -91,6 +101,12 @@ export function Chat({
         },
         (e) => {
           if (c.signal.aborted) return;
+          if (e.type === "text") insightText += e.text + "\n";
+          if (e.type === "context") {
+            insightSource = e.source;
+            insightId = e.requestId;
+          }
+          if (e.type === "error") failed = true;
           if (e.type === "progress")
             setProgress((x) => [...x.slice(-7), e.message]);
           if (e.type === "context")
@@ -152,6 +168,12 @@ export function Chat({
         },
         c.signal,
       );
+      if (!c.signal.aborted && !failed && insightText.trim())
+        onInsight?.({
+          text: insightText.slice(0, 2000),
+          source: insightSource,
+          requestId: insightId,
+        });
     } catch (e) {
       if (!c.signal.aborted)
         setEntries((x) => [

@@ -1,4 +1,6 @@
 import { validArmScope } from "./arm-policy.js";
+import { readCatalog } from "./catalog.js";
+import { sanitizeEvidence } from "../multicloud/sanitize.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -305,22 +307,26 @@ export class McpRegistry {
       const tools: ToolDescriptor[] = [];
       let cursor: string | undefined;
       const seen = new Set<string>();
-      do {
-        const result = await client.listTools(cursor ? { cursor } : undefined, {
-          signal: controller.signal,
-          timeout: 15000,
-        });
-        tools.push(...result.tools.map(descriptor));
-        if (tools.length > 100)
-          throw new AppError(
-            "unsupported",
-            "Selecione namespaces menores: limite de 100 ferramentas por conexão.",
+      if (client.getServerCapabilities()?.tools)
+        do {
+          const result = await client.listTools(
+            cursor ? { cursor } : undefined,
+            {
+              signal: controller.signal,
+              timeout: 15000,
+            },
           );
-        cursor = result.nextCursor;
-        if (cursor && seen.has(cursor))
-          throw new AppError("upstream", "Paginação MCP circular.", 502);
-        if (cursor) seen.add(cursor);
-      } while (cursor);
+          tools.push(...result.tools.map(descriptor));
+          if (tools.length > 100)
+            throw new AppError(
+              "unsupported",
+              "Selecione namespaces menores: limite de 100 ferramentas por conexão.",
+            );
+          cursor = result.nextCursor;
+          if (cursor && seen.has(cursor))
+            throw new AppError("upstream", "Paginação MCP circular.", 502);
+          if (cursor) seen.add(cursor);
+        } while (cursor);
       await this.gate.assertCurrent(versions);
       assertActive(ctx.signal);
       const live = {
@@ -392,6 +398,72 @@ export class McpRegistry {
         (x) => x.name === t.name && x.schemaHash === t.schemaHash,
       ),
     }));
+  }
+  async catalog(ctx: RequestContext, id: string) {
+    const live = await this.connect(ctx, id);
+    const signal = AbortSignal.any([ctx.signal, live.controller.signal]);
+    const catalog = await readCatalog(live.client, signal);
+    assertActive(signal);
+    ctx.diagnose?.({
+      source: "MCP",
+      operation: live.profile.name + " / catálogos",
+      status: [catalog.prompts.status,catalog.resources.status].some(s=>s==="error"||s==="partial")?"partial":"concluído",
+      detail:
+        `Prompts: ${catalog.prompts.status}; resources: ${catalog.resources.status}. Descoberta não comprova acesso financeiro.`,
+    });
+    return {
+      ...catalog,
+      requestId: ctx.requestId,
+      tools: await this.tools(ctx, id),
+    };
+  }
+  async inspect(
+    ctx: RequestContext,
+    id: string,
+    input: {
+      kind: "prompt" | "resource";
+      name: string;
+      arguments?: Record<string, string>;
+    },
+  ) {
+    const live = await this.connect(ctx, id),
+      signal = AbortSignal.any([ctx.signal, live.controller.signal]);
+    const catalog = await readCatalog(live.client, signal);
+    let response: unknown;
+    if (input.kind === "prompt") {
+      if (!catalog.prompts.items.some((p: any) => p.name === input.name))
+        throw new AppError(
+          "forbidden",
+          "Prompt não consta do catálogo listado.",
+          403,
+        );
+      response = await live.client.getPrompt(
+        { name: input.name, arguments: input.arguments },
+        { signal, timeout: 15000 },
+      );
+    } else {
+      if (!catalog.resources.items.some((r: any) => r.uri === input.name))
+        throw new AppError(
+          "forbidden",
+          "Resource não consta do catálogo listado.",
+          403,
+        );
+      response = await live.client.readResource(
+        { uri: input.name },
+        { signal, timeout: 15000 },
+      );
+    }
+    assertActive(signal);
+    ctx.diagnose?.({
+      source: "MCP",
+      operation: live.profile.name + " / " + input.kind,
+      status: "concluído",
+      detail: "Leitura explícita; conteúdo não executado.",
+    });
+    return {
+      requestId: ctx.requestId,
+      response: safeToolResult(sanitizeEvidence(response)),
+    };
   }
   async approve(ctx: RequestContext, id: string, names: string[]) {
     const live = await this.connect(ctx, id);

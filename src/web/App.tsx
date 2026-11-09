@@ -1,3 +1,12 @@
+import { Breadcrumbs, pageTitle } from "./components/Breadcrumbs.js";
+import { CommandHero } from "./components/CommandHero.js";
+import { ThemeControl } from "./components/ThemeControl.js";
+import { Navigation } from "./components/Navigation.js";
+import { Welcome } from "./components/Welcome.js";
+import { Help } from "./pages/Help.js";
+import { TagCosts } from "./pages/TagCosts.js";
+import { ApiLab } from "./pages/ApiLab.js";
+import { Discovery } from "./pages/Discovery.js";
 import { Brand } from "./components/Brand.js";
 import { Multicloud } from "./pages/Multicloud.js";
 import { Forecast } from "./pages/Forecast.js";
@@ -37,6 +46,11 @@ const tabs: { id: string; label: string; group?: string }[] = [
   { id: "diagnostics", label: "Diagnóstico", group: "OPERAÇÃO" },
 ];
 export function App() {
+  const [insight, setInsight] = useState<{
+    text: string;
+    source: string;
+    requestId: string;
+  }>();
   const [connectionFeedback, setConnectionFeedback] = useState<{
     id: string;
     kind: "pending" | "success" | "error";
@@ -159,6 +173,31 @@ export function App() {
   const query = useMemo<CostQuery | undefined>(
     () => (scope ? { scope, period, basis, groupBy, granularity } : undefined),
     [scope, period, basis, groupBy, granularity],
+  );
+  const chatSelection = useMemo(
+    () =>
+      boot?.activeAccessId
+        ? {
+            hubId: hubId || undefined,
+            accessId: boot.activeAccessId,
+            source,
+            mcpConnectionId: mcpId || undefined,
+          }
+        : undefined,
+    [boot?.activeAccessId, source, mcpId, hubId],
+  );
+  useEffect(
+    () => setInsight(undefined),
+    [
+      scope,
+      basis,
+      source,
+      mcpId,
+      hubId,
+      period,
+      boot?.activeAccessId,
+      boot?.authenticated,
+    ],
   );
   async function connect(
     accessId?: string,
@@ -333,6 +372,7 @@ export function App() {
     }
   }
   async function logout() {
+    setInsight(undefined);
     try {
       await api.logout();
       setBoot(await api.bootstrap());
@@ -348,23 +388,9 @@ export function App() {
       <aside className="sidebar">
         <Brand />
         <div className="sidebar-section">WORKSPACE LOCAL</div>
-        <nav aria-label="Navegação principal">
-          {tabs.map((t) => (
-            <div className="nav-entry" key={t.id}>
-              {t.group && <div className="nav-group">{t.group}</div>}
-              <button
-                aria-label={t.label}
-                key={t.id}
-                aria-current={tab === t.id ? "page" : undefined}
-                className={tab === t.id ? "active" : ""}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label}
-                {t.id === "chat" && <small>AI</small>}
-              </button>
-            </div>
-          ))}
-        </nav>
+        <Navigation tab={tab} onSelect={setTab} />
+        <Welcome />
+
         <div className="sidebar-bottom">
           <div className="local-light" /> Serviço no notebook
           <p>
@@ -372,31 +398,38 @@ export function App() {
             <br />
             Você mantém o controle.
           </p>
-          <span className="version">MVP · 0.3.0</span>
+          <span className="version">MVP · 0.4.0</span>
         </div>
       </aside>
       <main>
         <header className="topbar">
-          <span>
-            Workspace <span className="slash">/</span>{" "}
-            <strong>
-              {tabs.find((t) => t.id === tab)?.label || "Visão geral"}
-            </strong>
-          </span>
+          <Breadcrumbs tab={tab} onHome={() => setTab("costs")} />
           <div className="topbar-right">
+            <ThemeControl />
             <span className="badge">Somente leitura</span>
             <span className="avatar">{boot?.authenticated ? "✓" : "↗"}</span>
             {boot?.authenticated && <button onClick={logout}>Sair</button>}
           </div>
         </header>
         <div className="workspace">
+          {["costs", "multicloud"].includes(tab) && (
+            <CommandHero
+              insight={insight}
+              accesses={accesses.length}
+              mcps={mcpProfiles.length}
+              agents={agentProfiles.length}
+              onChat={() => setTab("chat")}
+              onExplore={() => setTab("multicloud")}
+            />
+          )}
+
           <div className="page-heading">
             <div>
               <span className="eyebrow">WORKSPACE FINOPS</span>
               <h1>
                 {tab === "multicloud"
                   ? "FinOps sem fronteiras."
-                  : tabs.find((t) => t.id === tab)?.label || "Tesseract"}
+                  : pageTitle(tab)}
               </h1>
               <p>
                 Cadastre MCPs e agentes. Consulte dados e apoie as decisões do
@@ -421,6 +454,11 @@ export function App() {
               "mcps",
               "agents",
               "diagnostics",
+              "help",
+              "mcps",
+              "mcp-analysis",
+              "discovery",
+              "agent-lab",
               "multicloud",
             ].includes(tab) && (
               <section className="setup">
@@ -488,6 +526,11 @@ export function App() {
               "mcps",
               "agents",
               "diagnostics",
+              "help",
+              "mcps",
+              "mcp-analysis",
+              "discovery",
+              "agent-lab",
               "multicloud",
             ].includes(tab) && (
               <section className="connection-toolbar">
@@ -562,27 +605,6 @@ export function App() {
                 </small>
               </section>
             )}
-          {![
-            "accesses",
-            "mcps",
-            "agents",
-            "diagnostics",
-            "multicloud",
-          ].includes(tab) && (
-            <ScopeFilters
-              subscriptions={subs}
-              subscription={sub}
-              setSubscription={setSub}
-              groups={groups}
-              group={group}
-              setGroup={setGroup}
-              period={period}
-              setPeriod={setPeriod}
-              basis={basis}
-              setBasis={setBasis}
-              disabled={!boot?.authenticated}
-            />
-          )}
           {source === "mcp" &&
             ["costs", "forecast", "budgets", "benefits", "chat"].includes(
               tab,
@@ -590,11 +612,9 @@ export function App() {
               <section className="notice" role="status">
                 <strong>Fonte selecionada: servidor MCP.</strong>
                 <p>
-                  Os cartões de gastos e budgets usam Cost Management nesta
-                  versão. Uma tool de preços, como pricing_get, não informa
-                  despesas do RG. Isso não indica falha no login. No chat, o MCP
-                  só oferece as tools permitidas; para perguntar quanto gastou,
-                  escolha APIs Azure ou um FinOps hub com dados.
+                  {tab === "chat"
+                    ? "No chat, o MCP oferece somente as tools descobertas e permitidas. A tool pricing_get consulta preços de catálogo; não comprova o gasto do RG. Confira as capacidades em Conexões > MCPs > Análise."
+                    : "Esta operação usa APIs Azure nesta versão. Uma identidade de aplicação com Secret pode consultar essas APIs quando tem as permissões necessárias. O canal MCP selecionado ainda não está conectado a este cartão; isso não é falha do Secret ou do login. Escolha APIs Azure para continuar, ou avalie o servidor em Conexões > MCPs > Análise."}
                 </p>
                 <button
                   onClick={() => {
@@ -609,6 +629,36 @@ export function App() {
                 </button>
               </section>
             )}
+          {![
+            "accesses",
+            "mcps",
+            "agents",
+            "diagnostics",
+            "help",
+            "mcps",
+            "mcp-analysis",
+            "discovery",
+            "agent-lab",
+            "multicloud",
+          ].includes(tab) && (
+            <ScopeFilters
+              subscriptions={subs}
+              subscription={sub}
+              setSubscription={setSub}
+              groups={groups}
+              group={group}
+              setGroup={setGroup}
+              period={period}
+              setPeriod={setPeriod}
+              basis={basis}
+              setBasis={setBasis}
+              disabled={
+                !boot?.authenticated ||
+                (source === "mcp" &&
+                  ["costs", "forecast", "budgets", "benefits"].includes(tab))
+              }
+            />
+          )}
           <div hidden={tab !== "multicloud"}>
             <section className="content-card">
               <Multicloud
@@ -619,6 +669,33 @@ export function App() {
             </section>
           </div>
           <section className="content-card" hidden={tab === "multicloud"}>
+            {tab === "help" && <Help />}
+            {tab === "discovery" && <Discovery />}
+            {tab === "tag-costs" &&
+              (source === "api" ? (
+                <TagCosts query={query} />
+              ) : (
+                <p>
+                  Escolha APIs Azure para consultar tags históricas da cobrança.
+                </p>
+              ))}
+            {tab === "api-lab" &&
+              (source === "api" ? (
+                <ApiLab query={query} />
+              ) : (
+                <p>Escolha APIs Azure antes de testar nesta página.</p>
+              ))}
+            {tab === "agent-lab" && (
+              <section>
+                <h2>Avaliação de agentes</h2>
+                <p>
+                  Use Testar modelo nos cartões abaixo. Saúde do endpoint HTTP
+                  não comprova acesso financeiro. Confira runtime, acesso,
+                  ferramentas autorizadas e limites antes de testar; veja a
+                  execução completa no Chat e correlacione com Diagnóstico.
+                </p>
+              </section>
+            )}
             {tab === "diagnostics" && <DiagnosticPanel />}
             {tab === "hubs" && (
               <Hubs
@@ -640,16 +717,19 @@ export function App() {
                 onConnect={(id, mode) => void connect(id, mode, true)}
               />
             )}
-            {tab === "mcps" && (
+            {["mcps", "mcp-analysis"].includes(tab) && (
               <McpConnections
+                mode={tab === "mcp-analysis" ? "analysis" : "integration"}
+                onInspect={() => setTab("mcp-analysis")}
                 profiles={mcpProfiles}
                 accesses={accesses}
                 onChanged={() => void reloadSettings()}
                 onLogin={(id) => void openResourceLogin(id)}
               />
             )}
-            {tab === "agents" && (
+            {["agents", "agent-lab"].includes(tab) && (
               <Agents
+                evaluationOnly={tab === "agent-lab"}
                 onOpenChat={() => setTab("chat")}
                 profiles={agentProfiles}
                 accesses={accesses}
@@ -658,31 +738,36 @@ export function App() {
               />
             )}
             {tab === "forecast" && (
-              <Forecast
-                key={boot?.activeAccessId + "|" + source}
-                scope={scope}
-                period={period}
-                basis={basis}
-                onMonth={() => {
-                  const parts = new Intl.DateTimeFormat("en-CA", {
-                    timeZone: "America/Sao_Paulo",
-                    year: "numeric",
-                    month: "2-digit",
-                  }).formatToParts(new Date());
-                  const y = Number(parts.find((p) => p.type === "year")!.value),
-                    m =
-                      Number(parts.find((p) => p.type === "month")!.value) - 1;
-                  setPeriod({
-                    from: new Date(Date.UTC(y, m, 1))
-                      .toISOString()
-                      .slice(0, 10),
-                    toExclusive: new Date(Date.UTC(y, m + 1, 1))
-                      .toISOString()
-                      .slice(0, 10),
-                    timeZone: "America/Sao_Paulo",
-                  });
-                }}
-              />
+              <fieldset className="channel-guard" disabled={source === "mcp"}>
+                <Forecast
+                  key={boot?.activeAccessId + "|" + source}
+                  scope={scope}
+                  period={period}
+                  basis={basis}
+                  onMonth={() => {
+                    const parts = new Intl.DateTimeFormat("en-CA", {
+                      timeZone: "America/Sao_Paulo",
+                      year: "numeric",
+                      month: "2-digit",
+                    }).formatToParts(new Date());
+                    const y = Number(
+                        parts.find((p) => p.type === "year")!.value,
+                      ),
+                      m =
+                        Number(parts.find((p) => p.type === "month")!.value) -
+                        1;
+                    setPeriod({
+                      from: new Date(Date.UTC(y, m, 1))
+                        .toISOString()
+                        .slice(0, 10),
+                      toExclusive: new Date(Date.UTC(y, m + 1, 1))
+                        .toISOString()
+                        .slice(0, 10),
+                      timeZone: "America/Sao_Paulo",
+                    });
+                  }}
+                />
+              </fieldset>
             )}
             {tab === "costs" && (
               <>
@@ -738,24 +823,29 @@ export function App() {
                 <Costs
                   key={boot?.activeAccessId + "|" + source + "|" + mcpId}
                   query={query}
-                  connected={!!boot?.authenticated}
+                  connected={!!boot?.authenticated && source === "api"}
                 />
               </>
             )}
             {tab === "budgets" && (
-              <Budgets
-                key={boot?.activeAccessId + "|" + source + "|" + mcpId}
-                scope={scope}
-              />
+              <fieldset className="channel-guard" disabled={source === "mcp"}>
+                <Budgets
+                  key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                  scope={scope}
+                />
+              </fieldset>
             )}{" "}
             {tab === "benefits" && (
-              <Benefits
-                key={boot?.activeAccessId + "|" + source + "|" + mcpId}
-                scope={scope}
-              />
+              <fieldset className="channel-guard" disabled={source === "mcp"}>
+                <Benefits
+                  key={boot?.activeAccessId + "|" + source + "|" + mcpId}
+                  scope={scope}
+                />
+              </fieldset>
             )}{" "}
             {tab === "chat" && (
               <Chat
+                onInsight={setInsight}
                 key={
                   boot?.activeAccessId +
                   "|" +
@@ -770,16 +860,7 @@ export function App() {
                 selectedSource={source}
                 connectionLabel={mcpProfiles.find((p) => p.id === mcpId)?.name}
                 agents={agentProfiles}
-                selection={
-                  boot?.activeAccessId
-                    ? {
-                        hubId: hubId || undefined,
-                        accessId: boot.activeAccessId,
-                        source,
-                        mcpConnectionId: mcpId || undefined,
-                      }
-                    : undefined
-                }
+                selection={chatSelection}
               />
             )}
           </section>

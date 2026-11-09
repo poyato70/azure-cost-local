@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 test.beforeEach(async ({ page }) => {
   await page.route(/\/api\/(accesses|mcp-connections|agents)$/, (r) =>
     r.fulfill({ json: [] }),
@@ -73,7 +73,9 @@ test("shows actionable login error returned by the local callback", async ({
     }),
   );
   await page.goto("/");
-  await expect(page.getByRole("alert")).toContainText("AADSTS7000218");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "AADSTS7000218" }),
+  ).toContainText("AADSTS7000218");
   await expect(
     page.getByRole("heading", { name: "Conecte sua conta Azure" }),
   ).toBeVisible();
@@ -324,6 +326,8 @@ test("forbidden is shown as error, not zero", async ({ page }) => {
   await page
     .getByRole("button", { name: "Consultar custos", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText("Sem permissão");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Sem permissão" }),
+  ).toContainText("Sem permissão");
   await expect(page.getByTestId("totals")).toHaveCount(0);
 });

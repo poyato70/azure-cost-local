@@ -1,5 +1,13 @@
 # Identidade visual TESSERACT
 
+## Centro de inteligência — 0.4.0, 09/11/2026
+
+Reformulação radical autorizada pelo usuário: tema escuro nativo e inversão clara persistente, superfícies em camadas, índigo/violeta, tipografia forte, árvore minimalista com ícones geométricos monocromáticos e breadcrumbs. Hero executivo e respostas de IA com origem/correlação; valores financeiros não são simulados. Foco de tarefa preservado nas telas de configuração/análise.
+
+Next.js/React, Tailwind, Framer Motion e componente de botão no padrão shadcn/Radix. Abertura usa HTML único com Three.js e rotação 4D real, derivado do exemplo fornecido; asset original preservado. Requer CDN/WebGL e respeita movimento reduzido. Referências solicitadas: Linear, Vercel, Stripe, Raycast e Arc; sem copiar assets dessas marcas.
+
+Capturas e validação estão em [validation.md](validation.md); aceite humano segue [checklist-v0.4.0.md](checklist-v0.4.0.md). Diretrizes abaixo permanecem como histórico.
+
 ## Identidade própria — 09/11/2026, versão 0.3.0
 
 O usuário aprovou reformular também a identidade e a organização completa das telas. Esta seção substitui as diretrizes cromáticas de aplicação abaixo, preservadas como histórico de 06/11.

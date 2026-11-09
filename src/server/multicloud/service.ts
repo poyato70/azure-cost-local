@@ -1,11 +1,5 @@
 import { Decimal } from "decimal.js";
-import {
-  CostExplorerClient,
-  GetCostAndUsageCommand,
-  type GetCostAndUsageCommandInput,
-} from "@aws-sdk/client-cost-explorer";
-import { fromIni } from "@aws-sdk/credential-providers";
-import { BigQuery } from "@google-cloud/bigquery";
+import type { GetCostAndUsageCommandInput } from "@aws-sdk/client-cost-explorer";
 import {
   cloudQuerySchema,
   type CloudQuery,
@@ -235,6 +229,10 @@ export async function queryCloud(
   assertActive(signal);
   try {
     if (q.provider === "aws") {
+      const { CostExplorerClient, GetCostAndUsageCommand } =
+        await import("@aws-sdk/client-cost-explorer");
+      const { fromIni } = await import("@aws-sdk/credential-providers");
+      assertActive(signal);
       const client = new CostExplorerClient({
         region: "us-east-1",
         credentials: fromIni({ profile: q.profile }),
@@ -251,6 +249,8 @@ export async function queryCloud(
       }
     }
     if (q.provider === "gcp") {
+      const { BigQuery } = await import("@google-cloud/bigquery");
+      assertActive(signal);
       const client = new BigQuery({ projectId: q.projectId });
       const [job] = await client.createQueryJob({
         query: gcpSql(q.table),

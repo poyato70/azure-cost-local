@@ -1,5 +1,19 @@
 # Validação do MVP — 01/11/2026
 
+## Tesseract 0.4.0 — 09/11/2026
+
+- `npm test`: **98 testes de serviço em 41 arquivos passaram**. Inclui filtro histórico por tag, catálogo MCP, recusa de resource não listado, cancelamento/revogação e sanitização de Bearer, CSP por hash e normalização CRLF do parser HTML.
+- `npx playwright test`: **25 testes Edge passaram**. Inclui temas persistentes, breadcrumbs, popup Microsoft no shell Next, pixel readback de arestas 4D visíveis, navegação/abertura acessível, isolamento de Análise MCP, catálogo ligado ao executor, preenchimento pricing_get, filtros por tag sem consulta a cada tecla e regressões existentes.
+- Build Next.js estático e compilação do serviço concluídos; verificação TypeScript passou. `npm audit --omit=dev`: zero vulnerabilidades. Auditoria completa mantém uma ocorrência baixa em dependência de desenvolvimento.
+- Revisão independente encontrou e levou a correções de contexto MCP, consulta repetida por tag, cancelamento de leituras, servidor sem tools, limpeza de insight e retirada de comandos de desenvolvimento sem proxy implementado.
+- Inspeção visual atual no navegador integrado: abertura 4D funcionando, temas escuro/claro, laboratório separado de configuração e layout estreito de 390 px. Capturas locais em `.superpowers/ux-v04`, fora do Git por política de preservação de contexto local.
+- Bloqueio CSP da animação foi corrigido calculando hash após normalização CRLF→LF, sem liberar inline JS genericamente. O script da CDN só é permitido no frame isolado. Regressão de renderização confirma pixels visíveis.
+- Inicialização por PowerShell agora aguarda health em IPv4 antes de abrir o navegador; evita atraso de fallback IPv6 de localhost. SDKs AWS/GCP carregados somente quando usados. Testes usam concorrência limitada para não sobrecarregar o notebook.
+- Metadados existentes e cofre Windows preservados. Nenhuma migração destrutiva, compra ou modificação de infraestrutura executada. O original `D:\DEV\FinOps\Assets\tesseract-4d.html` foi mantido.
+- **Pendências de aceite:** consultas financeiras reais, rede corporativa, permissões de provedores e avaliação visual do time. Descoberta de AWS/GCP não significa autenticação MCP universal; templates dinâmicos de resources e cruzamento genérico entre fontes não são alegados como disponíveis.
+
+[Novo checklist humano 0.4.0](checklist-v0.4.0.md) · [Operação e limites](command-center-v0.4.md).
+
 ## Tesseract 0.3.0 — 09/11/2026
 
 - 88 testes de serviço em 36 arquivos passaram (`npm test`). Incluem paginação AWS, erro AWS incompleto, créditos/contrato BigQuery, limite faturado/localização, cancelamento de job, sanitização de token refletido, precisão decimal, proteção CSRF e seleção MCP em tags.

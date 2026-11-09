@@ -1,3 +1,5 @@
+import { fetchBound } from "../security/endpoint-policy.js";
+import { sanitizeEvidence } from "../multicloud/sanitize.js";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { id } from "../../shared/connections.js";
@@ -25,6 +27,68 @@ export function registerConnectionRoutes(
     setCookie: (reply: any, id: string) => void;
   },
 ) {
+  app.post("/api/mcp-discovery", async (r) => {
+    d.session(r);
+    const input = z
+      .object({
+        url: z
+          .string()
+          .url()
+          .max(2048)
+          .refine((v) => new URL(v).protocol === "https:"),
+        trusted: z.literal(true),
+      })
+      .strict()
+      .parse(r.body);
+    const response = await fetchBound(input.url, {
+      signal: AbortSignal.any([
+        (r as any).operationSignal,
+        AbortSignal.timeout(15000),
+      ]),
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok)
+      throw new AppError(
+        "upstream",
+        `A fonte respondeu HTTP ${response.status}.`,
+        502,
+      );
+    let raw: unknown;
+    try {
+      raw = await response.json();
+    } catch {
+      throw new AppError(
+        "invalid_request",
+        "Esta URL não retornou um manifesto JSON válido. Use a página apenas como referência.",
+      );
+    }
+    const manifest = z
+      .object({
+        servers: z
+          .array(
+            z
+              .object({
+                name: z.string().min(1).max(200),
+                url: z
+                  .string()
+                  .url()
+                  .max(2048)
+                  .refine(
+                    (v) =>
+                      new URL(v).protocol === "https:" &&
+                      !new URL(v).username &&
+                      !new URL(v).password,
+                  ),
+                description: z.string().max(2000).optional(),
+              })
+              .strict(),
+          )
+          .max(50),
+      })
+      .strict()
+      .parse(raw);
+    return sanitizeEvidence({ source: input.url, ...manifest });
+  });
   const getId = (r: any) => z.object({ id }).parse(r.params).id;
   app.get("/api/accesses", async (r) => {
     d.session(r);
@@ -148,6 +212,23 @@ export function registerConnectionRoutes(
   app.get("/api/mcp-connections/:id/tools", async (r) =>
     d.mcps.tools(d.context(r), getId(r)),
   );
+  app.post("/api/mcp-connections/:id/catalog", async (r) =>
+    d.mcps.catalog(d.context(r), getId(r)),
+  );
+  app.post("/api/mcp-connections/:id/inspect", async (r) =>
+    d.mcps.inspect(
+      d.context(r),
+      getId(r),
+      z
+        .object({
+          kind: z.enum(["prompt", "resource"]),
+          name: z.string().min(1).max(2048),
+          arguments: z.record(z.string(), z.string()).optional(),
+        })
+        .strict()
+        .parse(r.body),
+    ),
+  );
   app.get("/api/mcp-connections/:id/capabilities", async (r) => {
     d.session(r);
     return capability(await d.mcps.get(getId(r)));
@@ -194,7 +275,7 @@ export function registerConnectionRoutes(
       );
       return {
         connected: true,
-        message: `O agente HTTP respondeu ao health check (${typeof h === "string" ? h : JSON.stringify(h)}). Sem consumo de modelo.`,
+        message: `O agente HTTP respondeu ao health check (${typeof h === "string" ? sanitizeEvidence(h) : JSON.stringify(sanitizeEvidence(h))}). Sem consumo de modelo.`,
       };
     }
     const model = new ModelProvider(agent, d.vault, d.identity, ctx);

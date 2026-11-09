@@ -81,6 +81,7 @@ export class AzureCosts {
         granularity: query.granularity,
         aggregation: { totalCost: { name: "Cost", function: "Sum" } },
         grouping: [{ type: "Dimension", name: query.groupBy }],
+        ...(query.tagFilter ? {filter:{tags:{name:query.tagFilter.name,operator:"In",values:query.tagFilter.values}}} : {}),
       },
     };
     const result: CostResult = {

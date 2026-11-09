@@ -3,10 +3,26 @@ import { fileURLToPath } from "node:url";
 import fastifyStatic from "@fastify/static";
 import { buildApp } from "./app.js";
 import { readConfig } from "./config.js";
+import { readFileSync } from "node:fs";
+import { staticPolicy } from "./web-policy.js";
 const config = readConfig();
 const app = await buildApp({ config });
 const root = fileURLToPath(new URL("../../dist/web/", import.meta.url));
 if (existsSync(root + "index.html")) {
+  const shellPolicy = staticPolicy(readFileSync(root + "index.html", "utf8"));
+  const framePolicy = existsSync(root + "tesseract-4d.html")
+    ? staticPolicy(readFileSync(root + "tesseract-4d.html", "utf8"), true)
+    : shellPolicy;
+  app.addHook("onSend", async (req, reply, payload) => {
+    if (!req.url.startsWith("/api/"))
+      reply.header(
+        "Content-Security-Policy",
+        req.url.split("?")[0] === "/tesseract-4d.html"
+          ? framePolicy
+          : shellPolicy,
+      );
+    return payload;
+  });
   await app.register(fastifyStatic, { root });
   app.setNotFoundHandler((req, reply) =>
     req.url.startsWith("/api/")

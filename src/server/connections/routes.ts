@@ -1,3 +1,4 @@
+import { RegistryDiscovery } from "../mcp/discovery.js";
 import { fetchBound } from "../security/endpoint-policy.js";
 import { sanitizeEvidence } from "../multicloud/sanitize.js";
 import type { FastifyInstance } from "fastify";
@@ -28,6 +29,10 @@ export function registerConnectionRoutes(
     setCookie: (reply: any, id: string) => void;
   },
 ) {
+  const registryDiscovery = new RegistryDiscovery();
+  app.post("/api/mcp-registry/search", async (r) =>
+    registryDiscovery.search(r.body, (d.mcpContext || d.context)(r).signal),
+  );
   app.post("/api/mcp-discovery", async (r) => {
     d.session(r);
     const input = z

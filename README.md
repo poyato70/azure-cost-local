@@ -1,5 +1,7 @@
 # TESSERACT — MCP & AI Workspace for FinOps
 
+**Versão 0.5.1:** correções de exclusão, identidade/transporte explícitos, separação Integração/Análise e busca online no MCP Registry. [Guia e teste de aceite](docs/mcp-clarity-v0.5.1.md).
+
 **Versão 0.5.0:** workspace local orientado a conexões, exploração/teste de tools, agentes e conhecimento versionado. MCPs HTTP Kubernetes/OpenShift e personalizados usam Bearer próprio protegido ou nenhuma autenticação no endpoint, sem exigir acesso Azure. Skills/referências Markdown públicas do GitHub podem ser importadas por commit e vinculadas ao runtime local. Análises financeiras e Chat Azure/Copilot preservados.
 
 [Operação e limites 0.5](docs/workspace-v0.5.md) · [Checklist de aceite 0.5](docs/checklist-v0.5.0.md) · [Versão visual anterior](docs/command-center-v0.4.md).

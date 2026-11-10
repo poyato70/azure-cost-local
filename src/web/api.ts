@@ -24,11 +24,18 @@ export async function manageRequest<T = any>(
   const r = await fetch("/api" + path, {
     signal,
     method,
-    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+    headers: {
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      "X-CSRF-Token": csrf,
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const result = await r.json();
-  if (!r.ok) throw new Error(result.message || "A operação falhou.");
+  if (!r.ok)
+    throw new Error(
+      (result.message || "A operação falhou.") +
+        (result.requestId ? ` [operação ${result.requestId}]` : ""),
+    );
   return result;
 }
 export type Bootstrap = {

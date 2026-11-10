@@ -200,10 +200,29 @@ export async function buildApp(deps: AppDeps = {}) {
       error instanceof AppError
         ? error.code + ": " + error.message
         : "Parâmetros inválidos ou falha interna; dados brutos omitidos.";
+    if ((error as any).code === "FST_ERR_CTP_EMPTY_JSON_BODY")
+      return reply.status(400).send({
+        code: "invalid_request",
+        requestId: String(req.id),
+        message:
+          "Pedido JSON sem conteúdo. Recarregue a aplicação para obter a versão atualizada; nenhuma alteração foi aplicada.",
+      });
     if (error instanceof z.ZodError)
       return reply.status(400).send({
         code: "invalid_request",
-        message: "Parâmetros inválidos. Confira escopo e datas.",
+        requestId: String(req.id),
+        message:
+          "Parâmetros inválidos. Confira os campos: " +
+          [
+            ...new Set(
+              error.issues.map(
+                (i) => i.path.map(String).join(".") || "formulário",
+              ),
+            ),
+          ]
+            .slice(0, 5)
+            .join(", ") +
+          ".",
       });
     const e =
       error instanceof AppError
@@ -213,7 +232,9 @@ export async function buildApp(deps: AppDeps = {}) {
             "Não foi possível concluir a operação. Tente novamente.",
             500,
           );
-    return reply.status(e.status).send({ code: e.code, message: e.message });
+    return reply
+      .status(e.status)
+      .send({ code: e.code, message: e.message, requestId: String(req.id) });
   });
   registerConnectionRoutes(app, {
     accesses,

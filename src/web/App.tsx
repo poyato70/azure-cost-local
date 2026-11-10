@@ -60,6 +60,8 @@ export function App() {
     message: string;
   }>();
   const [hubId, setHubId] = useState("");
+  const [analysisMcpId, setAnalysisMcpId] = useState("");
+  const [mcpDraft, setMcpDraft] = useState<any>();
   const [accesses, setAccesses] = useState<PublicAccessProfile[]>([]),
     [mcpProfiles, setMcpProfiles] = useState<any[]>([]),
     [agentProfiles, setAgentProfiles] = useState<PublicAgent[]>([]),
@@ -411,7 +413,7 @@ export function App() {
             <br />
             Você mantém o controle.
           </p>
-          <span className="version">MVP · 0.5.0</span>
+          <span className="version">MVP · 0.5.1</span>
         </div>
       </aside>
       <main>
@@ -707,7 +709,14 @@ export function App() {
               />
             )}
             {tab === "help" && <Help />}
-            {tab === "discovery" && <Discovery />}
+            {tab === "discovery" && (
+              <Discovery
+                onConfigure={(draft) => {
+                  setMcpDraft(draft);
+                  setTab("mcps");
+                }}
+              />
+            )}
             {tab === "tag-costs" &&
               (source === "api" ? (
                 <TagCosts query={query} />
@@ -756,8 +765,20 @@ export function App() {
             )}
             {["mcps", "mcp-analysis"].includes(tab) && (
               <McpConnections
+                key={tab}
+                initialConnectionId={
+                  tab === "mcp-analysis" ? analysisMcpId : undefined
+                }
+                initialDraft={tab === "mcps" ? mcpDraft : undefined}
+                onDraftConsumed={() => setMcpDraft(undefined)}
+                activeAccessId={boot?.activeAccessId}
+                principalKind={boot?.principalKind}
+                onConnectAccess={(id, mode) => void connect(id, mode)}
                 mode={tab === "mcp-analysis" ? "analysis" : "integration"}
-                onInspect={() => setTab("mcp-analysis")}
+                onInspect={(id) => {
+                  setAnalysisMcpId(id || "");
+                  setTab("mcp-analysis");
+                }}
                 profiles={mcpProfiles}
                 accesses={accesses}
                 onChanged={() => void reloadSettings()}

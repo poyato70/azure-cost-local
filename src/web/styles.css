@@ -1914,3 +1914,5 @@ summary:focus-visible {
 @media(prefers-reduced-motion:reduce){.journey-card{transition:none;}.journey-card:hover{transform:none;}}
 
 @media(max-width:650px){.topbar{height:auto;min-height:77px;}}
+
+.mcp-details{margin:16px 0;display:grid;gap:9px;}.mcp-details>div{display:grid;grid-template-columns:minmax(110px,160px) minmax(0,1fr);gap:12px;}.mcp-details dt{color:var(--muted);font-size:12px;}.mcp-details dd{margin:0;overflow-wrap:anywhere;}.identity-context{padding:14px 0;margin:12px 0;border-block:1px solid var(--border);}.registry-search{margin-bottom:24px;}.registry-search code{overflow-wrap:anywhere;}.registry-search .actions label{flex:1;min-width:160px;}@media(max-width:650px){.mcp-details>div{grid-template-columns:1fr;gap:3px;}}

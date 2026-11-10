@@ -69,7 +69,7 @@ test("analysis isolates configuration actions and shares discovered tools with t
   await started;
   await expect(
     page.getByRole("button", { name: "Conectar e listar tools" }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   release();
   await expect(
     page.getByRole("heading", { name: /Tools descobertas \(1\)/ }),

@@ -1,7 +1,14 @@
+import { RegistrySearch } from "../components/RegistrySearch.js";
 import { useState } from "react";
 import { manageRequest } from "../api.js";
-export function Discovery() {
-  const [url, setUrl] = useState(localStorage.getItem("tesseract-discovery-url") || ""),
+export function Discovery({
+  onConfigure,
+}: {
+  onConfigure?: (draft: any) => void;
+}) {
+  const [url, setUrl] = useState(
+      localStorage.getItem("tesseract-discovery-url") || "",
+    ),
     [trust, setTrust] = useState(false),
     [result, setResult] = useState<any>(),
     [error, setError] = useState(""),
@@ -9,93 +16,92 @@ export function Discovery() {
   return (
     <>
       <h2>Descoberta de servidores MCP</h2>
-      <p>
-        Origens oficiais verificadas em 09/11/2026. Catálogo/documentação não é
-        endpoint MCP; presença na lista não comprova compatibilidade ou
-        segurança da integração.
-      </p>
-      <div className="provider-grid">
-        {[
-          ["Microsoft", "https://github.com/microsoft/mcp"],
-          ["AWS", "https://awslabs.github.io/mcp/servers"],
-          ["Google Cloud", "https://docs.cloud.google.com/mcp/overview"],
-        ].map(([name, link]) => (
-          <article className="provider-card" key={name}>
-            <h3>{name}</h3>
-            <a href={link} target="_blank" rel="noreferrer">
-              Abrir catálogo oficial
-            </a>
-            <p>
-              Confira transporte, endpoint e autenticação na documentação.
-              Cadastre os presets compatíveis em Integração. Outros provedores
-              podem exigir adaptador específico; a descoberta não instala
-              pacotes.
-            </p>
-          </article>
-        ))}
-      </div>
-      <h3>Fonte personalizada</h3>
-      <h3>Servidores do catálogo curado</h3>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Fornecedor / servidor</th>
-              <th>Transporte / uso</th>
-              <th>Referência oficial</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              [
-                "Microsoft · Azure MCP",
-                "Local stdio ou HTTP implantado; pricing/inventário/serviços Azure",
-                "https://github.com/microsoft/mcp",
-              ],
-              [
-                "Microsoft · ARM MCP",
-                "HTTP remoto; autenticação delegada conforme preset",
-                "https://github.com/Azure/Azure-Resource-Manager-MCP",
-              ],
-              [
-                "Microsoft · Fabric / Power BI",
-                "HTTP ou stdio conforme preset; análise de dados",
-                "https://learn.microsoft.com/power-bi/developer/mcp/remote-mcp-server-get-started",
-              ],
-              [
-                "AWS · Billing and Cost Management",
-                "Confira transporte e autenticação AWS na origem; não herda Secret Entra",
-                "https://awslabs.github.io/mcp/servers",
-              ],
-              [
-                "AWS · Pricing",
-                "Estimativas de catálogo; não equivale ao gasto real",
-                "https://awslabs.github.io/mcp/servers",
-              ],
-              [
-                "Google Cloud · BigQuery",
-                "HTTP remoto; https://bigquery.googleapis.com/mcp; requer autenticação Google",
-                "https://docs.cloud.google.com/mcp/supported-products",
-              ],
-              [
-                "Google Cloud · Cloud Billing (Preview)",
-                "HTTP remoto; https://cloudbilling.googleapis.com/mcp; confira capacidades atuais",
-                "https://docs.cloud.google.com/mcp/supported-products",
-              ],
-            ].map(([name, description, url]) => (
-              <tr key={name}>
-                <td>{name}</td>
-                <td>{description}</td>
-                <td>
-                  <a href={url} target="_blank" rel="noreferrer">
-                    Documentação
-                  </a>
-                </td>
+      <RegistrySearch onConfigure={onConfigure} />
+      <details>
+        <summary>Referências e documentação dos providers</summary>
+        <div className="provider-grid">
+          {[
+            ["Microsoft", "https://github.com/microsoft/mcp"],
+            ["AWS", "https://awslabs.github.io/mcp/servers"],
+            ["Google Cloud", "https://docs.cloud.google.com/mcp/overview"],
+          ].map(([name, link]) => (
+            <article className="provider-card" key={name}>
+              <h3>{name}</h3>
+              <a href={link} target="_blank" rel="noreferrer">
+                Abrir catálogo oficial
+              </a>
+              <p>
+                Confira transporte, endpoint e autenticação na documentação.
+                Cadastre os presets compatíveis em Integração. Outros provedores
+                podem exigir adaptador específico; a descoberta não instala
+                pacotes.
+              </p>
+            </article>
+          ))}
+        </div>
+
+        <h3>Servidores do catálogo curado</h3>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fornecedor / servidor</th>
+                <th>Transporte / uso</th>
+                <th>Referência oficial</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {[
+                [
+                  "Microsoft · Azure MCP",
+                  "Local stdio ou HTTP implantado; pricing/inventário/serviços Azure",
+                  "https://github.com/microsoft/mcp",
+                ],
+                [
+                  "Microsoft · ARM MCP",
+                  "HTTP remoto; autenticação delegada conforme preset",
+                  "https://github.com/Azure/Azure-Resource-Manager-MCP",
+                ],
+                [
+                  "Microsoft · Fabric / Power BI",
+                  "HTTP ou stdio conforme preset; análise de dados",
+                  "https://learn.microsoft.com/power-bi/developer/mcp/remote-mcp-server-get-started",
+                ],
+                [
+                  "AWS · Billing and Cost Management",
+                  "Confira transporte e autenticação AWS na origem; não herda Secret Entra",
+                  "https://awslabs.github.io/mcp/servers",
+                ],
+                [
+                  "AWS · Pricing",
+                  "Estimativas de catálogo; não equivale ao gasto real",
+                  "https://awslabs.github.io/mcp/servers",
+                ],
+                [
+                  "Google Cloud · BigQuery",
+                  "HTTP remoto; https://bigquery.googleapis.com/mcp; requer autenticação Google",
+                  "https://docs.cloud.google.com/mcp/supported-products",
+                ],
+                [
+                  "Google Cloud · Cloud Billing (Preview)",
+                  "HTTP remoto; https://cloudbilling.googleapis.com/mcp; confira capacidades atuais",
+                  "https://docs.cloud.google.com/mcp/supported-products",
+                ],
+              ].map(([name, description, url]) => (
+                <tr key={name}>
+                  <td>{name}</td>
+                  <td>{description}</td>
+                  <td>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      Documentação
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
       <h3>Consultar manifesto personalizado</h3>
       <p>
         Adicione uma URL HTTPS de manifesto JSON. Formato:{" "}
@@ -119,7 +125,7 @@ export function Discovery() {
               trusted: trust,
             });
             setResult(r);
-          localStorage.setItem("tesseract-discovery-url",url);
+            localStorage.setItem("tesseract-discovery-url", url);
           } catch (e) {
             setError((e as Error).message);
           } finally {

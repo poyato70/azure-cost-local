@@ -1,3 +1,4 @@
+import { McpDetails, McpIdentity } from "../components/McpDetails.js";
 import { McpLab } from "./McpLab.js";
 import {
   SchemaInputs,
@@ -40,6 +41,12 @@ const empty = {
 };
 export function McpConnections({
   profiles,
+  initialConnectionId,
+  initialDraft,
+  onDraftConsumed,
+  activeAccessId,
+  principalKind,
+  onConnectAccess,
   mode = "integration",
   onInspect,
   accesses,
@@ -47,25 +54,39 @@ export function McpConnections({
   onLogin,
 }: {
   mode?: "integration" | "analysis";
-  onInspect?: () => void;
+  initialConnectionId?: string;
+  initialDraft?: any;
+  onDraftConsumed?: () => void;
+  activeAccessId?: string;
+  principalKind?: string;
+  onConnectAccess?: (id: string, mode: "user" | "application") => void;
+  onInspect?: (id?: string) => void;
   profiles: any[];
   accesses: PublicAccessProfile[];
   onChanged: () => void;
   onLogin: (id: string) => void;
 }) {
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  useEffect(() => {
+    if (initialDraft) onDraftConsumed?.();
+  }, [initialDraft, onDraftConsumed]);
   const [token, setToken] = useState("");
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [catalogBusy, setCatalogBusy] = useState(false);
   const reviewRef = useRef<HTMLElement>(null);
   const noticeRef = useRef<HTMLParagraphElement>(null);
-  const [form, setForm] = useState<any>(empty),
+  const [form, setForm] = useState<any>({ ...empty, ...initialDraft }),
     [context, setContext] = useState(
-      JSON.stringify(empty.resourceContext, null, 2),
+      JSON.stringify(
+        initialDraft?.resourceContext || empty.resourceContext,
+        null,
+        2,
+      ),
     ),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [tools, setTools] = useState<any[]>([]),
-    [inspected, setInspected] = useState(""),
+    [inspected, setInspected] = useState(initialConnectionId || ""),
     [chosen, setChosen] = useState<string[]>([]),
     [toolName, setToolName] = useState(""),
     [args, setArgs] = useState("{}"),
@@ -183,11 +204,28 @@ export function McpConnections({
   const field = (k: string, v: unknown) =>
     setForm((f: any) => ({ ...f, [k]: v }));
   const working = busy || catalogBusy;
+  const connectIdentity = (p: any) =>
+    p.transport === "http" && p.authMode === "delegated"
+      ? onLogin(p.id)
+      : onConnectAccess?.(
+          p.accessId,
+          p.authMode === "application" ? "application" : "user",
+        );
+  const identityProps = {
+    accesses,
+    activeAccessId,
+    principalKind,
+    onConnect: connectIdentity,
+  };
   return (
     <>
       <div className="section-head">
         <div>
-          <h2>Servidores MCP</h2>
+          <h2>
+            {mode === "analysis"
+              ? "Inspeção e execução de tools"
+              : "Servidores MCP"}
+          </h2>
           <p>
             Conexões reais do protocolo MCP, com autenticação e ferramentas por
             serviço.
@@ -197,6 +235,8 @@ export function McpConnections({
           hidden={mode === "analysis"}
           onClick={() => {
             setForm(empty);
+            setNotice("");
+            setResult(undefined);
             setToken("");
             setTokenConfigured(false);
             setContext(JSON.stringify(empty.resourceContext, null, 2));
@@ -210,11 +250,21 @@ export function McpConnections({
           {notice}
         </p>
       )}
+      {mode === "analysis" && profiles.find((p) => p.id === inspected) && (
+        <section className="config-card">
+          <McpDetails profile={profiles.find((p) => p.id === inspected)} />
+          <McpIdentity
+            profile={profiles.find((p) => p.id === inspected)}
+            {...identityProps}
+          />
+        </section>
+      )}
       {mode === "analysis" && (
         <McpLab
           externalBusy={busy}
           onBusy={setCatalogBusy}
           onTools={(items) => {
+            setCatalogLoaded(true);
             setToolName("");
             setArgumentsValue({});
             setArgs("{}");
@@ -228,6 +278,7 @@ export function McpConnections({
           profiles={profiles}
           id={inspected}
           setId={(id) => {
+            setCatalogLoaded(false);
             setInspected(id);
             setTools([]);
             setChosen([]);
@@ -275,6 +326,7 @@ export function McpConnections({
           }}
         >
           <h3>{form.id ? "Editar MCP" : "Cadastrar MCP"}</h3>
+          <McpDetails profile={{ ...form, resourceContext: contextFields }} />
           {form.preset === "arm" && (
             <p className="notice">
               ARM MCP oficial (preview): use login de usuário e Autorizar
@@ -372,7 +424,7 @@ export function McpConnections({
             )}
           {!independent && (
             <label>
-              Acesso vinculado
+              Identidade Azure (cadastro em Acessos)
               <select
                 required
                 value={form.accessId}
@@ -513,165 +565,154 @@ export function McpConnections({
           </small>
         </form>
         <div>
-          {profiles.map((p) => (
-            <article className="config-card" key={p.id}>
-              <h3>{p.name}</h3>
-              <p>
-                {p.preset} ·{" "}
-                {p.transport === "stdio"
-                  ? "Processo MCP local no notebook"
-                  : "MCP remoto via HTTPS"}{" "}
-                ·{" "}
-                {p.authMode === "application"
-                  ? "Identidade de aplicação"
-                  : p.authMode === "bearer"
-                    ? "Bearer próprio"
-                    : p.authMode === "none"
-                      ? "Sem autenticação MCP"
-                      : "Usuário delegado"}
-              </p>
-              <p>
-                {p.status === "cadastrado" && inspected === p.id && tools.length
-                  ? "Catálogo recebido; execute uma tool para verificar a leitura."
-                  : p.status ||
-                    "Cadastrado; servidor ainda não consultado nesta sessão."}
-              </p>
-              <p className="fine">
-                {p.transport === "stdio"
-                  ? "Pacote oficial iniciado no notebook; pode ser baixado no primeiro uso. Este processo consulta serviços Microsoft pela rede; não é um MCP hospedado pela Microsoft."
-                  : `Servidor remoto: ${p.endpoint}. A aplicação local envia chamadas autenticadas para esse endpoint.`}
-              </p>
-              <small>
-                {p.capability?.status === "unsupported"
-                  ? p.capability.reason
-                  : (inspected === p.id && tools.length) ||
-                      (p.status && p.status !== "cadastrado")
-                    ? "Servidor já respondeu. Permissão de leitura dos dados depende da tool executada; descoberta não comprova todas as permissões."
-                    : "Ainda não testado nesta sessão. Clique em Conectar e listar tools."}
-              </small>
-              {inspected === p.id && notice && (
-                <p className="access-feedback" role="status">
-                  {notice}
+          {profiles
+            .filter(() => mode === "integration")
+            .map((p) => (
+              <article className="config-card" key={p.id}>
+                <h3>{p.name}</h3>
+                <McpDetails profile={p} />
+                <McpIdentity profile={p} {...identityProps} />
+                <p className="fine">
+                  Estado: {p.status || "cadastrado"}. O cadastro não inicia uma
+                  conexão; use Conectar e listar tools para descobrir o
+                  catálogo.
                 </p>
-              )}
-              <div className="actions">
-                <button
-                  disabled={working || p.capability?.status === "unsupported"}
-                  onClick={() =>
-                    void run(async () => {
-                      setInspected(p.id);
-                      onInspect?.();
-                      setResult(undefined);
-                      setExecution(undefined);
-                      setTools([]);
-                      setToolName("");
-                      const r = await manageRequest(
-                        "/mcp-connections/" + p.id + "/test",
-                        "POST",
-                        {},
-                      );
-                      setTools(r.tools);
-                      setChosen(
-                        r.tools
-                          .filter((t: any) => t.approved)
-                          .map((t: any) => t.name),
-                      );
-                      setInspected(p.id);
-                      onInspect?.();
-                      setNotice(
-                        `Servidor respondeu e listou ${r.tools.length} tool(s): ${r.tools.map((t: any) => t.name).join(", ")}. Revise a lista abaixo, salve as tools permitidas e preencha uma consulta. Isso ainda não testa acesso aos dados.`,
-                      );
-                      return r;
-                    })
-                  }
-                >
-                  Conectar e listar tools
-                </button>
-                {p.transport === "http" && p.authMode === "delegated" && (
-                  <button onClick={() => onLogin(p.id)}>
-                    Autorizar recurso
-                  </button>
+                {inspected === p.id && notice && (
+                  <p className="access-feedback" role="status">
+                    {notice}
+                  </p>
                 )}
-                <button
-                  hidden={mode === "analysis"}
-                  onClick={() => {
-                    const {
-                      id,
-                      name,
-                      preset,
-                      transport,
-                      endpoint,
-                      accessId,
-                      authMode,
-                      audience,
-                      resourceContext,
-                      approvedTools,
-                      configurationVersion,
-                      allowPrivateNetwork,
-                    } = p;
-                    setToken("");
-                    setTokenConfigured(!!p.tokenConfigured);
-                    setForm({
-                      id,
-                      name,
-                      preset,
-                      transport,
-                      endpoint: endpoint || "",
-                      accessId: accessId || "",
-                      authMode,
-                      audience,
-                      approvedTools,
-                      allowPrivateNetwork,
-                      expectedVersion: configurationVersion,
-                    });
-                    setContext(JSON.stringify(resourceContext, null, 2));
-                  }}
-                >
-                  Editar
-                </button>
-                <button
-                  disabled={working}
-                  onClick={() =>
-                    void run(() =>
-                      manageRequest(
-                        "/mcp-connections/" + p.id + "/disconnect",
-                        "POST",
-                        {},
-                      ),
-                    )
-                  }
-                >
-                  Desconectar
-                </button>
-                <button
-                  hidden={mode === "analysis"}
-                  disabled={working}
-                  onClick={() =>
-                    void run(() =>
-                      manageRequest("/mcp-connections/" + p.id, "DELETE"),
-                    )
-                  }
-                >
-                  Excluir
-                </button>
-              </div>
-            </article>
-          ))}
+                <div className="actions">
+                  <button onClick={() => onInspect?.(p.id)}>
+                    Analisar tools
+                  </button>
+                  <button
+                    disabled={working || p.capability?.status === "unsupported"}
+                    onClick={() =>
+                      void run(async () => {
+                        setInspected(p.id);
+                        setResult(undefined);
+                        setExecution(undefined);
+                        setTools([]);
+                        setToolName("");
+                        const r = await manageRequest(
+                          "/mcp-connections/" + p.id + "/test",
+                          "POST",
+                          {},
+                        );
+                        setTools(r.tools);
+                        setChosen(
+                          r.tools
+                            .filter((t: any) => t.approved)
+                            .map((t: any) => t.name),
+                        );
+                        setInspected(p.id);
+                        setNotice(
+                          `Servidor respondeu e listou ${r.tools.length} tool(s): ${r.tools.map((t: any) => t.name).join(", ")}. Use Analisar tools para revisar o catálogo, liberar leituras e executar uma consulta. Isso ainda não testa acesso aos dados.`,
+                        );
+                        return r;
+                      })
+                    }
+                  >
+                    Conectar e listar tools
+                  </button>
+                  {p.transport === "http" && p.authMode === "delegated" && (
+                    <button onClick={() => onLogin(p.id)}>
+                      Autorizar recurso
+                    </button>
+                  )}
+                  <button
+                    hidden={mode === "analysis"}
+                    onClick={() => {
+                      const {
+                        id,
+                        name,
+                        preset,
+                        transport,
+                        endpoint,
+                        accessId,
+                        authMode,
+                        audience,
+                        resourceContext,
+                        approvedTools,
+                        configurationVersion,
+                        allowPrivateNetwork,
+                      } = p;
+                      setToken("");
+                      setTokenConfigured(!!p.tokenConfigured);
+                      setForm({
+                        id,
+                        name,
+                        preset,
+                        transport,
+                        endpoint: endpoint || "",
+                        accessId: accessId || "",
+                        authMode,
+                        audience,
+                        approvedTools,
+                        allowPrivateNetwork,
+                        expectedVersion: configurationVersion,
+                      });
+                      setContext(JSON.stringify(resourceContext, null, 2));
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    disabled={working}
+                    onClick={() =>
+                      void run(() =>
+                        manageRequest(
+                          "/mcp-connections/" + p.id + "/disconnect",
+                          "POST",
+                          {},
+                        ),
+                      )
+                    }
+                  >
+                    Desconectar
+                  </button>
+                  <button
+                    hidden={mode === "analysis"}
+                    disabled={working}
+                    onClick={() =>
+                      void run(() =>
+                        manageRequest("/mcp-connections/" + p.id, "DELETE"),
+                      )
+                    }
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </article>
+            ))}
         </div>
       </div>
 
-      {inspected && (
+      {mode === "analysis" && inspected && !catalogLoaded && (
+        <p className="notice">
+          Catálogo ainda não consultado. Clique em Listar capacidades, prompts e
+          resources para consultar este servidor.
+        </p>
+      )}
+      {mode === "analysis" && inspected && catalogLoaded && (
         <section ref={reviewRef} className="tool-review">
           <h3>
             Tools descobertas ({tools.length}) —{" "}
             {profiles.find((p) => p.id === inspected)?.name}
           </h3>
           <p>
-            Esta lista veio do servidor MCP. No grupo pricing, uma única tool
-            pricing_get é esperada: ela consulta preços públicos, não despesas
-            do RG. Para gastos, escolha APIs Azure ou configure um FinOps hub
-            com dados carregados.
+            Catálogo recebido deste servidor MCP.{" "}
+            {tools.length === 0
+              ? "O servidor não anunciou tools nesta consulta."
+              : "Revise as operações antes de liberar seu uso."}
           </p>
+          {tools.some((t) => t.name === "pricing_get") && (
+            <p className="fine">
+              pricing_get consulta preços de catálogo; não retorna o gasto real
+              do RG. Para gastos reais via MCP, avalie o ARM MCP oficial.
+            </p>
+          )}
           <p className="fine">
             Marque as tools que esta aplicação poderá executar e clique em
             Salvar tools permitidas. Nos presets Microsoft, são liberadas

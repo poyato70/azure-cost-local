@@ -241,7 +241,7 @@ export class McpRegistry {
       if (ctx.tenantId !== a.tenantId || ctx.accessId !== a.id)
         throw new AppError(
           "forbidden",
-          "Conecte o acesso vinculado a este MCP antes de testar.",
+          `Conecte a identidade Azure "${a.name}" cadastrada em Acessos antes de testar este MCP. Isso autentica o acesso ao Azure; não é uma falha do servidor MCP.`,
           403,
         );
       if (p.authMode === "delegated" && ctx.principalKind !== "user")
@@ -268,7 +268,7 @@ export class McpRegistry {
       ctx.signal.removeEventListener("abort", abortParent);
     };
     if (ctx.signal.aborted) controller.abort();
-    const client = new Client({ name: "azure-cost-local", version: "0.5.0" });
+    const client = new Client({ name: "azure-cost-local", version: "0.5.1" });
     let transport;
     try {
       if (p.transport === "http") {

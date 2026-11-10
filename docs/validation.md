@@ -124,3 +124,14 @@ Nova conferência: 67 testes de serviço, 14 testes Edge, typecheck, build e dif
 - Configurações existentes preservadas. Aprovações antigas precisam de revisão porque o hash considera também annotations. Nenhuma movimentação/exclusão de arquivos do usuário.
 
 Aceite operacional pendente: `docs/checklist-v0.5.0.md`. GitHub privado, OAuth genérico, topologia e auditoria diária não estão incluídos; ver `docs/workspace-v0.5.md`.
+
+
+## Clareza MCP e descoberta — versão 0.5.1, 10/11/2026
+
+- Causa da exclusão reproduzida em localhost: DELETE sem corpo com Content-Type JSON resultava em 500; sem esse header, 200. Cadastro temporário usado no diagnóstico removido, sem excluir conexões do usuário. Falha de criação relatada não reproduzida; validação agora indica campos e correlação.
+- 113 testes de serviço (50 arquivos), typecheck e build aprovados. 32 testes Edge aprovados na rodada final, incluindo separação Integração/Análise, identidade, DELETE sem JSON vazio, catálogo não consultado e consumo de rascunho.
+- Uma rodada detectou intermitência no teste preexistente de Escape no popup de boas-vindas. Repetição isolada 3/3 e nova suíte integral 32/32 passaram; Welcome não foi alterado. Manter monitoramento desse teste.
+- Consulta real ao novo endpoint local de descoberta retornou HTTP 200 e com.microsoft/azure do MCP Registry. Conferência em Edge com resultado real visível, sem rolagem horizontal a 1440 px. Este teste valida o catálogo, não autenticação Azure ou execução das tools do servidor publicado.
+- Revisão independente: identidade delegada indevidamente pronta, instrução de sucesso antiga, rascunho persistente e afirmação prematura de descoberta corrigidos. .vscode do usuário preservado.
+
+Operação e aceite manual: `docs/mcp-clarity-v0.5.1.md`.

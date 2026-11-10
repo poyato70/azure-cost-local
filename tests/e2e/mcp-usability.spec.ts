@@ -57,6 +57,14 @@ test("discovers tools, renders a nested schema and displays the executed result"
         },
       ];
     if (p.endsWith("/test")) json = { connected: true, tools: [tool()] };
+    if (p.endsWith("/catalog"))
+      json = {
+        server: { name: "fixture", version: "1" },
+        capabilities: { tools: {} },
+        prompts: { status: "not_advertised", items: [] },
+        resources: { status: "not_advertised", items: [] },
+        tools: [tool()],
+      };
     if (p.endsWith("/approve-tools")) {
       approved = true;
       json = { ok: true };
@@ -75,6 +83,15 @@ test("discovers tools, renders a nested schema and displays the executed result"
   await page.goto("/");
   await page.getByRole("button", { name: "MCPs", exact: true }).click();
   await page.getByRole("button", { name: "Conectar e listar tools" }).click();
+  await expect(
+    page.getByText(/Servidor respondeu e listou 1 tool/).first(),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Analisar tools", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Listar capacidades, prompts e resources" })
+    .click();
   await expect(
     page.getByRole("heading", { name: /Tools descobertas \(1\)/ }),
   ).toBeVisible();

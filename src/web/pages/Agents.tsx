@@ -1,5 +1,5 @@
 import { finopsTemplate } from "../../server/agents/finops-template.js";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type {
   PublicAgent,
   PublicAccessProfile,
@@ -16,6 +16,7 @@ const fresh = {
   allowPrivateNetwork: false,
   allowInsecureHttp: false,
   modelCredential: { kind: "apiKey" },
+  knowledgeIds: [] as string[],
   allowedAccessIds: [] as string[],
   mcpConnectionIds: [] as string[],
   allowedTools: ["azure_query"],
@@ -36,6 +37,12 @@ export function Agents({
   onChanged: () => void;
   onOpenChat?: () => void;
 }) {
+  const [knowledge, setKnowledge] = useState<any[]>([]);
+  useEffect(() => {
+    void manageRequest("/knowledge")
+      .then((v) => setKnowledge(Array.isArray(v) ? v : []))
+      .catch(() => setKnowledge([]));
+  }, []);
   const [testedId, setTestedId] = useState("");
   const [setup, setSetup] = useState<"custom" | "copilot">("custom");
   const [form, setForm] = useState<any>(fresh),
@@ -369,6 +376,34 @@ export function Agents({
                   </label>
                 ))}
               </fieldset>
+              <fieldset disabled={isHttp}>
+                <legend>Conhecimento e skills revisados</legend>
+                <p className="fine">
+                  Versões selecionadas são enviadas ao modelo com a pergunta.
+                  Não concedem permissões nem executam scripts. Máximo 5
+                  documentos. Agentes HTTP não recebem conteúdo local.
+                </p>
+                {!knowledge.length && (
+                  <p>Importe uma versão em Conhecimento e skills.</p>
+                )}
+                {knowledge.map((d) => (
+                  <label className="consent" key={d.id}>
+                    <input
+                      type="checkbox"
+                      checked={(form.knowledgeIds || []).includes(d.id)}
+                      onChange={() =>
+                        setForm((f: any) => ({
+                          ...f,
+                          knowledgeIds: (f.knowledgeIds || []).includes(d.id)
+                            ? f.knowledgeIds.filter((v: string) => v !== d.id)
+                            : [...(f.knowledgeIds || []), d.id],
+                        }))
+                      }
+                    />
+                    {d.name} · {d.commit.slice(0, 12)}
+                  </label>
+                ))}
+              </fieldset>
               <fieldset>
                 <legend>Ferramentas autorizadas</legend>
                 <label className="consent">
@@ -548,6 +583,7 @@ export function Agents({
                           runtime: a.provider,
                           model: a.model,
                           allowedTools: a.allowedTools,
+                          knowledgeIds: a.knowledgeIds || [],
                           allowedAccessIds: a.allowedAccessIds,
                           mcpConnectionIds: a.mcpConnectionIds,
                           limits: a.limits,

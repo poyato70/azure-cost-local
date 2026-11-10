@@ -24,6 +24,7 @@ export function registerConnectionRoutes(
     vault: SecretStore;
     session: (r: any) => Session;
     context: (r: any) => RequestContext;
+    mcpContext?: (r: any) => RequestContext;
     setCookie: (reply: any, id: string) => void;
   },
 ) {
@@ -165,7 +166,7 @@ export function registerConnectionRoutes(
     return presets.map((p) => ({
       ...p,
       modes: ["stdio", "http"].flatMap((transport) =>
-        ["delegated", "application"].map((authMode) =>
+        ["delegated", "application", "none", "bearer"].map((authMode) =>
           capability({ preset: p.id, transport, authMode } as any),
         ),
       ),
@@ -201,23 +202,23 @@ export function registerConnectionRoutes(
   for (const op of ["test", "connect"])
     app.post("/api/mcp-connections/:id/" + op, async (r) => ({
       connected: true,
-      tools: await d.mcps.tools(d.context(r), getId(r)),
+      tools: await d.mcps.tools((d.mcpContext || d.context)(r), getId(r)),
       message:
-        "Servidor respondeu ao protocolo MCP e listou tools. Essa etapa não consulta dados Azure. Salve as tools permitidas, preencha os parâmetros de uma tool e execute para testar essa operação.",
+        "Servidor respondeu ao protocolo MCP e listou tools. Essa etapa não comprova acesso aos dados do provedor. Salve as tools permitidas, preencha os parâmetros de uma tool e execute para testar essa operação.",
     }));
   app.post("/api/mcp-connections/:id/disconnect", async (r) => {
     await d.mcps.disconnect(getId(r));
     return { ok: true };
   });
   app.get("/api/mcp-connections/:id/tools", async (r) =>
-    d.mcps.tools(d.context(r), getId(r)),
+    d.mcps.tools((d.mcpContext || d.context)(r), getId(r)),
   );
   app.post("/api/mcp-connections/:id/catalog", async (r) =>
-    d.mcps.catalog(d.context(r), getId(r)),
+    d.mcps.catalog((d.mcpContext || d.context)(r), getId(r)),
   );
   app.post("/api/mcp-connections/:id/inspect", async (r) =>
     d.mcps.inspect(
-      d.context(r),
+      (d.mcpContext || d.context)(r),
       getId(r),
       z
         .object({
@@ -235,7 +236,7 @@ export function registerConnectionRoutes(
   });
   app.post("/api/mcp-connections/:id/approve-tools", async (r) =>
     d.mcps.approve(
-      d.context(r),
+      (d.mcpContext || d.context)(r),
       getId(r),
       z.object({ names: z.array(z.string()).max(100) }).parse(r.body).names,
     ),
@@ -248,7 +249,12 @@ export function registerConnectionRoutes(
       })
       .strict()
       .parse(r.body);
-    return d.mcps.call(d.context(r), getId(r), v.name, v.arguments);
+    return d.mcps.call(
+      (d.mcpContext || d.context)(r),
+      getId(r),
+      v.name,
+      v.arguments,
+    );
   });
   app.get("/api/agents", async (r) => {
     d.session(r);
@@ -268,7 +274,10 @@ export function registerConnectionRoutes(
   app.post("/api/agents/:id/test-model", async (r) => {
     z.object({ consent: z.literal(true) }).parse(r.body);
     const agent = await d.agents.get(getId(r)),
-      ctx = d.context(r);
+      ctx =
+        agent.modelCredential.kind === "apiKey"
+          ? (d.mcpContext || d.context)(r)
+          : d.context(r);
     if (agent.provider === "http-agent-v1") {
       const h = await new HttpAgentClient(agent, d.vault).health(
         AbortSignal.any([ctx.signal, AbortSignal.timeout(30000)]),

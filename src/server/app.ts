@@ -34,6 +34,7 @@ import { IdentityProvider } from "./auth/identity-provider.js";
 import { McpRegistry } from "./mcp/registry.js";
 import { AgentService } from "./agents/service.js";
 import { LocalAgentRuntime } from "./agents/runtime.js";
+import { KnowledgeService } from "./knowledge/service.js";
 import { registerConnectionRoutes } from "./connections/routes.js";
 import { selectionSchema } from "../shared/connections.js";
 import { assertApiSelection } from "./connections/data-provider.js";
@@ -81,6 +82,7 @@ export async function buildApp(deps: AppDeps = {}) {
     mcps,
     hubs,
   );
+  const knowledge = new KnowledgeService(saved);
   const localAgents = new LocalAgentRuntime(
     { inventory, costs, budgets, benefits, forecast },
     vault,
@@ -88,6 +90,7 @@ export async function buildApp(deps: AppDeps = {}) {
     gate,
     mcps,
     hubs,
+    knowledge,
   );
   const session = (request: any): Session => {
     const s = store.get(request.cookies.sid);
@@ -99,9 +102,9 @@ export async function buildApp(deps: AppDeps = {}) {
       );
     return s;
   };
-  const context = (request: any): RequestContext => {
+  const context = (request: any, local = false): RequestContext => {
     const s = session(request);
-    if (!s.userId)
+    if (!s.userId && !local)
       throw new AppError("unauthenticated", "Entre com Microsoft.", 401);
     return {
       requestId: String(request.id),
@@ -220,7 +223,29 @@ export async function buildApp(deps: AppDeps = {}) {
     vault,
     session,
     context,
+    mcpContext: (r: any) => context(r, true),
     setCookie,
+  });
+  app.get("/api/knowledge", async (req) => {
+    session(req);
+    return knowledge.list(
+      z
+        .string()
+        .max(200)
+        .parse((req.query as any).q || ""),
+    );
+  });
+  app.post("/api/knowledge", async (req) =>
+    knowledge.import(req.body, context(req, true).signal),
+  );
+  app.delete("/api/knowledge/:id", async (req) => {
+    await knowledge.remove(
+      z
+        .string()
+        .uuid()
+        .parse((req.params as any).id),
+    );
+    return { ok: true };
   });
   app.get("/api/diagnostics", async (req) => diagnostics.list(session(req).id));
   registerMulticloudRoutes(app, session, (ref) => vault.read(ref));
@@ -441,7 +466,6 @@ export async function buildApp(deps: AppDeps = {}) {
     return chat.status();
   });
   app.post("/api/chat", async (req, reply) => {
-    const ctx = context(req);
     const input = z
       .object({
         runtime: z.enum(["copilot", "agent"]).default("copilot"),
@@ -454,6 +478,20 @@ export async function buildApp(deps: AppDeps = {}) {
       })
       .strict()
       .parse(req.body);
+    const independent =
+      input.runtime === "agent" &&
+      input.selection?.source === "mcp" &&
+      !input.selection.hubId &&
+      !!input.selection.mcpConnectionId &&
+      ["custom", "kubernetes"].includes(
+        (await mcps.get(input.selection.mcpConnectionId)).preset,
+      );
+    const ctx = context(req, independent);
+    if (independent && input.scope)
+      throw new AppError(
+        "invalid_request",
+        "Investigações de MCP independente não recebem filtros Azure.",
+      );
     if (
       req.headers["x-data-source"] === "mcp" &&
       input.selection?.source !== "mcp"
@@ -462,7 +500,11 @@ export async function buildApp(deps: AppDeps = {}) {
         "invalid_request",
         "A fonte MCP exige uma conexão e um acesso salvo ativos. Reconecte o acesso; nenhuma consulta API foi executada.",
       );
-    if (input.selection && input.selection.accessId !== ctx.accessId)
+    if (
+      !independent &&
+      input.selection &&
+      input.selection.accessId !== ctx.accessId
+    )
       throw new AppError(
         "forbidden",
         "O acesso selecionado difere da sessão ativa. Reconecte o acesso.",

@@ -19,53 +19,54 @@ export function Navigation({
   const [mobile, setMobile] = useState(false);
   const groups = [
     {
-      label: "Explorar",
+      label: "Workspace",
       Icon: Compass,
       items: [
-        ["multicloud", "Visão multicloud"],
-        ["costs", "Custos"],
-        ["tag-costs", "Por tag"],
-      ],
-    },
-    {
-      label: "Planejar",
-      Icon: CalendarClock,
-      items: [
-        ["benefits", "Compromissos"],
-        ["forecast", "Forecast"],
-        ["budgets", "Budgets"],
-      ],
-    },
-    {
-      label: "Assistentes",
-      Icon: Bot,
-      items: [
-        ["agents", "Agentes"],
-        ["agent-lab", "Avaliação de agentes"],
-        ["chat", "Chat"],
+        ["home", "Início"],
+        ["investigations", "Investigações"],
       ],
     },
     {
       label: "Conexões",
       Icon: Plug,
       items: [
-        ["accesses", "Acessos"],
         ["mcps", "MCPs"],
         ["mcp-analysis", "Análise MCP"],
         ["discovery", "Descoberta MCP"],
+        ["accesses", "Acessos"],
         ["api-lab", "APIs — capacidades"],
+      ],
+    },
+    {
+      label: "Agentes e conhecimento",
+      Icon: Bot,
+      items: [
+        ["agents", "Agentes"],
+        ["knowledge", "Conhecimento e skills"],
+        ["agent-lab", "Avaliação de agentes"],
+        ["chat", "Chat"],
+      ],
+    },
+    {
+      label: "Análises financeiras",
+      Icon: CalendarClock,
+      items: [
+        ["costs", "Custos"],
+        ["tag-costs", "Por tag"],
+        ["forecast", "Forecast"],
+        ["budgets", "Budgets"],
+        ["benefits", "Compromissos"],
+        ["multicloud", "Visão multicloud"],
         ["hubs", "FinOps hub"],
       ],
     },
     {
-      label: "Operação",
+      label: "Operação e ajuda",
       Icon: Activity,
-      items: [["diagnostics", "Diagnóstico"]],
-    },
-    {
-      label: "Ajuda",
-      Icon: CircleHelp,
-      items: [["help", "Guia e referências"]],
+      items: [
+        ["diagnostics", "Diagnóstico"],
+        ["help", "Guia e referências"],
+      ],
     },
   ];
   return (

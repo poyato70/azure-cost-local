@@ -147,6 +147,7 @@ test("filters subscription names using a wildcard search", async ({ page }) => {
     });
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await page.getByLabel("Buscar subscription").fill("*grnuv*");
   await expect(
     page

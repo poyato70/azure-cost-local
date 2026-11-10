@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { McpProfile, ToolDescriptor } from "../../shared/connections.js";
 export function descriptor(t: any): ToolDescriptor {
-  const text = JSON.stringify(t.inputSchema || {});
+  const text = JSON.stringify({
+    schema: t.inputSchema || {},
+    annotations: t.annotations || {},
+  });
   if (text.length > 65536)
     throw new AppError("unsupported", "Schema de ferramenta muito grande.");
   return {
@@ -57,6 +60,11 @@ export function reviewable(p: McpProfile, t: ToolDescriptor) {
     )
   )
     return false;
+  if (["custom", "kubernetes"].includes(p.preset))
+    return (
+      t.annotations?.readOnlyHint === true &&
+      t.annotations?.destructiveHint !== true
+    );
   const patterns: Record<string, RegExp> = {
     arm: /^(query_costs|forecast_costs|list_budgets|get_budget|list_dimensions)$/,
     azure:
@@ -86,6 +94,7 @@ export function authorizeTool(
       "Ferramenta não aprovada ou schema alterado. Revise a conexão.",
       403,
     );
+  if (["custom", "kubernetes"].includes(p.preset)) return args;
   if (p.preset === "arm") {
     authorizeArmScope(p.resourceContext.scope || "", args);
     return args;

@@ -9,6 +9,7 @@ import { api, money } from "../api.js";
 import type { PublicAgent, DataSelection } from "../../shared/connections.js";
 export function Chat({
   scope,
+  independent = false,
   onInsight,
   basis,
   agents = [],
@@ -16,6 +17,7 @@ export function Chat({
   selectedSource,
   connectionLabel,
 }: {
+  independent?: boolean;
   onInsight?: (value: {
     text: string;
     source: string;
@@ -28,7 +30,9 @@ export function Chat({
   scope?: Scope;
   basis: CostQuery["basis"];
 }) {
-  const [runtime, setRuntime] = useState<"copilot" | "agent">("copilot"),
+  const [runtime, setRuntime] = useState<"copilot" | "agent">(
+      independent ? "agent" : "copilot",
+    ),
     [agentId, setAgentId] = useState("");
   const [message, setMessage] = useState(""),
     [consent, setConsent] = useState(false),
@@ -114,7 +118,7 @@ export function Chat({
               ...x,
               {
                 role: "Contexto efetivo da consulta",
-                text: `${e.runtime} · fonte: ${e.source} · tools: ${e.tools.join(", ")} · operação ${e.requestId || "sem ID"} · ${e.scope?.resourceGroup || "subscription inteira"}`,
+                text: `${e.runtime} · fonte: ${e.source} · tools: ${e.tools.join(", ")} · operação ${e.requestId || "sem ID"} · ${e.scope?.resourceGroup || (independent ? "escopo definido pelo MCP" : "subscription inteira")}`,
               },
             ]);
           if (e.type === "usage")
@@ -193,7 +197,7 @@ export function Chat({
             value={runtime}
             onChange={(e) => setRuntime(e.target.value as any)}
           >
-            <option value="copilot">Copilot local</option>
+            {!independent && <option value="copilot">Copilot local</option>}
             <option value="agent">Agente cadastrado</option>
           </select>
         </label>
@@ -236,7 +240,11 @@ export function Chat({
       )}
       <div className="section-head">
         <div>
-          <h2>Converse com seus custos</h2>
+          <h2>
+            {independent
+              ? "Investigue com seu agente"
+              : "Converse com seus custos"}
+          </h2>
           <p>
             {runtime === "copilot"
               ? "GitHub Copilot local"
@@ -245,6 +253,7 @@ export function Chat({
           </p>
         </div>
         <button
+          hidden={runtime !== "copilot"}
           onClick={() => {
             setStatus("Verificando…");
             void api
@@ -368,7 +377,11 @@ export function Chat({
           id="question"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Pergunte sobre custos, budgets ou compromissos…"
+          placeholder={
+            independent
+              ? "Pergunte sobre os recursos expostos por este MCP…"
+              : "Pergunte sobre custos, budgets ou compromissos…"
+          }
           maxLength={4000}
         />
         <div className="compose-footer">
@@ -381,7 +394,7 @@ export function Chat({
               !consent ||
               !message.trim() ||
               busy ||
-              !scope ||
+              (!scope && !independent) ||
               !mcpReady ||
               (runtime === "agent" && (!agentId || !selection))
             }

@@ -76,6 +76,7 @@ test("filters RGs and searches compact diagnostics by status and operation", asy
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await page
     .getByLabel("Buscar resource group", { exact: true })
     .fill("finops");

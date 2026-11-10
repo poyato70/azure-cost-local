@@ -44,6 +44,7 @@ test("opens Microsoft login in a separate window and updates the original dashbo
     await route.fulfill({ json });
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   const popupEvent = page.waitForEvent("popup");
   await page.getByRole("button", { name: /Entrar com Microsoft/ }).click();
   const popup = await popupEvent;
@@ -73,6 +74,7 @@ test("shows actionable login error returned by the local callback", async ({
     }),
   );
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "AADSTS7000218" }),
   ).toContainText("AADSTS7000218");
@@ -122,6 +124,7 @@ test("ignores a late cost response after switching resource groups", async ({
     }
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await page
     .getByRole("combobox", { name: "Resource group", exact: true })
     .selectOption("rg-a");
@@ -184,6 +187,7 @@ test("cancels pending budget tags on RG switch and never restores the previous g
     await route.fulfill({ json }).catch(() => {});
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await page.getByLabel("Resource group", { exact: true }).selectOption("rg-a");
   await page.getByRole("button", { name: "Budgets", exact: true }).click();
   await page
@@ -207,6 +211,7 @@ test("cancels pending budget tags on RG switch and never restores the previous g
 });
 test("shows setup without fake spend or password fields", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Conecte sua conta Azure" }),
   ).toBeVisible();
@@ -277,6 +282,7 @@ test("keeps currencies distinct, budgets empty and chat uses returned costs", as
     await route.fulfill({ json: body });
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await page
     .getByRole("button", { name: "Consultar custos", exact: true })
     .click();
@@ -323,6 +329,7 @@ test("forbidden is shown as error, not zero", async ({ page }) => {
     }),
   );
   await page.goto("/");
+  await page.getByRole("button", { name: "Custos", exact: true }).click();
   await page
     .getByRole("button", { name: "Consultar custos", exact: true })
     .click();

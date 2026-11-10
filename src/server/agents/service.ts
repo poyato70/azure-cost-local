@@ -80,6 +80,17 @@ export class AgentService {
             "Agente editado. Recarregue.",
             409,
           );
+        if (v.knowledgeIds?.length && http)
+          throw new AppError(
+            "unsupported",
+            "Agente HTTP remoto não recebe conhecimento local. Use o runtime local do modelo.",
+          );
+        for (const id of v.knowledgeIds || [])
+          if (!(s.knowledgeDocuments || []).some((d) => d.id === id))
+            throw new AppError(
+              "invalid_request",
+              "Conhecimento vinculado não encontrado.",
+            );
         for (const id of v.allowedAccessIds)
           if (!s.accessProfiles.some((x) => x.id === id))
             throw new AppError(

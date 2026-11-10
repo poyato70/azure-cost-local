@@ -111,3 +111,16 @@ Nova conferência: 67 testes de serviço, 14 testes Edge, typecheck, build e dif
 ## Correções para apresentação — versão 0.2.0, 06/11/2026
 
 73 testes de serviço em 32 arquivos e 17 testes Edge passaram; typecheck/build e diff-check passaram. Testes novos cobrem cabeçalhos de throttling, repetição bloqueada, isolamento por acesso/escopo, cancelamento, concorrência preservando maior cooldown, bloqueio de seleção MCP ambígua, filtros RG/log, uso informado e revogação ativa. Revisão final independente encontrou concorrência no cooldown e cancelamento na revogação; ambos corrigidos com regressões. Inspeção das telas de MCPs/Agentes/Diagnóstico/Chat em 1440, 1024 e 390 px sem overflow horizontal de página. Uso Copilot é lido do evento assistant.usage do SDK instalado; Azure Chat Completions do campo usage validado. Tokens informados podem ser parciais e não são preço final. Sem nova consulta Azure real: a aplicação não remove quotas nem comprova obtenção do gasto após 429. Roteiro operacional em [apresentação](apresentacao-tesseract.md).
+
+
+## Workspace MCP e conhecimento — versão 0.5.0, 10/11/2026
+
+- `npm test`: 106 testes de serviço aprovados (46 arquivos). Inclui protocolo MCP HTTP real contra servidor local controlado, sem identidade Azure; aprovação/schema/annotations, credencial vinculada ao endpoint e ocultação do Bearer em tools, prompts, resources e resultados.
+- `npm run typecheck` e `npm run build`: aprovados.
+- `npm run test:e2e`: 30 testes Edge aprovados. Novos percursos: início por integrações, cadastro independente, edição com token protegido, investigação sem ação Copilot inadequada, conteúdo Markdown inerte e navegação em desktop/mobile.
+- Revisão independente: dois achados funcionais/credenciais e dois achados de UX corrigidos. Testes reproduziram as falhas antes das correções. A revisão não acessou configurações .vscode do usuário.
+- Conferência visual: capturas 1440×900 e 390×844; ausência de rolagem horizontal verificada. Ajuste de altura do cabeçalho mobile. Não equivale a aceite humano.
+- Testes financeiros, importação GitHub e inferência usam fixtures/mocks quando indicado. Não comprovam acesso corporativo Azure/OpenShift, inferência real, conciliação de custos reais nem aprovação de rede.
+- Configurações existentes preservadas. Aprovações antigas precisam de revisão porque o hash considera também annotations. Nenhuma movimentação/exclusão de arquivos do usuário.
+
+Aceite operacional pendente: `docs/checklist-v0.5.0.md`. GitHub privado, OAuth genérico, topologia e auditoria diária não estão incluídos; ver `docs/workspace-v0.5.md`.

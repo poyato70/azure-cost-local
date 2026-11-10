@@ -1899,3 +1899,18 @@ summary:focus-visible {
 .help-topic {padding:16px 0;border-bottom:1px solid var(--border);}
 @media(max-width:760px){.mobile-menu{display:flex;align-items:center;gap:8px;}.sidebar nav.tree-nav {display:none;}.sidebar nav.tree-nav.mobile-open{display:block;}.sidebar nav.tree-nav button{width:100%;}.about-button{margin:10px 0 0;}}
 @media(prefers-reduced-motion:reduce){.welcome-symbol{animation:none;}.brand-mark{animation:none;}*{scroll-behavior:auto!important;}}
+
+/* Integration workspace: a short journey before financial analysis. */
+.workspace-home>h2 {font-size:clamp(1.8rem,3vw,3.1rem);line-height:1.15;letter-spacing:-.04em;margin:18px 0;}
+.workspace-home>p {max-width:760px;}
+.workspace-journey {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:28px 0;}
+.journey-card {display:flex;flex-direction:column;align-items:flex-start;gap:14px;text-align:left;padding:24px;white-space:normal;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:16px;transition:transform .18s ease;}
+.journey-card:hover {transform:translateY(-2px);}
+.journey-card strong {font-size:1.1rem;}
+.journey-card span {font-size:.9rem;line-height:1.6;opacity:.8;}
+.knowledge-workspace pre,.workspace-home pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto;}
+.knowledge-workspace .fine {overflow-wrap:anywhere;}
+@media(max-width:650px){.workspace-journey{grid-template-columns:1fr;}.journey-card{padding:18px;}}
+@media(prefers-reduced-motion:reduce){.journey-card{transition:none;}.journey-card:hover{transform:none;}}
+
+@media(max-width:650px){.topbar{height:auto;min-height:77px;}}

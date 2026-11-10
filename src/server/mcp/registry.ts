@@ -22,7 +22,12 @@ import type { Invalidation } from "../connections/invalidation.js";
 import type { IdentityProvider } from "../auth/identity-provider.js";
 import { AppError, assertActive } from "../errors.js";
 import { fetchBound, validateEndpoint } from "../security/endpoint-policy.js";
-import { presets, capability, httpAudience } from "./presets.js";
+import {
+  presets,
+  capability,
+  httpAudience,
+  independentMcp,
+} from "./presets.js";
 import {
   descriptor,
   authorizeTool,
@@ -49,10 +54,29 @@ export class McpRegistry {
   ) {}
   async list() {
     return (await this.store.read()).mcpProfiles.map((p) => ({
-      ...p,
+      ...this.publicProfile(p),
       capability: capability(p),
       status: this.states.get(p.id) || "cadastrado",
     }));
+  }
+  private async publicEvidence<T>(p: McpProfile, value: T): Promise<T> {
+    const secrets = p.tokenRef ? [await this.vault.read(p.tokenRef)] : [];
+    // Preserve schema property names and types; only sanitize string values.
+    const visit = (v: any): any =>
+      typeof v === "string"
+        ? sanitizeEvidence(v, secrets)
+        : Array.isArray(v)
+          ? v.map(visit)
+          : v && typeof v === "object"
+            ? Object.fromEntries(
+                Object.entries(v).map(([k, val]) => [k, visit(val)]),
+              )
+            : v;
+    return visit(value);
+  }
+  publicProfile(p: McpProfile) {
+    const { tokenRef, ...publicFields } = p;
+    return { ...publicFields, tokenConfigured: !!tokenRef };
   }
   async get(id: string) {
     const p = (await this.store.read()).mcpProfiles.find((x) => x.id === id);
@@ -62,6 +86,19 @@ export class McpRegistry {
   }
   async save(raw: unknown) {
     const v = mcpInput.parse(raw);
+    if (
+      independentMcp(v) &&
+      (v.transport !== "http" || !["none", "bearer"].includes(v.authMode))
+    )
+      throw new AppError(
+        "invalid_request",
+        "Este conector requer HTTP com Bearer próprio ou sem autenticação.",
+      );
+    if (!independentMcp(v) && v.authMode === "bearer")
+      throw new AppError(
+        "invalid_request",
+        "Use a identidade Microsoft deste preset.",
+      );
     if (v.preset === "arm" && !validArmScope(v.resourceContext.scope || ""))
       throw new AppError(
         "invalid_request",
@@ -73,7 +110,7 @@ export class McpRegistry {
           "invalid_endpoint",
           "Informe a URL da instância MCP.",
         );
-      httpAudience(v as any);
+      if (!independentMcp(v)) httpAudience(v as any);
       await validateEndpoint(v.endpoint, v.allowPrivateNetwork);
     }
     if (
@@ -87,32 +124,69 @@ export class McpRegistry {
     if (v.preset === "powerbi" && !v.resourceContext.modelId)
       throw new AppError("invalid_request", "Power BI requer modelId.");
     let saved!: McpProfile;
-    await this.store.mutate((s) => {
-      if (v.accessId && !s.accessProfiles.some((a) => a.id === v.accessId))
-        throw new AppError("invalid_request", "Acesso salvo não encontrado.");
-      const old = s.mcpProfiles.find((x) => x.id === v.id);
-      if (v.id && !old)
-        throw new AppError("invalid_request", "Conexão não encontrada.", 404);
-      if (old && v.expectedVersion !== old.configurationVersion)
-        throw new AppError(
-          "configuration_changed",
-          "Conexão alterada. Recarregue.",
-          409,
-        );
-      const { expectedVersion, ...fields } = v;
-      saved = {
-        ...fields,
-        id: old?.id || randomUUID(),
-        configurationVersion: (old?.configurationVersion || 0) + 1,
-      };
-      s.mcpProfiles = s.mcpProfiles.filter((x) => x.id !== saved.id);
-      s.mcpProfiles.push(saved);
-    });
+    let newRef: string | undefined, oldRef: string | undefined;
+    try {
+      await this.store.mutate(async (s) => {
+        if (v.accessId && !s.accessProfiles.some((a) => a.id === v.accessId))
+          throw new AppError("invalid_request", "Acesso salvo não encontrado.");
+        const old = s.mcpProfiles.find((x) => x.id === v.id);
+        if (v.id && !old)
+          throw new AppError("invalid_request", "Conexão não encontrada.", 404);
+        if (old && v.expectedVersion !== old.configurationVersion)
+          throw new AppError(
+            "configuration_changed",
+            "Conexão alterada. Recarregue.",
+            409,
+          );
+        oldRef = old?.tokenRef;
+        if (
+          oldRef &&
+          v.authMode === "bearer" &&
+          v.tokenAction?.kind !== "replace" &&
+          v.tokenAction?.kind !== "remove" &&
+          (old?.endpoint !== v.endpoint || old?.preset !== v.preset)
+        )
+          throw new AppError(
+            "credential_binding",
+            "Ao mudar endpoint ou preset, substitua ou remova o token MCP.",
+            409,
+          );
+        let tokenRef = v.authMode === "bearer" ? oldRef : undefined;
+        if (v.tokenAction?.kind === "replace") {
+          if (!independentMcp(v) || v.authMode !== "bearer")
+            throw new AppError(
+              "invalid_request",
+              "Token próprio requer autenticação Bearer.",
+            );
+          tokenRef = newRef = await this.vault.put(v.tokenAction.value);
+        }
+        if (v.tokenAction?.kind === "remove") tokenRef = undefined;
+        if (v.authMode === "bearer" && !tokenRef)
+          throw new AppError(
+            "auth_configuration",
+            "Cadastre o token do endpoint MCP.",
+          );
+        const { expectedVersion, tokenAction, ...fields } = v;
+        saved = {
+          ...fields,
+          tokenRef,
+          id: old?.id || randomUUID(),
+          configurationVersion: (old?.configurationVersion || 0) + 1,
+        };
+        s.mcpProfiles = s.mcpProfiles.filter((x) => x.id !== saved.id);
+        s.mcpProfiles.push(saved);
+      });
+    } catch (e) {
+      if (newRef) await this.vault.remove(newRef);
+      throw e;
+    }
     this.gate.changed("mcp:" + saved.id);
     await this.disconnect(saved.id);
-    return saved;
+    if (oldRef && oldRef !== saved.tokenRef) await this.vault.remove(oldRef);
+    return this.publicProfile(saved);
   }
   async remove(id: string) {
+    const old = await this.get(id);
     await this.store.mutate((s) => {
       if (
         (s.hubProfiles || []).some((h) => h.mcpConnectionId === id) ||
@@ -127,6 +201,7 @@ export class McpRegistry {
     });
     this.gate.changed("mcp:" + id);
     await this.disconnect(id);
+    if (old.tokenRef) await this.vault.remove(old.tokenRef);
   }
   async disconnect(id: string) {
     for (const [key, live] of this.live)
@@ -152,26 +227,38 @@ export class McpRegistry {
       cap = capability(p);
     if (cap.status === "unsupported")
       throw new AppError("unsupported", cap.reason);
-    if (!p.accessId)
-      throw new AppError("invalid_request", "Vincule um acesso salvo ao MCP.");
-    const a = await this.accesses.get(p.accessId);
-    if (ctx.tenantId !== a.tenantId || ctx.accessId !== a.id)
-      throw new AppError(
-        "forbidden",
-        "Conecte o acesso vinculado a este MCP antes de testar.",
-        403,
-      );
-    if (p.authMode === "delegated" && ctx.principalKind !== "user")
-      throw new AppError(
-        "forbidden",
-        "Esta conexão requer o usuário do acesso vinculado.",
-        403,
-      );
+    const independent = independentMcp(p);
+    const a =
+      !independent && p.accessId
+        ? await this.accesses.get(p.accessId)
+        : undefined;
+    if (!independent) {
+      if (!a)
+        throw new AppError(
+          "invalid_request",
+          "Vincule um acesso salvo ao MCP.",
+        );
+      if (ctx.tenantId !== a.tenantId || ctx.accessId !== a.id)
+        throw new AppError(
+          "forbidden",
+          "Conecte o acesso vinculado a este MCP antes de testar.",
+          403,
+        );
+      if (p.authMode === "delegated" && ctx.principalKind !== "user")
+        throw new AppError(
+          "forbidden",
+          "Esta conexão requer login de usuário.",
+          403,
+        );
+    }
     const key = ctx.sessionId + "|" + id,
       old = this.live.get(key);
     if (old && old.profile.configurationVersion === p.configurationVersion)
       return old;
-    const versions = await this.gate.capture(["access:" + a.id, "mcp:" + id]),
+    const versions = await this.gate.capture([
+        ...(a ? ["access:" + a.id] : []),
+        "mcp:" + id,
+      ]),
       controller = new AbortController(),
       unwatchConfig = this.gate.watch(versions, controller);
     const abortParent = () => controller.abort();
@@ -181,7 +268,7 @@ export class McpRegistry {
       ctx.signal.removeEventListener("abort", abortParent);
     };
     if (ctx.signal.aborted) controller.abort();
-    const client = new Client({ name: "azure-cost-local", version: "0.2.0" });
+    const client = new Client({ name: "azure-cost-local", version: "0.5.0" });
     let transport;
     try {
       if (p.transport === "http") {
@@ -189,7 +276,7 @@ export class McpRegistry {
         const endpoint = p.endpoint!;
         await validateEndpoint(endpoint, p.allowPrivateNetwork);
         const expected = new URL(endpoint).origin;
-        const audience = httpAudience(p);
+        const audience = independent ? "" : httpAudience(p);
         transport = new StreamableHTTPClientTransport(new URL(endpoint), {
           fetch: async (input: any, options: any) => {
             await this.gate.assertCurrent(versions);
@@ -205,11 +292,15 @@ export class McpRegistry {
                 "O MCP tentou trocar de host.",
               );
             const token =
-              p.authMode === "application"
-                ? await this.identity.applications.token(a.id, audience)
-                : await this.identity.getToken(ctx, audience);
+              p.authMode === "none"
+                ? undefined
+                : p.authMode === "bearer"
+                  ? await this.vault.read(p.tokenRef!)
+                  : p.authMode === "application"
+                    ? await this.identity.applications.token(a!.id, audience)
+                    : await this.identity.getToken(ctx, audience);
             const headers = new Headers(options?.headers);
-            headers.set("Authorization", "Bearer " + token);
+            if (token) headers.set("Authorization", "Bearer " + token);
             if (p.preset === "arm")
               headers.set("x-mcp-toolset", "CostManagement");
             return fetchBound(
@@ -228,7 +319,7 @@ export class McpRegistry {
           },
         });
       } else {
-        if (!a.secretRef)
+        if (!a?.secretRef)
           throw new AppError(
             "auth_configuration",
             "Cadastre o Secret Value para o MCP local.",
@@ -391,13 +482,16 @@ export class McpRegistry {
   }
   async tools(ctx: RequestContext, id: string) {
     const live = await this.connect(ctx, id);
-    return live.tools.map((t) => ({
-      ...t,
-      reviewable: reviewable(live.profile, t),
-      approved: live.profile.approvedTools.some(
-        (x) => x.name === t.name && x.schemaHash === t.schemaHash,
-      ),
-    }));
+    return this.publicEvidence(
+      live.profile,
+      live.tools.map((t) => ({
+        ...t,
+        reviewable: reviewable(live.profile, t),
+        approved: live.profile.approvedTools.some(
+          (x) => x.name === t.name && x.schemaHash === t.schemaHash,
+        ),
+      })),
+    );
   }
   async catalog(ctx: RequestContext, id: string) {
     const live = await this.connect(ctx, id);
@@ -407,15 +501,18 @@ export class McpRegistry {
     ctx.diagnose?.({
       source: "MCP",
       operation: live.profile.name + " / catálogos",
-      status: [catalog.prompts.status,catalog.resources.status].some(s=>s==="error"||s==="partial")?"partial":"concluído",
-      detail:
-        `Prompts: ${catalog.prompts.status}; resources: ${catalog.resources.status}. Descoberta não comprova acesso financeiro.`,
+      status: [catalog.prompts.status, catalog.resources.status].some(
+        (s) => s === "error" || s === "partial",
+      )
+        ? "partial"
+        : "concluído",
+      detail: `Prompts: ${catalog.prompts.status}; resources: ${catalog.resources.status}. Descoberta não comprova acesso financeiro.`,
     });
-    return {
+    return this.publicEvidence(live.profile, {
       ...catalog,
       requestId: ctx.requestId,
       tools: await this.tools(ctx, id),
-    };
+    });
   }
   async inspect(
     ctx: RequestContext,
@@ -462,7 +559,9 @@ export class McpRegistry {
     });
     return {
       requestId: ctx.requestId,
-      response: safeToolResult(sanitizeEvidence(response)),
+      response: safeToolResult(
+        sanitizeEvidence(await this.publicEvidence(live.profile, response)),
+      ),
     };
   }
   async approve(ctx: RequestContext, id: string, names: string[]) {
@@ -477,7 +576,7 @@ export class McpRegistry {
         );
       return { name: t.name, schemaHash: t.schemaHash };
     });
-    const { configurationVersion, ...fields } = live.profile;
+    const { configurationVersion, tokenRef, ...fields } = live.profile;
     return this.save({
       ...fields,
       expectedVersion: configurationVersion,
@@ -518,12 +617,16 @@ export class McpRegistry {
       );
     const versions = await this.gate.capture([
       "mcp:" + id,
-      "access:" + current.accessId,
+      ...(current.accessId ? ["access:" + current.accessId] : []),
     ]);
+    const callStarted = Date.now();
     const result = await live.client.callTool(
       { name, arguments: args },
       undefined,
-      { signal: ctx.signal, timeout: 60000 },
+      {
+        signal: AbortSignal.any([ctx.signal, live.controller.signal]),
+        timeout: 60000,
+      },
     );
     await this.gate.assertCurrent(versions);
     assertActive(ctx.signal);
@@ -579,10 +682,17 @@ export class McpRegistry {
     });
     this.states.set(id, "consulta validada");
     return {
+      requestId: ctx.requestId,
+      durationMs: Date.now() - callStarted,
       source: "mcp",
       connectionId: id,
       operation: name,
-      result: safeToolResult(result),
+      result: safeToolResult(
+        sanitizeEvidence(
+          result,
+          current.tokenRef ? [await this.vault.read(current.tokenRef)] : [],
+        ),
+      ),
       ...(current.preset === "arm"
         ? {
             warnings: [

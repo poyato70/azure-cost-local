@@ -1,7 +1,23 @@
 import { ARM_MCP_AUDIENCE } from "../auth/resource-scopes.js";
 import { AppError } from "../errors.js";
 import type { McpProfile, CapabilityRecord } from "../../shared/connections.js";
+export const independentMcp = (p: { preset: string }) =>
+  ["kubernetes", "custom"].includes(p.preset);
 export const presets = [
+  {
+    id: "kubernetes",
+    name: "Kubernetes / OpenShift (HTTP)",
+    endpoint: "",
+    namespace: "",
+    audience: "",
+  },
+  {
+    id: "custom",
+    name: "MCP HTTP personalizado",
+    endpoint: "",
+    namespace: "",
+    audience: "",
+  },
   {
     id: "arm",
     name: "Azure Resource Manager — Cost Management (preview)",
@@ -54,6 +70,31 @@ export const presets = [
 export function capability(
   p: Pick<McpProfile, "preset" | "transport" | "authMode">,
 ): CapabilityRecord {
+  if (independentMcp(p))
+    return {
+      service: p.preset,
+      transport: p.transport,
+      authMode: p.authMode,
+      status:
+        p.transport === "http" && ["none", "bearer"].includes(p.authMode)
+          ? "pending"
+          : "unsupported",
+      reason:
+        "HTTP Streamable com Bearer próprio ou sem autenticação. O token é do endpoint MCP, não necessariamente o token do cluster. Não herda identidade Azure. Descoberta não comprova acesso aos recursos.",
+      sourceUrl: "https://github.com/containers/kubernetes-mcp-server",
+      checkedAt: new Date().toISOString(),
+    };
+  if (p.authMode === "bearer")
+    return {
+      service: p.preset,
+      transport: p.transport,
+      authMode: p.authMode,
+      status: "unsupported",
+      reason:
+        "Bearer próprio somente nos presets Kubernetes/OpenShift e HTTP personalizado.",
+      sourceUrl: "https://github.com/microsoft/mcp",
+      checkedAt: new Date().toISOString(),
+    };
   let status: CapabilityRecord["status"] = "pending",
     reason =
       "Requer teste de autenticação, descoberta e chamada de ferramenta no seu ambiente.";

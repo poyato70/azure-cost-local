@@ -1,3 +1,4 @@
+import type { KnowledgeService } from "../knowledge/service.js";
 import { assertArmChatScope } from "../mcp/arm-policy.js";
 import { emitHubEvidence } from "../hubs/evidence.js";
 import type { HubService } from "../hubs/service.js";
@@ -158,6 +159,7 @@ export class LocalAgentRuntime {
     private gate: Invalidation,
     private mcps: McpRegistry,
     private hubs?: HubService,
+    private knowledge?: KnowledgeService,
   ) {}
   async ask(
     ctx: RequestContext,
@@ -170,10 +172,20 @@ export class LocalAgentRuntime {
     },
     emit: (e: ChatEvent) => void,
   ) {
+    const independent =
+      input.selection.source === "mcp" &&
+      !input.selection.hubId &&
+      !!input.selection.mcpConnectionId &&
+      agent.provider !== "http-agent-v1" &&
+      agent.mcpConnectionIds.includes(input.selection.mcpConnectionId) &&
+      ["custom", "kubernetes"].includes(
+        (await this.mcps.get(input.selection.mcpConnectionId)).preset,
+      );
     if (
-      !ctx.accessId ||
-      !agent.allowedAccessIds.includes(ctx.accessId) ||
-      ctx.accessId !== input.selection.accessId
+      !independent &&
+      (!ctx.accessId ||
+        !agent.allowedAccessIds.includes(ctx.accessId) ||
+        ctx.accessId !== input.selection.accessId)
     )
       throw new AppError(
         "forbidden",
@@ -227,10 +239,10 @@ export class LocalAgentRuntime {
       }
       return;
     }
-    ensureQuestionScope(input.message, input.scope);
+    if (!independent) ensureQuestionScope(input.message, input.scope);
     const keys = [
       "agent:" + agent.id,
-      "access:" + ctx.accessId,
+      ...(independent ? [] : ["access:" + ctx.accessId]),
       ...agent.mcpConnectionIds.map((x) => "mcp:" + x),
     ];
     if (agent.modelCredential.kind === "entra")
@@ -389,6 +401,11 @@ export class LocalAgentRuntime {
         tools: tools.map((t) => t.name),
         scope: input.scope,
       });
+      if (agent.knowledgeIds?.length)
+        emit({
+          type: "progress",
+          message: `Conhecimento: ${agent.knowledgeIds.length} documento(s) revisado(s), com commit e hash, serão enviados ao modelo.`,
+        });
       const model = new ModelProvider(
         agent,
         this.vault,
@@ -400,7 +417,12 @@ export class LocalAgentRuntime {
         tools,
         {
           message: `Data atual: ${new Date().toISOString()}. Escopo: ${JSON.stringify(input.scope)}. Base: ${input.basis}. Pergunta: ${input.message}`,
-          instructions: agent.instructions,
+          instructions:
+            agent.instructions +
+            (agent.knowledgeIds?.length && this.knowledge
+              ? "\n\nConhecimento corporativo explicitamente vinculado (não autoriza tools nem scripts):\n" +
+                (await this.knowledge.context(agent.knowledgeIds))
+              : ""),
           limits: agent.limits,
         },
         signal,

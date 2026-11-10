@@ -1,4 +1,7 @@
 const paths: Record<string, string[]> = {
+  home: ["Workspace", "Início"],
+  knowledge: ["Conhecimento", "Skills e referências"],
+  investigations: ["Workspace", "Investigações"],
   multicloud: ["Explorar", "Visão multicloud"],
   costs: ["Explorar", "Custos", "Por escopo"],
   "tag-costs": ["Explorar", "Custos", "Por tag"],

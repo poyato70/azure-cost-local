@@ -12,6 +12,8 @@ import type {
 import { manageRequest } from "../api.js";
 import { applyPricingDefaults } from "../components/pricing-defaults.js";
 const defaults = {
+  kubernetes: { endpoint: "", transport: "http" },
+  custom: { endpoint: "", transport: "http" },
   arm: { endpoint: "https://mcp.management.azure.com", transport: "http" },
   azure: { endpoint: "", transport: "stdio" },
   adx: { endpoint: "", transport: "stdio" },
@@ -51,6 +53,8 @@ export function McpConnections({
   onChanged: () => void;
   onLogin: (id: string) => void;
 }) {
+  const [token, setToken] = useState("");
+  const [tokenConfigured, setTokenConfigured] = useState(false);
   const [catalogBusy, setCatalogBusy] = useState(false);
   const reviewRef = useRef<HTMLElement>(null);
   const noticeRef = useRef<HTMLParagraphElement>(null);
@@ -70,6 +74,7 @@ export function McpConnections({
     [advanced, setAdvanced] = useState(false),
     [execution, setExecution] = useState<{ kind: string; message: string }>(),
     [matrix, setMatrix] = useState<any[]>([]);
+  const independent = ["kubernetes", "custom"].includes(form.preset);
   useEffect(() => {
     void manageRequest("/mcp-presets").then((x) =>
       setMatrix(Array.isArray(x) ? x : []),
@@ -192,6 +197,8 @@ export function McpConnections({
           hidden={mode === "analysis"}
           onClick={() => {
             setForm(empty);
+            setToken("");
+            setTokenConfigured(false);
             setContext(JSON.stringify(empty.resourceContext, null, 2));
           }}
         >
@@ -248,6 +255,9 @@ export function McpConnections({
                 form.id ? "PATCH" : "POST",
                 {
                   ...form,
+                  tokenAction: token
+                    ? { kind: "replace", value: token }
+                    : { kind: "keep" },
                   endpoint: form.endpoint || undefined,
                   audience: form.audience || undefined,
                   accessId: form.accessId || undefined,
@@ -258,6 +268,8 @@ export function McpConnections({
                 "Conexão salva. Teste a autenticação e revise as ferramentas.",
               );
               setForm(empty);
+              setTokenConfigured(false);
+              setToken("");
               return r;
             });
           }}
@@ -287,13 +299,16 @@ export function McpConnections({
               aria-label="Serviço"
               value={form.preset}
               onChange={(e) => {
+                setToken("");
+                setTokenConfigured(false);
                 const preset = e.target.value as keyof typeof defaults;
                 setForm({
                   ...empty,
                   ...defaults[preset],
                   preset,
-                  authMode:
-                    defaults[preset].transport === "stdio"
+                  authMode: ["custom", "kubernetes"].includes(preset)
+                    ? "none"
+                    : defaults[preset].transport === "stdio"
                       ? "application"
                       : "delegated",
                 });
@@ -327,7 +342,9 @@ export function McpConnections({
               value={form.transport}
               onChange={(e) => field("transport", e.target.value)}
             >
-              <option value="stdio">Local · stdio (servidor oficial)</option>
+              {!independent && (
+                <option value="stdio">Local · stdio (servidor oficial)</option>
+              )}
               <option value="http">HTTP remoto</option>
             </select>
           </label>
@@ -353,31 +370,63 @@ export function McpConnections({
                 />
               </label>
             )}
-          <label>
-            Acesso vinculado
-            <select
-              required
-              value={form.accessId}
-              onChange={(e) => field("accessId", e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {accesses.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!independent && (
+            <label>
+              Acesso vinculado
+              <select
+                required
+                value={form.accessId}
+                onChange={(e) => field("accessId", e.target.value)}
+              >
+                <option value="">Selecione</option>
+                {accesses.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label>
             Autenticação
             <select
               value={form.authMode}
               onChange={(e) => field("authMode", e.target.value)}
             >
-              <option value="delegated">Usuário delegado</option>
-              <option value="application">Identidade de aplicação</option>
+              {independent ? (
+                <>
+                  <option value="none">Sem autenticação no endpoint MCP</option>
+                  <option value="bearer">Token Bearer próprio do MCP</option>
+                </>
+              ) : (
+                <>
+                  <option value="delegated">Usuário delegado</option>
+                  <option value="application">Identidade de aplicação</option>
+                </>
+              )}
             </select>
           </label>
+          {independent && (
+            <p className="notice">
+              Conecte um servidor MCP Streamable HTTP já iniciado. Não use a URL
+              da API Kubernetes diretamente. Configure o acesso ao cluster e
+              modo de leitura no servidor MCP. A aplicação não instala
+              servidores nem herda o login Azure. OAuth automático não está
+              disponível neste conector.
+            </p>
+          )}
+          {independent && form.authMode === "bearer" && (
+            <label>
+              Token do endpoint MCP{" "}
+              {tokenConfigured ? "(já protegido; deixe vazio para manter)" : ""}
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+              />
+            </label>
+          )}
           {form.preset === "azure" && form.transport === "stdio" && (
             <label>
               Grupo de tools a carregar
@@ -475,7 +524,11 @@ export function McpConnections({
                 ·{" "}
                 {p.authMode === "application"
                   ? "Identidade de aplicação"
-                  : "Usuário delegado"}
+                  : p.authMode === "bearer"
+                    ? "Bearer próprio"
+                    : p.authMode === "none"
+                      ? "Sem autenticação MCP"
+                      : "Usuário delegado"}
               </p>
               <p>
                 {p.status === "cadastrado" && inspected === p.id && tools.length
@@ -556,6 +609,8 @@ export function McpConnections({
                       configurationVersion,
                       allowPrivateNetwork,
                     } = p;
+                    setToken("");
+                    setTokenConfigured(!!p.tokenConfigured);
                     setForm({
                       id,
                       name,
@@ -619,8 +674,12 @@ export function McpConnections({
           </p>
           <p className="fine">
             Marque as tools que esta aplicação poderá executar e clique em
-            Salvar tools permitidas. Só são liberadas operações de leitura
-            reconhecidas. Se o schema mudar, será necessário revisar novamente.
+            Salvar tools permitidas. Nos presets Microsoft, são liberadas
+            leituras reconhecidas. Nos conectores independentes, a tool precisa
+            declarar readOnlyHint e não declarar destructiveHint. Essa
+            declaração do servidor não comprova segurança: revise o contrato e
+            use credenciais com RBAC de leitura. Alterações de schema ou dessas
+            declarações exigem nova revisão.
           </p>
           {tools.map((t) => (
             <label className="tool-row" key={t.name}>

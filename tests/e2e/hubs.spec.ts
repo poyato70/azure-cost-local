@@ -116,6 +116,7 @@ test("queries Hub and shows explicit informative reconciliation without hiding d
     await r.fulfill({ json });
   });
   await page.goto("/");
+  await page.getByRole("button", { name: "FinOps hub", exact: true }).click();
   await page
     .getByLabel("Subscription", { exact: true })
     .selectOption(subscriptionId);

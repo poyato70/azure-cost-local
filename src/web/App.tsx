@@ -1,3 +1,6 @@
+import { WorkspaceHome } from "./pages/WorkspaceHome.js";
+import { Knowledge } from "./pages/Knowledge.js";
+import { Investigations } from "./pages/Investigations.js";
 import { Breadcrumbs, pageTitle } from "./components/Breadcrumbs.js";
 import { CommandHero } from "./components/CommandHero.js";
 import { ThemeControl } from "./components/ThemeControl.js";
@@ -93,7 +96,7 @@ export function App() {
   );
   const [boot, setBoot] = useState<Bootstrap>(),
     [error, setError] = useState(""),
-    [tab, setTab] = useState("costs"),
+    [tab, setTab] = useState("home"),
     [subs, setSubs] = useState<Subscription[]>([]),
     [sub, setSub] = useState(""),
     [groups, setGroups] = useState<string[]>([]),
@@ -132,8 +135,18 @@ export function App() {
       active = false;
     };
   }, []);
+  const needsAzureInventory = [
+    "costs",
+    "tag-costs",
+    "forecast",
+    "budgets",
+    "benefits",
+    "chat",
+    "hubs",
+    "api-lab",
+  ].includes(tab);
   useEffect(() => {
-    if (!boot?.authenticated) return;
+    if (!boot?.authenticated || !needsAzureInventory) return;
     const c = new AbortController();
     api
       .subscriptions(c.signal)
@@ -145,7 +158,7 @@ export function App() {
         if (!c.signal.aborted) setError(e.message);
       });
     return () => c.abort();
-  }, [boot?.authenticated]);
+  }, [boot?.authenticated, needsAzureInventory]);
   useEffect(() => {
     setGroup("");
     setGroups([]);
@@ -398,12 +411,12 @@ export function App() {
             <br />
             Você mantém o controle.
           </p>
-          <span className="version">MVP · 0.4.0</span>
+          <span className="version">MVP · 0.5.0</span>
         </div>
       </aside>
       <main>
         <header className="topbar">
-          <Breadcrumbs tab={tab} onHome={() => setTab("costs")} />
+          <Breadcrumbs tab={tab} onHome={() => setTab("home")} />
           <div className="topbar-right">
             <ThemeControl />
             <span className="badge">Somente leitura</span>
@@ -450,6 +463,9 @@ export function App() {
           ) : (
             !boot.authenticated &&
             ![
+              "home",
+              "knowledge",
+              "investigations",
               "accesses",
               "mcps",
               "agents",
@@ -522,6 +538,9 @@ export function App() {
           )}
           {accesses.length > 0 &&
             ![
+              "home",
+              "knowledge",
+              "investigations",
               "accesses",
               "mcps",
               "agents",
@@ -630,6 +649,9 @@ export function App() {
               </section>
             )}
           {![
+            "home",
+            "knowledge",
+            "investigations",
             "accesses",
             "mcps",
             "agents",
@@ -669,6 +691,21 @@ export function App() {
             </section>
           </div>
           <section className="content-card" hidden={tab === "multicloud"}>
+            {tab === "home" && (
+              <WorkspaceHome
+                mcps={mcpProfiles}
+                agents={agentProfiles}
+                onSelect={setTab}
+              />
+            )}
+            {tab === "knowledge" && <Knowledge />}
+            {tab === "investigations" && (
+              <Investigations
+                mcps={mcpProfiles}
+                agents={agentProfiles}
+                onAzure={() => setTab("chat")}
+              />
+            )}
             {tab === "help" && <Help />}
             {tab === "discovery" && <Discovery />}
             {tab === "tag-costs" &&

@@ -37,12 +37,22 @@ export const mcpInput = z
     id: id.optional(),
     expectedVersion: z.number().int().positive().optional(),
     name,
-    preset: z.enum(["azure", "adx", "foundry", "fabric", "powerbi", "arm"]),
+    preset: z.enum([
+      "azure",
+      "adx",
+      "foundry",
+      "fabric",
+      "powerbi",
+      "arm",
+      "kubernetes",
+      "custom",
+    ]),
     transport: z.enum(["stdio", "http"]),
     endpoint: z.string().max(2048).optional(),
     accessId: id.optional(),
-    authMode: z.enum(["delegated", "application", "none"]),
+    authMode: z.enum(["delegated", "application", "none", "bearer"]),
     audience: z.string().max(300).optional(),
+    tokenAction: secretAction.optional(),
     allowPrivateNetwork: z.boolean().default(false),
     resourceContext: z.record(z.string(), z.string().max(2048)).default({}),
     approvedTools: z
@@ -58,8 +68,8 @@ export const mcpInput = z
   .strict();
 export type McpProfile = Omit<
   z.infer<typeof mcpInput>,
-  "id" | "expectedVersion"
-> & { id: string; configurationVersion: number };
+  "id" | "expectedVersion" | "tokenAction"
+> & { id: string; configurationVersion: number; tokenRef?: string };
 export const agentInput = z
   .object({
     id: id.optional(),
@@ -97,6 +107,7 @@ export const agentInput = z
     keyAction: secretAction.default({ kind: "keep" }),
     allowedAccessIds: z.array(id).max(100),
     mcpConnectionIds: z.array(id).max(100).default([]),
+    knowledgeIds: z.array(id).max(5).optional(),
     allowedTools: z
       .array(z.string().max(200))
       .max(100)
@@ -126,6 +137,7 @@ export type PublicAgent = Omit<AgentProfile, "modelCredential"> & {
     | { kind: "entra"; accessId: string };
 };
 export type ConfigSnapshot = {
+  knowledgeDocuments?: import("./knowledge.js").KnowledgeDocument[];
   hubProfiles?: import("./hubs.js").HubProfile[];
   schemaVersion: 1;
   accessProfiles: AccessProfile[];

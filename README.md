@@ -1,8 +1,8 @@
-# TESSERACT — Financial Intelligence
+# TESSERACT — MCP & AI Workspace for FinOps
 
-**Versão 0.4.0:** centro de inteligência com Next.js/React, Tailwind, Framer Motion, componentes Radix no padrão shadcn, tema escuro/claro, navegação em árvore e breadcrumbs. Abertura 4D em HTML/Three.js, laboratórios de MCPs/APIs/agentes e consulta Azure por tag histórica da cobrança. [Operação e limites](docs/command-center-v0.4.md) · [Novo checklist de aceite](docs/checklist-v0.4.0.md).
+**Versão 0.5.0:** workspace local orientado a conexões, exploração/teste de tools, agentes e conhecimento versionado. MCPs HTTP Kubernetes/OpenShift e personalizados usam Bearer próprio protegido ou nenhuma autenticação no endpoint, sem exigir acesso Azure. Skills/referências Markdown públicas do GitHub podem ser importadas por commit e vinculadas ao runtime local. Análises financeiras e Chat Azure/Copilot preservados.
 
-Workspace local para o time FinOps cadastrar acessos, conexões MCP Microsoft e agentes, consultar dados e conversar com GitHub Copilot ou modelo configurado. Interface em português, custos reais/amortizados, budgets, recomendações de Reservations/Savings Plans e consultas em linguagem natural.
+[Operação e limites 0.5](docs/workspace-v0.5.md) · [Checklist de aceite 0.5](docs/checklist-v0.5.0.md) · [Versão visual anterior](docs/command-center-v0.4.md).
 
 **Versão 0.3.0:** identidade própria, navegação por tarefas e **Visão multicloud** com Azure, AWS Cost Explorer, GCP Cloud Billing/BigQuery e alocação Kubernetes/OpenShift via OpenCost. Resultados em gráfico, tabela e JSON; moedas/bases e alocação são separadas para evitar dupla contagem. [Configuração, pré-requisitos e limites](docs/multicloud-guide.md).
 
@@ -12,7 +12,7 @@ npm run build
 npm start
 ```
 
-Abra http://localhost:4317 e configure os dois identificadores do seu aplicativo público Entra. Senha e MFA são informados somente à Microsoft.
+Abra http://localhost:4317. Comece pelo cadastro e exploração de MCPs; conexões independentes não exigem acesso Azure. Para serviços Microsoft, configure os identificadores Entra e a identidade compatível com o conector. Senha e MFA são informados somente à Microsoft.
 
 [Migração Windows e Copilot](docs/migration-windows.md) · [Conexões e validação](docs/connections-validation.md) · [Configuração e operação](docs/setup.md) · [Capacidades de benefícios](docs/benefits-capabilities.md) · [Validação](docs/validation.md).
 

@@ -8,7 +8,8 @@ export function RegistrySearch({
   const [query, setQuery] = useState("com.microsoft/azure"),
     [result, setResult] = useState<any>(),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [selected, setSelected] = useState(0);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   async function search(cursor?: string) {
@@ -17,7 +18,10 @@ export function RegistrySearch({
     controller.current = c;
     setBusy(true);
     setError("");
-    if (!cursor) setResult(undefined);
+    if (!cursor) {
+      setResult(undefined);
+      setSelected(0);
+    }
     try {
       const r = await manageRequest(
         "/mcp-registry/search",
@@ -41,9 +45,8 @@ export function RegistrySearch({
     <section className="registry-search">
       <h3>Buscar no catálogo MCP</h3>
       <p>
-        Consulta online ao MCP Registry oficial. Mostra servidores publicados,
-        versões, pacotes e endpoints declarados — não apenas links de
-        documentação.
+        O Registry pesquisa trechos do nome publicado. A busca não inclui a
+        descrição nem os endpoints.
       </p>
       <p className="fine">
         Publicação no Registry não é certificação de segurança nem garantia de
@@ -58,7 +61,7 @@ export function RegistrySearch({
         }}
       >
         <label>
-          Nome, publisher ou tecnologia
+          Nome ou namespace publicado no Registry
           <input
             type="search"
             minLength={2}
@@ -118,75 +121,115 @@ export function RegistrySearch({
               personalizada.
             </p>
           )}
-          {result.servers.map((s: any, i: number) => (
-            <article
-              className="config-card"
-              key={s.name + ":" + s.version + ":" + i}
-            >
-              <h3>{s.name}</h3>
-              <p>{s.description}</p>
-              <p>
-                Versão: {s.version} · estado no catálogo: {s.status}
-              </p>
-              {s.repository && (
-                <a href={s.repository} target="_blank" rel="noreferrer">
-                  Conferir repositório declarado ↗
-                </a>
-              )}
-              {(s.packages || []).map((p: any, i: number) => (
-                <p className="fine" key={i}>
-                  Pacote: {p.identifier}@{p.version} · registry:{" "}
-                  {p.registryType} · transporte: {p.transport}
+          {!!result.servers.length && (
+            <label>
+              Servidor encontrado
+              <select
+                value={selected}
+                onChange={(e) => setSelected(Number(e.target.value))}
+              >
+                {result.servers.map((s: any, i: number) => (
+                  <option key={i} value={i}>
+                    {s.name} · {s.version}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {result.servers
+            .slice(selected, selected + 1)
+            .map((s: any, i: number) => (
+              <article
+                className="config-card"
+                key={s.name + ":" + s.version + ":" + i}
+              >
+                <h3>{s.name}</h3>
+                <p>{s.description}</p>
+                <p>
+                  Versão: {s.version} · estado no catálogo:{" "}
+                  {s.status === "active"
+                    ? "Ativo"
+                    : s.status === "deprecated"
+                      ? "Descontinuado"
+                      : s.status === "deleted"
+                        ? "Removido"
+                        : s.status}
                 </p>
-              ))}
-              {(s.remotes || []).map((r: any, i: number) => (
-                <div key={i}>
-                  <p className="fine">
-                    Endpoint declarado: <code>{r.url}</code> · transporte:{" "}
-                    {r.transport}
+                {s.repository && (
+                  <p>
+                    <a href={s.repository} target="_blank" rel="noreferrer">
+                      Abrir repositório declarado ↗
+                    </a>
+                    <br />
+                    <small>O repositório pode reunir vários servidores.</small>
                   </p>
-                  {r.transport === "streamable-http" && (
-                    <button
-                      onClick={() =>
-                        onConfigure?.({
-                          name: s.name,
-                          preset: "custom",
-                          transport: "http",
-                          endpoint: r.url,
-                          authMode: "none",
-                          resourceContext: {},
-                        })
-                      }
-                    >
-                      Preparar cadastro HTTP
-                    </button>
-                  )}
-                </div>
-              ))}
-              {s.name === "com.microsoft/azure" && (
-                <button
-                  onClick={() =>
-                    onConfigure?.({
-                      name: "Azure MCP",
-                      preset: "azure",
-                      transport: "stdio",
-                      endpoint: "",
-                      authMode: "application",
-                      resourceContext: { namespace: "pricing" },
-                    })
-                  }
-                >
-                  Preparar cadastro Azure
-                </button>
-              )}
-              <p className="fine">
-                Preparar cadastro não inicia conexão. Revise autenticação e
-                versão; o executor Azure usa a versão fixada pelo Tesseract.
-                Outros pacotes stdio ainda exigem configuração fora desta
-                aplicação.
-              </p>
-            </article>
-          ))}
+                )}
+                {!!s.packages?.length && (
+                  <details>
+                    <summary>
+                      Pacotes de instalação ({s.packages.length})
+                    </summary>
+                    {s.packages.map((p: any, i: number) => (
+                      <p className="fine" key={i}>
+                        Pacote: {p.identifier}
+                        {p.version ? "@" + p.version : ""} · registry:{" "}
+                        {p.registryType} · transporte: {p.transport}
+                      </p>
+                    ))}
+                  </details>
+                )}
+                {(s.remotes || []).map((r: any, i: number) => (
+                  <div key={i}>
+                    <p className="fine">
+                      Endpoint declarado: <code>{r.url}</code> · transporte:{" "}
+                      {r.transport}
+                    </p>
+                    {r.transport === "streamable-http" && (
+                      <button
+                        className="primary"
+                        onClick={() =>
+                          onConfigure?.({
+                            name: s.name,
+                            preset: "custom",
+                            transport: "http",
+                            endpoint: r.url,
+                            authMode: "none",
+                            resourceContext: {},
+                          })
+                        }
+                      >
+                        Preparar cadastro HTTP
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {s.name === "com.microsoft/azure" && (
+                  <button
+                    className="primary"
+                    onClick={() =>
+                      onConfigure?.({
+                        name: "Azure MCP",
+                        preset: "azure",
+                        transport: "stdio",
+                        endpoint: "",
+                        authMode: "application",
+                        resourceContext: { namespace: "pricing" },
+                      })
+                    }
+                  >
+                    Preparar cadastro Azure
+                  </button>
+                )}
+              </article>
+            ))}
+          {!!result.servers.length && (
+            <p className="fine">
+              Preparar cadastro não inicia conexão. Revise autenticação e
+              versão; o executor Azure usa a versão fixada pelo Tesseract.
+              Outros pacotes stdio ainda exigem configuração fora desta
+              aplicação.
+            </p>
+          )}
           {result.nextCursor && (
             <button
               disabled={busy}

@@ -1,5 +1,7 @@
 # TESSERACT — MCP & AI Workspace for FinOps
 
+**Versão 0.5.2:** resumo e diagrama de vínculos no Workspace, análise MCP em etapas com resultados legíveis, seleção de um servidor por vez na Descoberta e atalho oficial para o ARM MCP. [Conexão ARM, Registry e política Copilot](docs/arm-mcp-copilot-policy.md).
+
 **Versão 0.5.1:** correções de exclusão, identidade/transporte explícitos, separação Integração/Análise e busca online no MCP Registry. [Guia e teste de aceite](docs/mcp-clarity-v0.5.1.md).
 
 **Versão 0.5.0:** workspace local orientado a conexões, exploração/teste de tools, agentes e conhecimento versionado. MCPs HTTP Kubernetes/OpenShift e personalizados usam Bearer próprio protegido ou nenhuma autenticação no endpoint, sem exigir acesso Azure. Skills/referências Markdown públicas do GitHub podem ser importadas por commit e vinculadas ao runtime local. Análises financeiras e Chat Azure/Copilot preservados.

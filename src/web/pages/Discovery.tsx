@@ -17,6 +17,42 @@ export function Discovery({
     <>
       <h2>Descoberta de servidores MCP</h2>
       <RegistrySearch onConfigure={onConfigure} />
+      <article className="config-card">
+        <h3>Azure Resource Manager MCP</h3>
+        <p>
+          Referência oficial Microsoft, separada dos resultados do Registry. Use
+          o preset ARM para consultas de custos com login de usuário.
+        </p>
+        <p>
+          Endpoint MCP: <code>https://mcp.management.azure.com</code>. Use-o em
+          Integração; o endereço não é um manifesto nem uma URL-base de Registry
+          documentada.
+        </p>
+        <div className="actions">
+          <button
+            className="primary"
+            onClick={() =>
+              onConfigure?.({
+                name: "Azure Resource Manager MCP",
+                preset: "arm",
+                transport: "http",
+                endpoint: "https://mcp.management.azure.com",
+                authMode: "delegated",
+                resourceContext: { scope: "" },
+              })
+            }
+          >
+            Preparar cadastro ARM
+          </button>
+          <a
+            href="https://github.com/Azure/Azure-Resource-Manager-MCP/blob/main/docs/CostManagementAndPricingTools.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Configuração oficial ↗
+          </a>
+        </div>
+      </article>
       <details>
         <summary>Referências e documentação dos providers</summary>
         <div className="provider-grid">

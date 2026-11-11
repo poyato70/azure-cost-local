@@ -5,7 +5,8 @@ import {
   schemaDefaults,
   resolveSchema,
 } from "../components/SchemaInputs.js";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { McpToolResult } from "../components/McpToolResult.js";
 import type {
   McpProfile,
   PublicAccessProfile,
@@ -73,8 +74,6 @@ export function McpConnections({
   const [token, setToken] = useState("");
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [catalogBusy, setCatalogBusy] = useState(false);
-  const reviewRef = useRef<HTMLElement>(null);
-  const noticeRef = useRef<HTMLParagraphElement>(null);
   const [form, setForm] = useState<any>({ ...empty, ...initialDraft }),
     [context, setContext] = useState(
       JSON.stringify(
@@ -84,6 +83,7 @@ export function McpConnections({
       ),
     ),
     [notice, setNotice] = useState(""),
+    [noticeTarget, setNoticeTarget] = useState("form"),
     [busy, setBusy] = useState(false),
     [tools, setTools] = useState<any[]>([]),
     [inspected, setInspected] = useState(initialConnectionId || ""),
@@ -97,23 +97,15 @@ export function McpConnections({
     [matrix, setMatrix] = useState<any[]>([]);
   const independent = ["kubernetes", "custom"].includes(form.preset);
   useEffect(() => {
-    void manageRequest("/mcp-presets").then((x) =>
-      setMatrix(Array.isArray(x) ? x : []),
-    );
-  }, []);
-  useEffect(() => {
-    if (inspected && tools.length && mode !== "analysis")
-      reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [inspected, tools.length]);
-  useEffect(() => {
-    if (notice)
-      noticeRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-  }, [notice]);
-  async function run(fn: () => Promise<any>) {
+    if (mode === "analysis") {
+      void manageRequest("/mcp-presets")
+        .then((x) => setMatrix(Array.isArray(x) ? x : []))
+        .catch(() => setMatrix([]));
+    }
+  }, [mode]);
+  async function run(fn: () => Promise<any>, target = "form") {
     setBusy(true);
+    setNoticeTarget(target);
     setNotice("");
     try {
       const r = await fn();
@@ -180,14 +172,15 @@ export function McpConnections({
         connection: profiles.find((p) => p.id === inspected)?.name,
         at: new Date().toLocaleString("pt-BR"),
         durationMs: Date.now() - start,
+        requestedLanguage:
+          typeof argumentsData.language === "string"
+            ? argumentsData.language
+            : undefined,
         response: r,
       });
       setExecution({
         kind: "success",
-        message:
-          "Consulta " +
-          toolName +
-          " concluída. Veja o retorno abaixo; esta chamada não comprova outras permissões Azure.",
+        message: "Consulta concluída.",
       });
       onChanged();
     } catch (e) {
@@ -224,11 +217,12 @@ export function McpConnections({
           <h2>
             {mode === "analysis"
               ? "Inspeção e execução de tools"
-              : "Servidores MCP"}
+              : "Conexões MCP"}
           </h2>
           <p>
-            Conexões reais do protocolo MCP, com autenticação e ferramentas por
-            serviço.
+            {mode === "integration"
+              ? "Cada conexão guarda a configuração para acessar um servidor MCP."
+              : "Consulte as operações do servidor, aprove as leituras e teste uma consulta."}
           </p>
         </div>
         <button
@@ -245,11 +239,6 @@ export function McpConnections({
           Nova conexão
         </button>
       </div>
-      {notice && (
-        <p className="notice" role="status" ref={noticeRef}>
-          {notice}
-        </p>
-      )}
       {mode === "analysis" && profiles.find((p) => p.id === inspected) && (
         <section className="config-card">
           <McpDetails profile={profiles.find((p) => p.id === inspected)} />
@@ -279,6 +268,7 @@ export function McpConnections({
           id={inspected}
           setId={(id) => {
             setCatalogLoaded(false);
+            setNotice("");
             setInspected(id);
             setTools([]);
             setChosen([]);
@@ -319,6 +309,7 @@ export function McpConnections({
                 "Conexão salva. Teste a autenticação e revise as ferramentas.",
               );
               setForm(empty);
+              setContext(JSON.stringify(empty.resourceContext, null, 2));
               setTokenConfigured(false);
               setToken("");
               return r;
@@ -559,6 +550,11 @@ export function McpConnections({
           <button className="primary" disabled={working}>
             Salvar MCP
           </button>
+          {noticeTarget === "form" && notice && (
+            <p className="notice" role="status">
+              {notice}
+            </p>
+          )}
           <small>
             Teste de servidor stdio pode baixar a versão oficial fixada: Azure
             3.0.0 ou Fabric 1.7.0. Nenhum comando livre é aceito.
@@ -577,41 +573,24 @@ export function McpConnections({
                   conexão; use Conectar e listar tools para descobrir o
                   catálogo.
                 </p>
-                {inspected === p.id && notice && (
-                  <p className="access-feedback" role="status">
-                    {notice}
-                  </p>
-                )}
                 <div className="actions">
                   <button onClick={() => onInspect?.(p.id)}>
                     Analisar tools
                   </button>
                   <button
+                    className="primary"
                     disabled={working || p.capability?.status === "unsupported"}
                     onClick={() =>
                       void run(async () => {
-                        setInspected(p.id);
-                        setResult(undefined);
-                        setExecution(undefined);
-                        setTools([]);
-                        setToolName("");
                         const r = await manageRequest(
                           "/mcp-connections/" + p.id + "/test",
                           "POST",
                           {},
                         );
-                        setTools(r.tools);
-                        setChosen(
-                          r.tools
-                            .filter((t: any) => t.approved)
-                            .map((t: any) => t.name),
-                        );
-                        setInspected(p.id);
                         setNotice(
-                          `Servidor respondeu e listou ${r.tools.length} tool(s): ${r.tools.map((t: any) => t.name).join(", ")}. Use Analisar tools para revisar o catálogo, liberar leituras e executar uma consulta. Isso ainda não testa acesso aos dados.`,
+                          `Servidor respondeu e listou ${r.tools.length} tool(s). Abra Analisar tools para revisar as operações e testar uma consulta.`,
                         );
-                        return r;
-                      })
+                      }, p.id)
                     }
                   >
                     Conectar e listar tools
@@ -661,13 +640,14 @@ export function McpConnections({
                   <button
                     disabled={working}
                     onClick={() =>
-                      void run(() =>
-                        manageRequest(
+                      void run(async () => {
+                        await manageRequest(
                           "/mcp-connections/" + p.id + "/disconnect",
                           "POST",
                           {},
-                        ),
-                      )
+                        );
+                        setNotice("Conexão encerrada.");
+                      }, p.id)
                     }
                   >
                     Desconectar
@@ -676,14 +656,21 @@ export function McpConnections({
                     hidden={mode === "analysis"}
                     disabled={working}
                     onClick={() =>
-                      void run(() =>
-                        manageRequest("/mcp-connections/" + p.id, "DELETE"),
+                      void run(
+                        () =>
+                          manageRequest("/mcp-connections/" + p.id, "DELETE"),
+                        p.id,
                       )
                     }
                   >
                     Excluir
                   </button>
                 </div>
+                {noticeTarget === p.id && notice && (
+                  <p className="access-feedback" role="status">
+                    {notice}
+                  </p>
+                )}
               </article>
             ))}
         </div>
@@ -696,7 +683,7 @@ export function McpConnections({
         </p>
       )}
       {mode === "analysis" && inspected && catalogLoaded && (
-        <section ref={reviewRef} className="tool-review">
+        <section className="tool-review" id="mcp-tools">
           <h3>
             Tools descobertas ({tools.length}) —{" "}
             {profiles.find((p) => p.id === inspected)?.name}
@@ -713,15 +700,13 @@ export function McpConnections({
               do RG. Para gastos reais via MCP, avalie o ARM MCP oficial.
             </p>
           )}
-          <p className="fine">
-            Marque as tools que esta aplicação poderá executar e clique em
-            Salvar tools permitidas. Nos presets Microsoft, são liberadas
-            leituras reconhecidas. Nos conectores independentes, a tool precisa
-            declarar readOnlyHint e não declarar destructiveHint. Essa
-            declaração do servidor não comprova segurança: revise o contrato e
-            use credenciais com RBAC de leitura. Alterações de schema ou dessas
-            declarações exigem nova revisão.
-          </p>
+          {tools.length > 0 && (
+            <p>
+              Selecione as operações que quer testar, salve a seleção e escolha
+              uma delas em Executar uma consulta. Os parâmetros são preenchidos
+              na hora da consulta.
+            </p>
+          )}
           {tools.map((t) => (
             <label className="tool-row" key={t.name}>
               <input
@@ -740,12 +725,12 @@ export function McpConnections({
                 <strong>{t.name}</strong>
                 <small>
                   {t.reviewable
-                    ? "Leitura reconhecida — pode ser liberada para uso"
-                    : "Bloqueada — operação ainda não revisada nesta aplicação"}{" "}
-                  ·{" "}
-                  {t.name === "pricing_get"
-                    ? "Consulta preços por SKU; não retorna gasto real."
-                    : "Confira a descrição e os parâmetros definidos pelo servidor."}
+                    ? "Leitura disponível para aprovação."
+                    : ["custom", "kubernetes"].includes(
+                          profiles.find((p) => p.id === inspected)?.preset,
+                        )
+                      ? "Indisponível para aprovação pela política de leitura desta conexão. A operação precisa ser declarada como leitura pelo servidor e passar pelas regras do Tesseract."
+                      : "Indisponível para aprovação. Esta operação não está na lista de leituras permitidas para o tipo de conexão."}
                   <details>
                     <summary>Descrição original e schema</summary>
                     <p>{t.description}</p>
@@ -763,7 +748,7 @@ export function McpConnections({
           )}
           <button
             className={selectionDirty ? "primary" : undefined}
-            disabled={working}
+            disabled={working || !selectionDirty}
             onClick={() =>
               void run(async () => {
                 await manageRequest(
@@ -781,11 +766,16 @@ export function McpConnections({
                 setNotice(
                   "Tools permitidas salvas. Selecione uma tool abaixo, preencha os campos e execute a consulta.",
                 );
-              })
+              }, "approval")
             }
           >
             Salvar tools permitidas
           </button>
+          {noticeTarget === "approval" && notice && (
+            <p className="access-feedback" role="status">
+              {notice}
+            </p>
+          )}
 
           <form className="settings-form" onSubmit={executeTool}>
             <h3>Executar uma consulta</h3>
@@ -813,8 +803,8 @@ export function McpConnections({
             {selectedTool && (
               <>
                 <p>
-                  Os campos abaixo foram lidos do schema de {selectedTool.name}.
-                  * indica obrigatório. Campos vazios opcionais são omitidos.
+                  Preencha os campos marcados com *. Deixe os opcionais em
+                  branco para usar o comportamento padrão do servidor.
                   {selectedTool.name === "pricing_get" &&
                     " Para pricing_get, campos vazios usam BRL, Standard_D4s_v5, Virtual Machines, Compute e Consumption, quando presentes no schema. Região não tem padrão."}
                 </p>
@@ -868,7 +858,11 @@ export function McpConnections({
                 )}
               </>
             )}
-            <button disabled={!toolName || working} type="submit">
+            <button
+              className="primary"
+              disabled={!toolName || working}
+              type="submit"
+            >
               {working ? "Aguarde…" : "Executar tool selecionada"}
             </button>
             {execution && (
@@ -879,47 +873,37 @@ export function McpConnections({
                 {execution.message}
               </p>
             )}
-            {result && (
-              <section aria-label="Resultado da tool">
-                <h3>Resultado de {result.tool}</h3>
-                <p>
-                  Conexão: {result.connection} · {result.at} ·{" "}
-                  {result.durationMs} ms
-                </p>
-                <p>Retorno recebido do MCP:</p>
-                {result.response?.result?.content
-                  ?.filter((c: any) => c.type === "text")
-                  .map((c: any, i: number) => (
-                    <pre key={i}>{c.text}</pre>
-                  ))}
-                <details>
-                  <summary>Ver resposta técnica completa</summary>
-                  <pre>{JSON.stringify(result.response, null, 2)}</pre>
-                </details>
-              </section>
-            )}
+            {result && <McpToolResult result={result} />}
           </form>
         </section>
       )}
-      <details>
-        <summary>Matriz de autenticação documentada</summary>
-        {matrix.map((p) => (
-          <div key={p.id}>
-            <h3>{p.name}</h3>
-            {p.modes.map((m: any, i: number) => (
-              <p key={i} className="fine">
-                {m.transport} / {m.authMode}:{" "}
-                {m.status === "pending"
-                  ? "Suporte sujeito a teste por operação"
-                  : m.status === "unsupported"
-                    ? "Não suportado"
-                    : "Disponível"}{" "}
-                — {m.reason}
+      {mode === "analysis" &&
+        inspected &&
+        (() => {
+          const profile = profiles.find((p) => p.id === inspected);
+          const preset = matrix.find((p) => p.id === profile?.preset);
+          const currentMode = preset?.modes.find(
+            (m: any) =>
+              m.transport === profile.transport &&
+              m.authMode === profile.authMode,
+          );
+          if (!currentMode) return null;
+          return (
+            <details>
+              <summary>Compatibilidade de autenticação desta conexão</summary>
+              <p>
+                {preset.name} · {currentMode.transport} · {currentMode.authMode}
               </p>
-            ))}
-          </div>
-        ))}
-      </details>
+              <p>{currentMode.reason}</p>
+              {currentMode.status === "pending" && (
+                <p>
+                  Use o teste de conexão e a execução de uma leitura para
+                  verificar a configuração em uso.
+                </p>
+              )}
+            </details>
+          );
+        })()}
     </>
   );
 }

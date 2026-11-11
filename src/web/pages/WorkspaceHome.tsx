@@ -1,96 +1,117 @@
-import { Waypoints, ScanLine, Sparkles, BookOpen } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import type {
+  McpProfile,
+  PublicAccessProfile,
+  PublicAgent,
+} from "../../shared/connections.js";
+import { describeMcp } from "../../shared/mcp-info.js";
+
+type WorkspaceConnection = Omit<McpProfile, "tokenRef"> & {
+  connected?: boolean;
+};
+
 export function WorkspaceHome({
   mcps,
   agents,
+  accesses,
+  loaded,
   onSelect,
+  onInspect,
 }: {
-  mcps: any[];
-  agents: any[];
+  mcps: WorkspaceConnection[];
+  agents: PublicAgent[];
+  accesses: PublicAccessProfile[];
+  loaded: boolean;
   onSelect: (id: string) => void;
+  onInspect: (id: string) => void;
 }) {
+  const accessesById = new Map(accesses.map((access) => [access.id, access]));
+  const summary = [
+    { id: "accesses", label: "Acessos", count: accesses.length },
+    { id: "mcps", label: "Conexões MCP", count: mcps.length },
+    { id: "agents", label: "Agentes", count: agents.length },
+  ];
+
   return (
     <div className="workspace-home">
-      <p className="eyebrow">MCP INTEGRATION & AI WORKSPACE FOR FINOPS</p>
-      <h2>
-        Conecte capacidades.
-        <br />
-        Investigue com evidências.
-      </h2>
-      <p>
-        Do servidor à resposta do agente: veja o que está conectado, escolha o
-        que pode ser executado e confira o retorno.
-      </p>
-      <div className="workspace-journey">
-        {[
-          {
-            id: "mcps",
-            Icon: Waypoints,
-            name: "1. Conectar",
-            text: "Cadastre o endpoint, configure sua identidade e descubra capacidades.",
-          },
-          {
-            id: "mcp-analysis",
-            Icon: ScanLine,
-            name: "2. Explorar e testar",
-            text: "Revise schemas, aprove tools e inspecione o resultado bruto.",
-          },
-          {
-            id: "agents",
-            Icon: Sparkles,
-            name: "3. Configurar agente",
-            text: "Vincule modelo, conexões, tools e conhecimento revisado.",
-          },
-          {
-            id: "knowledge",
-            Icon: BookOpen,
-            name: "4. Conhecimento",
-            text: "Importe skills e referências do GitHub em versões imutáveis.",
-          },
-        ].map(({ id, Icon, name, text }) => (
-          <button
-            key={id}
-            className="journey-card"
-            onClick={() => onSelect(id)}
-          >
-            <Icon size={22} />
-            <strong>{name}</strong>
-            <span>{text}</span>
-          </button>
-        ))}
-      </div>
-      <div className="section-head">
-        <h3>Seu workspace</h3>
-        <button onClick={() => onSelect("investigations")}>
-          Abrir investigação ↗
-        </button>
-      </div>
-      {!mcps.length && (
-        <p>
-          Nenhum MCP cadastrado. Comece por Conectar; o cadastro não exige login
-          Azure para MCPs HTTP independentes.
-        </p>
-      )}
-      {mcps.map((p) => (
-        <article className="config-card" key={p.id}>
-          <div className="section-head">
-            <h3>{p.name}</h3>
-            <button onClick={() => onSelect("mcp-analysis")}>
-              Inspecionar
+      <h2>Resumo dos cadastros</h2>
+      {loaded ? (
+        <div className="workspace-summary">
+          {summary.map(({ id, label, count }) => (
+            <button key={id} onClick={() => onSelect(id)}>
+              {label} <strong>{count}</strong>
             </button>
-          </div>
-          <p>
-            {p.preset} · {p.transport} · {p.status || "cadastrado"}
-          </p>
-          <small>
-            {p.approvedTools?.length || 0} tools aprovadas · status de conexão
-            não comprova acesso aos dados.
-          </small>
-        </article>
-      ))}
-      <p className="fine">
-        {agents.length} agente(s) cadastrado(s). Consultas financeiras e
-        multicloud permanecem disponíveis em Análises financeiras.
-      </p>
+          ))}
+        </div>
+      ) : (
+        <p role="status">Aguardando os cadastros.</p>
+      )}
+      <h3>Vínculos das conexões MCP</h3>
+      {loaded && !mcps.length && <p>Nenhuma conexão MCP cadastrada.</p>}
+      {mcps.map((profile) => {
+        const access = profile.accessId
+          ? accessesById.get(profile.accessId)
+          : undefined;
+        const details = new Map(describeMcp(profile));
+        const flow = [
+          [
+            "Acesso",
+            access?.name ||
+              (profile.accessId
+                ? "Cadastro indisponível"
+                : "Sem acesso vinculado"),
+          ],
+          [
+            "Execução",
+            profile.transport === "stdio"
+              ? "Local · stdio"
+              : "Endpoint · Streamable HTTP",
+          ],
+          ["Conexão MCP", profile.name],
+          [
+            profile.transport === "stdio"
+              ? "Autenticação no provedor"
+              : "Autenticação MCP",
+            details.get(
+              profile.transport === "stdio"
+                ? "Autenticação Azure"
+                : "Autenticação MCP",
+            ),
+          ],
+          ["Provedor", details.get("Provider")],
+        ];
+        return (
+          <article className="config-card" key={profile.id}>
+            <div className="section-head">
+              <h4>{profile.name}</h4>
+              <button onClick={() => onInspect(profile.id)}>
+                Analisar tools
+              </button>
+            </div>
+            <ol
+              className="workspace-flow"
+              aria-label={`Vínculos de ${profile.name}`}
+            >
+              {flow.map(([label, value], index) => (
+                <li key={label}>
+                  {index > 0 && <ArrowRight size={16} aria-hidden="true" />}
+                  <div>
+                    <small>{label}</small>
+                    <span>{value}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="fine">
+              {profile.connected
+                ? "Sessão MCP aberta"
+                : "Sem sessão MCP aberta"}
+              {" · "}
+              {profile.approvedTools?.length || 0} tools permitidas
+            </p>
+          </article>
+        );
+      })}
     </div>
   );
 }

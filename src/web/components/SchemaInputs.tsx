@@ -20,7 +20,7 @@ export function schemaDefaults(schema: any): any {
       string,
       any,
     ][]) {
-      if (s.default !== undefined) values[k] = s.default;
+      if (s.default !== undefined && s.default !== null) values[k] = s.default;
       else if (
         (schema.required || []).includes(k) &&
         (s.type === "object" || s.properties)
@@ -184,9 +184,11 @@ export function SchemaInputs({
               {required ? "Obrigatório" : "Opcional"} ·{" "}
               {fallbackValues?.[key] !== undefined
                 ? `Padrão da aplicação quando vazio: ${JSON.stringify(fallbackValues[key])}`
-                : field.default !== undefined
+                : field.default !== undefined && field.default !== null
                   ? `Padrão declarado pelo servidor: ${JSON.stringify(field.default)}`
-                  : "Sem padrão declarado no schema; em branco, o parâmetro é omitido."}
+                  : required
+                    ? "Preencha para executar a consulta."
+                    : "Deixe em branco se não quiser informar."}
               {help[key] && <span className="field-help">{help[key]}</span>}
             </small>
             <small>

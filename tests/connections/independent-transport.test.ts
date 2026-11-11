@@ -104,6 +104,8 @@ it("discovers and executes a schema-approved MCP without Azure; binds credential
     expect(saved).not.toHaveProperty("tokenRef");
     expect(saved.tokenConfigured).toBe(true);
     const tools = await registry.tools(ctx, saved.id);
+    expect((await registry.list(ctx.sessionId))[0].connected).toBe(true);
+    expect((await registry.list("another-session"))[0].connected).toBe(false);
     expect(tools[0].approved).toBe(false);
     expect(JSON.stringify(tools)).not.toContain("controlled-token");
     expect(JSON.stringify(await registry.catalog(ctx, saved.id))).not.toContain(
@@ -140,6 +142,9 @@ it("discovers and executes a schema-approved MCP without Azure; binds credential
       }),
     ).rejects.toMatchObject({ code: "credential_binding" });
     expect(values.get("ref")).toBe("controlled-token");
+    const connection = await registry.connect(ctx, saved.id);
+    await connection.client.close();
+    expect((await registry.list(ctx.sessionId))[0].connected).toBe(false);
   } finally {
     await registry.close();
     await new Promise<void>((r) => server.close(() => r()));

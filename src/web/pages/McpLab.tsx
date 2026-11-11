@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { manageRequest } from "../api.js";
 import { DiagnosticPanel } from "./Diagnostics.js";
+
+const catalogStatus: Record<string, string> = {
+  not_advertised: "Não anunciado pelo servidor",
+  empty: "Nenhum item disponível",
+  discovered: "Itens disponíveis",
+  partial: "Lista parcial",
+  error: "Consulta indisponível",
+};
+
+function promptArguments(item: any) {
+  return Array.isArray(item.arguments) && item.arguments.length > 0;
+}
 export function McpLab({
   profiles,
   id,
@@ -20,7 +32,7 @@ export function McpLab({
     [result, setResult] = useState<any>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [args, setArgs] = useState("{}");
+    [args, setArgs] = useState<Record<string, string>>({});
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
     controller.current?.abort();
@@ -28,6 +40,7 @@ export function McpLab({
     setCatalog(undefined);
     setResult(undefined);
     setError("");
+    setArgs({});
     return () => {
       controller.current?.abort();
       onBusy(false);
@@ -65,10 +78,6 @@ export function McpLab({
   return (
     <section>
       <h2>Laboratório de capacidades MCP</h2>
-      <p>
-        Capacidade anunciada, descoberta e leitura testada são evidências
-        diferentes. Conteúdos de prompts e resources não são executados.
-      </p>
       <label>
         Conexão para análise
         <select
@@ -85,6 +94,7 @@ export function McpLab({
         </select>
       </label>
       <button
+        className="primary"
         disabled={!id || busy || externalBusy}
         onClick={() => void run("catalog")}
       >
@@ -97,67 +107,95 @@ export function McpLab({
       )}
       {catalog && (
         <>
-          <h3>Servidor e capacidades anunciadas</h3>
-          <pre>
-            {JSON.stringify(
-              {
-                server: catalog.server,
-                capabilities: catalog.capabilities,
-                requestId: catalog.requestId,
-              },
-              null,
-              2,
+          <p role="status">
+            {catalog.server?.name && <strong>{catalog.server.name} · </strong>}
+            {catalog.tools?.length || 0} operações encontradas.
+            {!!catalog.tools?.length && (
+              <>
+                {" "}
+                <a href="#mcp-tools">Revisar tools e testar uma consulta ↓</a>
+              </>
             )}
-          </pre>
-          <p>
-            {catalog.tools?.length || 0} tools; execute leituras permitidas no
-            painel de tools abaixo.
           </p>
-          <label>
-            Argumentos do prompt (JSON)
-            <textarea value={args} onChange={(e) => setArgs(e.target.value)} />
-          </label>
-          {["prompts", "resources"].map((kind) => (
-            <section key={kind}>
-              <h3>{kind}</h3>
-              <p>
-                Estado: {catalog[kind]?.status} {catalog[kind]?.message}
-              </p>
-              {catalog[kind]?.items?.map((item: any, i: number) => (
-                <article className="config-card" key={i}>
-                  <strong>{item.name || item.uri}</strong>
-                  <p>{item.description}</p>
-                  <details>
-                    <summary>Schema / metadados</summary>
-                    <pre>{JSON.stringify(item, null, 2)}</pre>
-                  </details>
-                  <button
-                    disabled={busy || externalBusy}
-                    onClick={() => {
-                      try {
-                        const a = JSON.parse(args);
-                        void run("inspect", {
-                          kind: kind === "prompts" ? "prompt" : "resource",
-                          name: kind === "prompts" ? item.name : item.uri,
-                          ...(kind === "prompts" ? { arguments: a } : {}),
-                        });
-                      } catch {
-                        setError("Argumentos JSON inválidos.");
-                      }
-                    }}
-                  >
-                    Ler {kind === "prompts" ? "template" : "resource listado"}
-                  </button>
-                </article>
-              ))}
-            </section>
-          ))}
+          <details>
+            <summary>Prompts e recursos</summary>
+            {["prompts", "resources"].map((kind) => (
+              <section key={kind}>
+                <h3>{kind === "prompts" ? "Prompts" : "Recursos"}</h3>
+                <p>
+                  {catalogStatus[catalog[kind]?.status] ??
+                    "Estado não informado"}
+                </p>
+                {catalog[kind]?.message && <p>{catalog[kind].message}</p>}
+                {catalog[kind]?.items?.map((item: any, i: number) => (
+                  <article className="config-card" key={i}>
+                    <strong>{item.name || item.uri}</strong>
+                    <p>{item.description}</p>
+                    <details>
+                      <summary>Schema / metadados</summary>
+                      <pre>{JSON.stringify(item, null, 2)}</pre>
+                    </details>
+                    {kind === "prompts" && promptArguments(item) && (
+                      <label>
+                        Argumentos deste prompt (JSON)
+                        <textarea
+                          value={args[item.name] ?? "{}"}
+                          onChange={(e) =>
+                            setArgs((prev) => ({
+                              ...prev,
+                              [item.name]: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    )}
+                    <button
+                      disabled={busy || externalBusy}
+                      onClick={() => {
+                        try {
+                          const a =
+                            kind === "prompts" && promptArguments(item)
+                              ? JSON.parse(args[item.name] ?? "{}")
+                              : {};
+                          void run("inspect", {
+                            kind: kind === "prompts" ? "prompt" : "resource",
+                            name: kind === "prompts" ? item.name : item.uri,
+                            ...(kind === "prompts" ? { arguments: a } : {}),
+                          });
+                        } catch {
+                          setError("Argumentos JSON inválidos.");
+                        }
+                      }}
+                    >
+                      Ler {kind === "prompts" ? "template" : "resource listado"}
+                    </button>
+                  </article>
+                ))}
+              </section>
+            ))}
+          </details>
+          <details>
+            <summary>Detalhes do servidor e da consulta</summary>
+            <pre>
+              {JSON.stringify(
+                {
+                  server: catalog.server,
+                  capabilities: catalog.capabilities,
+                  requestId: catalog.requestId,
+                },
+                null,
+                2,
+              )}
+            </pre>
+          </details>
         </>
       )}
       {result && (
         <section aria-label="Evidência de leitura MCP">
-          <h3>Retorno da leitura</h3>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
+          <details>
+            <summary>Ver retorno da leitura</summary>
+            <pre>{JSON.stringify(result, null, 2)}</pre>
+          </details>
         </section>
       )}
       <details>

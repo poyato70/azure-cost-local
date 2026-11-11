@@ -62,6 +62,7 @@ export function App() {
   const [hubId, setHubId] = useState("");
   const [analysisMcpId, setAnalysisMcpId] = useState("");
   const [mcpDraft, setMcpDraft] = useState<any>();
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [accesses, setAccesses] = useState<PublicAccessProfile[]>([]),
     [mcpProfiles, setMcpProfiles] = useState<any[]>([]),
     [agentProfiles, setAgentProfiles] = useState<PublicAgent[]>([]),
@@ -79,6 +80,7 @@ export function App() {
       setAccesses(Array.isArray(a) ? a : []);
       setMcpProfiles(Array.isArray(m) ? m : []);
       setAgentProfiles(Array.isArray(g) ? g : []);
+      setSettingsLoaded(true);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -111,9 +113,44 @@ export function App() {
     [basis, setBasis] = useState<CostQuery["basis"]>("ActualCost"),
     [tenant, setTenant] = useState(""),
     [client, setClient] = useState(""),
-    [info, setInfo] = useState(""),
+    [info, setPageInfo] = useState<{ tab: string; message: string }>(),
     [groupBy, setGroupBy] = useState<CostQuery["groupBy"]>("ServiceName"),
     [granularity, setGranularity] = useState<CostQuery["granularity"]>("Daily");
+  const setInfo = (message: string) =>
+    setPageInfo(message ? { tab, message } : undefined);
+  useEffect(() => {
+    setPageInfo(undefined);
+  }, [tab]);
+  useEffect(() => {
+    if (tab !== "home" || !settingsLoaded) return;
+    const controller = new AbortController();
+    let checking = false;
+    const refreshConnections = async () => {
+      if (checking || document.hidden) return;
+      checking = true;
+      try {
+        const profiles = await manageRequest(
+          "/mcp-connections",
+          "GET",
+          undefined,
+          controller.signal,
+        );
+        if (!controller.signal.aborted && Array.isArray(profiles)) {
+          setMcpProfiles(profiles);
+        }
+      } catch {
+        // Keep the last snapshot until the next refresh.
+      } finally {
+        checking = false;
+      }
+    };
+    void refreshConnections();
+    const timer = setInterval(() => void refreshConnections(), 15000);
+    return () => {
+      clearInterval(timer);
+      controller.abort();
+    };
+  }, [tab, settingsLoaded]);
   useEffect(() => {
     setHubId("");
   }, [boot?.activeAccessId, boot?.authenticated]);
@@ -315,7 +352,7 @@ export function App() {
             setError(current.loginError?.message || "");
             setInfo(
               current.authenticated
-                ? "Login Microsoft concluído. Selecione seu escopo para consultar."
+                ? "Login Microsoft concluído."
                 : "A tentativa de login não foi concluída. Veja a mensagem acima.",
             );
           } else if (Date.now() - started > 600000) {
@@ -375,6 +412,7 @@ export function App() {
             clearInterval(timer);
             setBoot(b);
             setError(b.loginError?.message || "");
+            setInfo(b.authenticated ? "Recurso autorizado." : "");
             void reloadSettings();
           }
         } finally {
@@ -408,12 +446,7 @@ export function App() {
 
         <div className="sidebar-bottom">
           <div className="local-light" /> Serviço no notebook
-          <p>
-            Consultas com fonte verificável.
-            <br />
-            Você mantém o controle.
-          </p>
-          <span className="version">MVP · 0.5.1</span>
+          <span className="version">MVP · 0.5.2</span>
         </div>
       </aside>
       <main>
@@ -446,10 +479,6 @@ export function App() {
                   ? "FinOps sem fronteiras."
                   : pageTitle(tab)}
               </h1>
-              <p>
-                Cadastre MCPs e agentes. Consulte dados e apoie as decisões do
-                time FinOps.
-              </p>
             </div>
             <span className="workspace-label">● WORKSPACE LOCAL</span>
           </div>
@@ -459,7 +488,7 @@ export function App() {
               <button onClick={() => setError("")}>Fechar</button>
             </div>
           )}
-          {info && <p className="notice">{info}</p>}
+          {info?.tab === tab && <p className="notice">{info.message}</p>}
           {!boot ? (
             <p role="status">Iniciando serviço local…</p>
           ) : (
@@ -697,7 +726,13 @@ export function App() {
               <WorkspaceHome
                 mcps={mcpProfiles}
                 agents={agentProfiles}
+                accesses={accesses}
+                loaded={settingsLoaded}
                 onSelect={setTab}
+                onInspect={(id) => {
+                  setAnalysisMcpId(id);
+                  setTab("mcp-analysis");
+                }}
               />
             )}
             {tab === "knowledge" && <Knowledge />}

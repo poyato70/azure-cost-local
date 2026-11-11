@@ -2,17 +2,34 @@ import { test, expect } from "./fixtures.js";
 test("workspace remains usable on desktop and mobile", async ({ page }) => {
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
-    await route.fulfill({
-      json:
-        path === "/api/bootstrap"
-          ? { authenticated: false, csrf: "local", period: {} }
-          : [],
-    });
+    const fixtures: Record<string, unknown> = {
+      "/api/bootstrap": { authenticated: false, csrf: "local", period: {} },
+      "/api/accesses": [{ id: "test-access", name: "Conta FinOps" }],
+      "/api/mcp-connections": [
+        {
+          id: "test-connection",
+          name: "Advisor local",
+          accessId: "test-access",
+          preset: "azure",
+          transport: "stdio",
+          authMode: "application",
+          connected: true,
+        },
+      ],
+    };
+    await route.fulfill({ json: fixtures[path] ?? [] });
   });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Conecte capacidades/ }),
+    page.getByRole("heading", { name: "Resumo dos cadastros" }),
+  ).toBeVisible();
+  const flow = page.getByRole("list", { name: "Vínculos de Advisor local" });
+  await expect(flow).toContainText("Conta FinOps");
+  await expect(flow).toContainText("Local · stdio");
+  await expect(flow).toContainText("Microsoft Azure");
+  await expect(
+    page.getByText("Sessão MCP aberta", { exact: false }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/workspace-desktop.png",
@@ -120,7 +137,7 @@ test("independent investigation does not offer a Copilot check", async ({
     page.getByRole("button", { name: "Verificar Copilot" }),
   ).not.toBeVisible();
 });
-test("starts with integration journey and saves independent MCP without Azure", async ({
+test("starts with registered connections and saves independent MCP without Azure", async ({
   page,
 }) => {
   let body: any;
@@ -148,14 +165,12 @@ test("starts with integration journey and saves independent MCP without Azure", 
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", {
-      name: /Conecte capacidades.*Investigue com evidências/,
-    }),
+    page.getByRole("heading", { name: "Resumo dos cadastros" }),
   ).toBeVisible();
   await expect(
     page.getByText("Conecte sua conta Azure", { exact: true }),
   ).not.toBeVisible();
-  await page.getByRole("button", { name: /1. Conectar/ }).click();
+  await page.getByRole("button", { name: "Conexões MCP 0" }).click();
   await page.getByLabel("Serviço", { exact: true }).selectOption("kubernetes");
   await page.getByLabel("Nome", { exact: true }).fill("OpenShift teste");
   await page

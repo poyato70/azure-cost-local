@@ -1,6 +1,7 @@
 import { authorizeArmScope } from "./arm-policy.js";
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
+import { mcpPresentation } from "../../shared/mcp-presentation.js";
 import type { McpProfile, ToolDescriptor } from "../../shared/connections.js";
 export function descriptor(t: any): ToolDescriptor {
   const text = JSON.stringify({
@@ -183,12 +184,14 @@ export function safeToolResult(value: unknown) {
       );
     return v;
   };
-  const text = JSON.stringify(strip(value));
+  const sanitized = strip(value);
+  const text = JSON.stringify(sanitized);
   return text.length > 131072
     ? {
         partial: true,
         message: "Resultado limitado a 128 kB.",
         text: text.slice(0, 120000),
+        presentation: mcpPresentation(sanitized),
       }
     : JSON.parse(text);
 }

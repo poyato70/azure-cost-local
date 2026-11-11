@@ -52,12 +52,16 @@ export class McpRegistry {
     private gate: Invalidation,
     private identity: IdentityProvider,
   ) {}
-  async list() {
-    return (await this.store.read()).mcpProfiles.map((p) => ({
-      ...this.publicProfile(p),
-      capability: capability(p),
-      status: this.states.get(p.id) || "cadastrado",
-    }));
+  async list(sessionId: string) {
+    return (await this.store.read()).mcpProfiles.map((p) => {
+      const live = this.live.get(sessionId + "|" + p.id);
+      return {
+        ...this.publicProfile(p),
+        capability: capability(p),
+        status: this.states.get(p.id) || "cadastrado",
+        connected: !!live && !live.controller.signal.aborted,
+      };
+    });
   }
   private async publicEvidence<T>(p: McpProfile, value: T): Promise<T> {
     const secrets = p.tokenRef ? [await this.vault.read(p.tokenRef)] : [];
@@ -431,13 +435,14 @@ export class McpRegistry {
       controller.signal.addEventListener(
         "abort",
         () => {
-          this.live.delete(key);
+          if (this.live.get(key) === live) this.live.delete(key);
           unwatch();
           void client.close().catch(() => {});
         },
         { once: true },
       );
       this.live.set(key, live);
+      client.onclose = () => controller.abort();
       ctx.diagnose?.({
         source: "MCP",
         operation: p.name + " / tools/list",

@@ -92,7 +92,7 @@ test("exposes the independent agent selector and MCP configuration", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "MCPs", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Servidores MCP" }),
+    page.getByRole("heading", { name: "Conexões MCP" }),
   ).toBeVisible();
   await page.getByLabel("Serviço", { exact: true }).selectOption("powerbi");
   await expect(page.getByLabel("Endpoint MCP")).toHaveValue(

@@ -133,6 +133,14 @@ test("discovers registry records and prepares a reviewed registration", async ({
             ],
             remotes: [],
           },
+          {
+            name: "fixture/second",
+            version: "1",
+            description: "Segunda opção",
+            status: "active",
+            packages: [],
+            remotes: [],
+          },
         ],
       };
     }
@@ -147,6 +155,15 @@ test("discovers registry records and prepares a reviewed registration", async ({
     page.getByRole("heading", { name: "com.microsoft/azure", exact: true }),
   ).toBeVisible();
   expect(searched).toBe(true);
+  const chooser = page.getByLabel("Servidor encontrado");
+  await expect(
+    page.getByRole("heading", { name: "fixture/second", exact: true }),
+  ).toHaveCount(0);
+  await chooser.selectOption("1");
+  await expect(
+    page.getByRole("heading", { name: "fixture/second", exact: true }),
+  ).toBeVisible();
+  await chooser.selectOption("0");
   await page
     .getByRole("button", { name: "Preparar cadastro Azure", exact: true })
     .click();
@@ -161,4 +178,14 @@ test("discovers registry records and prepares a reviewed registration", async ({
   await page.getByRole("button", { name: "Análise", exact: true }).click();
   await page.getByRole("button", { name: "Integração", exact: true }).click();
   await expect(page.getByLabel("Nome", { exact: true })).toHaveValue("");
+  await page.getByRole("button", { name: "Descoberta", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Preparar cadastro ARM", exact: true })
+    .click();
+  await expect(page.getByLabel("Nome", { exact: true })).toHaveValue(
+    "Azure Resource Manager MCP",
+  );
+  await expect(page.getByLabel("Endpoint MCP", { exact: true })).toHaveValue(
+    "https://mcp.management.azure.com",
+  );
 });

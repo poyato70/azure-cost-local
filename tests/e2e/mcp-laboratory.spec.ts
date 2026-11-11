@@ -74,5 +74,8 @@ test("analysis isolates configuration actions and shares discovered tools with t
   await expect(
     page.getByRole("heading", { name: /Tools descobertas \(1\)/ }),
   ).toBeVisible();
-  await expect(page.getByText("Estado: not_advertised").first()).toBeVisible();
+  await page.getByText("Prompts e recursos", { exact: true }).click();
+  await expect(
+    page.getByText("Não anunciado pelo servidor").first(),
+  ).toBeVisible();
 });

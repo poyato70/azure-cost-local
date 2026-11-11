@@ -193,8 +193,7 @@ export function registerConnectionRoutes(
     return { url: result.url };
   });
   app.get("/api/mcp-connections", async (r) => {
-    d.session(r);
-    return d.mcps.list();
+    return d.mcps.list(d.session(r).id);
   });
   app.post("/api/mcp-connections", async (r) => d.mcps.save(r.body));
   app.patch("/api/mcp-connections/:id", async (r) =>

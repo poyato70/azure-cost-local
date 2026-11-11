@@ -135,3 +135,11 @@ Aceite operacional pendente: `docs/checklist-v0.5.0.md`. GitHub privado, OAuth g
 - Revisão independente: identidade delegada indevidamente pronta, instrução de sucesso antiga, rascunho persistente e afirmação prematura de descoberta corrigidos. .vscode do usuário preservado.
 
 Operação e aceite manual: `docs/mcp-clarity-v0.5.1.md`.
+
+
+## Workspace e análise MCP — versão 0.5.2, 10/11/2026
+
+- 114 testes de serviço e 32 testes Edge aprovados; build concluído. Foram verificados diagrama e navegação responsivos, estado MCP isolado por sessão, retorno Advisor truncado com prévia e seleção individual de resultados do Registry.
+- Integração e Análise mantêm feedback ao lado da ação; respostas técnicas e detalhes de protocolo recolhidos. Resumos usam fixtures, sem reutilizar identificadores Azure do relato. As regras de aprovação foram preservadas.
+- Busca real no Registry por com.microsoft/arm, azure-resource-manager e mcp.management.azure.com não retornou registros. Atalho ARM tem origem documentada separada, sem instalar ou autorizar uma conexão. Política Copilot não alterada.
+- Aceite manual em Azure corporativo continua pendente. Ver docs/arm-mcp-copilot-policy.md.

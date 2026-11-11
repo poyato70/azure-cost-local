@@ -1,3 +1,4 @@
+import { azureAiUsageQuery, normalizeAzureAiUsage } from "./azure/ai-usage.js";
 import { ForecastService } from "./forecast/service.js";
 import { registerMulticloudRoutes } from "./multicloud/routes.js";
 import { forecastQuery } from "../shared/forecast.js";
@@ -388,6 +389,27 @@ export async function buildApp(deps: AppDeps = {}) {
   app.get("/api/resource-groups", async (req) => {
     const q = z.object({ subscriptionId: z.string().uuid() }).parse(req.query);
     return inventory.listResourceGroups(context(req), q.subscriptionId);
+  });
+  app.post("/api/cloud/azure-ai-usage", async (req) => {
+    const ctx = context(req);
+    const query = azureAiUsageQuery.parse(req.body);
+    const parts = query.resourceId.split("/");
+    const subscriptionId = z.string().uuid().parse(parts[2]);
+    await inventory.authorize(ctx, { tenantId: ctx.tenantId, subscriptionId });
+    const parameters = new URLSearchParams({
+      "api-version": "2023-10-01",
+      metricnames: "ProcessedPromptTokens,GeneratedTokens",
+      metricnamespace: "Microsoft.CognitiveServices/accounts",
+      aggregation: "Total",
+      interval: "P1D",
+      timespan: query.from + "T00:00:00Z/" + query.toExclusive + "T00:00:00Z",
+    });
+    const resourcePath = parts.map(encodeURIComponent).join("/");
+    const payload = await http.request(
+      ctx,
+      resourcePath + "/providers/Microsoft.Insights/metrics?" + parameters,
+    );
+    return { source: "Azure Monitor", metrics: normalizeAzureAiUsage(payload) };
   });
   app.post("/api/costs/query", async (req) => {
     if (req.headers["x-data-source"] === "mcp")

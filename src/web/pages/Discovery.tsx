@@ -1,10 +1,13 @@
+import { CloudDefaults } from "../components/CloudDefaults.js";
 import { RegistrySearch } from "../components/RegistrySearch.js";
 import { useState } from "react";
 import { manageRequest } from "../api.js";
 export function Discovery({
   onConfigure,
+  onNavigate,
 }: {
   onConfigure?: (draft: any) => void;
+  onNavigate?: (tab: string) => void;
 }) {
   const [url, setUrl] = useState(
       localStorage.getItem("tesseract-discovery-url") || "",
@@ -16,6 +19,7 @@ export function Discovery({
   return (
     <>
       <h2>Descoberta de servidores MCP</h2>
+      <CloudDefaults onConfigure={onConfigure} onNavigate={onNavigate} />
       <RegistrySearch onConfigure={onConfigure} />
       <article className="config-card">
         <h3>Azure Resource Manager MCP</h3>

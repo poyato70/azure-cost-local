@@ -746,6 +746,7 @@ export function App() {
             {tab === "help" && <Help />}
             {tab === "discovery" && (
               <Discovery
+                onNavigate={setTab}
                 onConfigure={(draft) => {
                   setMcpDraft(draft);
                   setTab("mcps");

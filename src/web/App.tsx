@@ -807,6 +807,7 @@ export function App() {
                 initialDraft={tab === "mcps" ? mcpDraft : undefined}
                 onDraftConsumed={() => setMcpDraft(undefined)}
                 activeAccessId={boot?.activeAccessId}
+                azureAuthenticated={boot?.authenticated}
                 principalKind={boot?.principalKind}
                 onConnectAccess={(id, mode) => void connect(id, mode)}
                 mode={tab === "mcp-analysis" ? "analysis" : "integration"}

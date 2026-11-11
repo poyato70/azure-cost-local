@@ -1,4 +1,5 @@
 import { McpDetails, McpIdentity } from "../components/McpDetails.js";
+import { ArmScopePicker } from "../components/ArmScopePicker.js";
 import { McpLab } from "./McpLab.js";
 import {
   SchemaInputs,
@@ -46,6 +47,7 @@ export function McpConnections({
   initialDraft,
   onDraftConsumed,
   activeAccessId,
+  azureAuthenticated,
   principalKind,
   onConnectAccess,
   mode = "integration",
@@ -59,6 +61,7 @@ export function McpConnections({
   initialDraft?: any;
   onDraftConsumed?: () => void;
   activeAccessId?: string;
+  azureAuthenticated?: boolean;
   principalKind?: string;
   onConnectAccess?: (id: string, mode: "user" | "application") => void;
   onInspect?: (id?: string) => void;
@@ -320,12 +323,8 @@ export function McpConnections({
           <McpDetails profile={{ ...form, resourceContext: contextFields }} />
           {form.preset === "arm" && (
             <p className="notice">
-              ARM MCP oficial (preview): use login de usuário e Autorizar
-              recurso para consentir MCP.Access. Endpoint e header
-              CostManagement são fixados pelo serviço. Em Recursos autorizados,
-              informe scope completo /subscriptions/ID ou
-              /subscriptions/ID/resourceGroups/NOME. Só leituras revisadas podem
-              ser liberadas; os cartões do dashboard continuam na API direta.
+              Após salvar, use Autorizar recurso para entrar com o usuário Azure
+              e consentir MCP.Access. O escopo escolhido delimita as consultas.
             </p>
           )}
           <label>
@@ -444,7 +443,9 @@ export function McpConnections({
               ) : (
                 <>
                   <option value="delegated">Usuário delegado</option>
-                  <option value="application">Identidade de aplicação</option>
+                  {form.preset !== "arm" && (
+                    <option value="application">Identidade de aplicação</option>
+                  )}
                 </>
               )}
             </select>
@@ -499,16 +500,26 @@ export function McpConnections({
               </small>
             </label>
           )}
-          {["adx", "powerbi", "fabric", "arm"].includes(form.preset) && (
+          {mode === "integration" && form.preset === "arm" && (
+            <ArmScopePicker
+              key={`${azureAuthenticated}:${activeAccessId}:${principalKind}`}
+              authenticated={!!azureAuthenticated}
+              identity={
+                accesses.find((access) => access.id === activeAccessId)?.name ||
+                "a sessão ativa"
+              }
+              scope={contextFields.scope || ""}
+              onChange={(value) => setContextField("scope", value)}
+            />
+          )}
+          {["adx", "powerbi", "fabric"].includes(form.preset) && (
             <fieldset>
               <legend>Recursos autorizados</legend>
-              {(form.preset === "arm"
-                ? ["scope"]
-                : form.preset === "adx"
-                  ? ["clusterUri", "database", "tenant", "subscription"]
-                  : form.preset === "powerbi"
-                    ? ["modelId", "workspaceId"]
-                    : ["workspaceId"]
+              {(form.preset === "adx"
+                ? ["clusterUri", "database", "tenant", "subscription"]
+                : form.preset === "powerbi"
+                  ? ["modelId", "workspaceId"]
+                  : ["workspaceId"]
               ).map((k) => (
                 <label key={k}>
                   {k}
@@ -626,7 +637,7 @@ export function McpConnections({
                         transport,
                         endpoint: endpoint || "",
                         accessId: accessId || "",
-                        authMode,
+                        authMode: preset === "arm" ? "delegated" : authMode,
                         audience,
                         approvedTools,
                         allowPrivateNetwork,

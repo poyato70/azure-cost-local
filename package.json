@@ -1,0 +1,29 @@
+{
+  "name": "tesseract-2",
+  "version": "2.0.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server/main.ts",
+    "start": "tsx src/server/main.ts",
+    "build": "node scripts/build.mjs && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "fastify": "5.12.7",
+    "@fastify/static": "10.1.8",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "lucide-react": "1.70.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "esbuild": "0.27.3",
+    "tsx": "4.21.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

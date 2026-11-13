@@ -242,6 +242,17 @@ export function McpConnections({
           Nova conexão
         </button>
       </div>
+      {mode === "integration" &&
+        profiles.filter((profile) => profile.id !== "default").length === 0 && (
+          <section className="config-card" role="status">
+            <h3>Nenhum servidor MCP cadastrado</h3>
+            <p>
+              O Tesseract funciona sem MCP. Cadastre abaixo um servidor HTTP ou
+              stdio quando quiser explorar tools, resources e prompts. Nenhum
+              servidor externo é instalado automaticamente.
+            </p>
+          </section>
+        )}
       {mode === "analysis" && profiles.find((p) => p.id === inspected) && (
         <section className="config-card">
           <McpDetails profile={profiles.find((p) => p.id === inspected)} />

@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-export type McpBinding = { id: string; name: string; endpoint: string; transport: "streamable-http"; status: "configured" | "validated"; createdAt: string; lastDiscovery?: string };
+export type McpBinding = { id: string; name: string; endpoint?: string; transport: "streamable-http" | "stdio"; command?: string; args?: string[]; env?: Record<string, string>; status: "configured" | "validated"; createdAt: string; lastDiscovery?: string };
 type RegistryData = { schemaVersion: 1; bindings: McpBinding[]; audit: Array<{ id: string; bindingId: string; operation: string; at: string; outcome: string }> };
 
 export class Registry {
@@ -20,13 +20,18 @@ export class Registry {
     }
     return this;
   }
-  list() { return structuredClone(this.data.bindings); }
+  list() { return structuredClone(this.data.bindings.map(({ env: _env, ...binding }) => binding)); }
   events() { return structuredClone(this.data.audit).reverse().slice(0, 50); }
   get(id: string) { return this.data.bindings.find((item) => item.id === id); }
   async add(name: string, endpoint: string) {
     const url = new URL(endpoint);
     if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))) throw new Error("O endpoint MCP precisa usar HTTPS (HTTP só é permitido em loopback local).");
     const binding: McpBinding = { id: randomUUID(), name: name.trim(), endpoint: url.toString(), transport: "streamable-http", status: "configured", createdAt: new Date().toISOString() };
+    this.data.bindings.push(binding); await this.persist(); return binding;
+  }
+  async addStdio(name: string, command: string, args: string[] = [], env: Record<string, string> = {}) {
+    if (!name.trim() || !command.trim() || args.some((arg) => typeof arg !== "string") || Object.values(env).some((value) => typeof value !== "string")) throw new Error("Configuração stdio inválida.");
+    const binding: McpBinding = { id: randomUUID(), name: name.trim(), transport: "stdio", command: command.trim(), args, env, status: "configured", createdAt: new Date().toISOString() };
     this.data.bindings.push(binding); await this.persist(); return binding;
   }
   async discovered(id: string) { const item = this.get(id); if (item) { item.status = "validated"; item.lastDiscovery = new Date().toISOString(); await this.persist(); } }

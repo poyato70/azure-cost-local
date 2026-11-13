@@ -23,6 +23,14 @@ describe("Registry persistente", () => {
     const registry = await new Registry().load();
     await expect(registry.add("insecure", "http://example.com/mcp")).rejects.toThrow("HTTPS");
   });
+  it("persists stdio configuration without exposing environment values", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "tesseract-stdio-")); dirs.push(directory);
+    const registry = await new Registry(directory).load();
+    const binding = await registry.addStdio("Azure MCP local", "npx", ["-y", "@azure/mcp@latest", "server", "start"], { SAMPLE_TOKEN: "never-return-this" });
+    expect(binding.transport).toBe("stdio");
+    expect(registry.list()[0]).not.toHaveProperty("env");
+    expect(JSON.parse(await readFile(join(directory, "registry.json"), "utf8")).bindings[0].env.SAMPLE_TOKEN).toBe("never-return-this");
+  });
 });
 
 describe("política read-only provisória", () => {
@@ -31,5 +39,9 @@ describe("política read-only provisória", () => {
     expect(isReadOnlyTool("query_costs")).toBe(true);
     expect(isReadOnlyTool("delete_resource")).toBe(false);
     expect(isReadOnlyTool("execute_command")).toBe(false);
+    expect(isReadOnlyTool("foundry")).toBe(false);
+    expect(isReadOnlyTool("foundry", { learn: true })).toBe(true);
+    expect(isReadOnlyTool("foundry", { command: "models_list" })).toBe(true);
+    expect(isReadOnlyTool("foundry", { command: "agents_create" })).toBe(false);
   });
 });

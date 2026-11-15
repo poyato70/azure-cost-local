@@ -2,14 +2,14 @@
 
 ## Identificação
 
-- **Estado atual:** Em validação; implementação documental concluída, PR ainda não criada.
+- **Estado atual:** Aguardando integração. Estado registrado neste relatório; consulte a PR #3 para o estado remoto atual.
 - **Início:** 2026-11-15 14:09:25 -03:00.
 - **Conclusão:** Pendente.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-08-governance`.
 - **Commit inicial:** `a7507a1493471e6e975b04ebb4feefe91dd96155`.
-- **Commit de implementação:** Pendente.
-- **Pull Request:** Pendente.
+- **Commit de implementação:** `545f99f8e37371753dab0dab38b2b2915ba56fb4` (primeiro commit da PR).
+- **Pull Request:** [#3 — governança de relatórios](https://github.com/poyato70/azure-cost-local/pull/3).
 - **Commit de integração:** Pendente.
 
 ## Objetivo e escopo
@@ -25,13 +25,13 @@ Versionar relatórios de missão sanitizados em `docs/relatorios/`, recuperar M0
 | 1. Inspeção inicial | Concluída | Branch limpa baseada na `main` atual; ignore e instruções globais conferidos. |
 | 2. Recuperação M04–M07 | Concluída | Relatório fonte M04–05, PR #1/M06 e relatório local M07 inspecionados. |
 | 3. Template, índice e históricos | Concluída | README, template e relatórios M04–07 criados; M06 marcado como reconstrução. |
-| 4. Atualizar este relatório | Em andamento | Registro iniciado no início e atualizado neste marco. |
+| 4. Atualizar este relatório | Em andamento | Registro iniciado no início; atualização de estado e publicação nesta PR. |
 | 5. `AGENTS.md` e automação | Concluída | Instrução concisa e gerador sem sobrescrita adicionados. |
-| 6. Validar e revisar segurança | Em andamento | Teste do gerador, links, placeholders, ignore e diff pendentes. |
-| 7. PR e integração | Pendente | Abrir PR, integrar se permitido e confirmar SHA remoto. |
+| 6. Validar e revisar segurança | Concluída | Gerador, parser, links, ignore, busca de padrões sensíveis e diff staged passaram. |
+| 7. PR e integração | Em andamento | PR #3 aberta; sem checks CI; estado de merge a confirmar. |
 
-**Progresso:** 4/7 (**57%**, etapas concluídas).
-**Tempo decorrido medido neste marco:** 14 min 48 s (início às 14:09:25; registro às 14:24:13, -03:00).
+**Progresso:** 5/7 (**71%**, etapas concluídas).
+**Tempo decorrido medido neste marco:** 17 min 30 s (início às 14:09:25; registro às 14:26:55, -03:00).
 **Bloqueios:** nenhum confirmado.
 
 ## Estado inicial e histórico recuperado
@@ -72,10 +72,13 @@ Versionar relatórios de missão sanitizados em `docs/relatorios/`, recuperar M0
 ## Publicação
 
 - **Branch:** `codex/missao-08-governance`.
-- **Commit publicado / PR / CI / merge / SHA final:** Pendente.
-- O relatório será mantido como `Aguardando integração` antes da revisão; o estado final remoto só será declarado após consulta ao GitHub.
+- **Commit publicado:** `545f99f8e37371753dab0dab38b2b2915ba56fb4`.
+- **PR:** [#3](https://github.com/poyato70/azure-cost-local/pull/3), aberta contra `main`.
+- **CI:** nenhum check/status configurado retornado pela PR.
+- **Estado do merge:** aguardando verificação; a PR é a fonte do estado remoto atual.
+- **Commit final confirmado na `main`:** pendente.
 
 ## Pendências e evolução
 
-- Criar commit, abrir PR, verificar checks configurados e confirmar resultado do merge no GitHub.
+- Confirmar que a PR #3 foi integrada ou registrar o bloqueio/política aplicável.
 - Publicar por PR e verificar integração efetiva.

@@ -7,7 +7,7 @@ Este índice reúne o histórico versionado das missões do repositório. Os rel
 | 04–05 | MCP Inspector e instalação automatizada | 2026-11-13 | Relatório fonte: implementação local; publicação não comprovada no registro da época | [missao-04-05.md](missao-04-05.md) | — |
 | 06 | Consolidação do workspace MCP e operações | 2026-11-13 | Integrada à `main` conforme PR #1 | [missao-06.md](missao-06.md) | [PR #1](https://github.com/poyato70/azure-cost-local/pull/1) |
 | 07 | Correções de instalação corporativa | 2026-11-15 | Integrada à `main` conforme PR #2 | [missao-07.md](missao-07.md) | [PR #2](https://github.com/poyato70/azure-cost-local/pull/2) |
-| 08 | Governança de relatórios e rastreabilidade | 2026-11-15 | Em execução; acompanhar integração na PR | [missao-08.md](missao-08.md) | Pendente |
+| 08 | Governança de relatórios e rastreabilidade | 2026-11-15 | Implementação concluída; estado atual na PR #3 | [missao-08.md](missao-08.md) | [PR #3](https://github.com/poyato70/azure-cost-local/pull/3) |
 
 ## Criar relatório de nova missão
 

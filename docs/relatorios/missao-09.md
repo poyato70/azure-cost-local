@@ -2,10 +2,10 @@
 
 ## Identificação
 
-- **Estado atual:** Implementação técnica e comparação visual desktop concluídas; revisão móvel pendente; PR #4 aberta.
+- **Estado atual:** QA responsivo e validações concluídos; correção do timeout aplicada; PR #4 aberta, aguardando publicação e integração.
 - **Início:** 2026-11-15 14:45:07 -03:00 (início registrado na execução original desta missão).
-- **Último registro:** 2026-11-15 19:45:27 -03:00
-- **Conclusão:** Pendente até QA móvel, triagem do timeout e integração autorizada.
+- **Último registro:** 2026-11-15 20:27:02 -03:00
+- **Conclusão:** Pendentes commit/push das correções, atualização final da PR e merge autorizado.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-09-visual-redesign`.
 - **Commit inicial:** `46b5cf3dbbd5f3cefea115f4223c1304c513be48` (`origin/main`, após merge M08).
@@ -32,13 +32,13 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 | 3. Consolidar tokens, botões e navegação | Concluída | Tokens dark/light, foco, movimento reduzido, três classes de botão e seleção de navegação. |
 | 4. Implementar mapa e atividade | Concluída tecnicamente | Modelo e componente novos; estados de catálogo/preset/configuração/sessão separados; evento recente vem do serviço; ações existentes reutilizadas. |
 | 5. Harmonizar telas MCP e formulários | Concluída tecnicamente | Tema e mapa nas telas de integração/análise, ajuste de Discovery, formulário preenchido pela seleção do mapa. |
-| 6. Testes e revisão de código | Concluída com uma falha preexistente/investigada | typecheck/build/model tests passaram; suíte ampla teve 1 timeout no teste Windows de ciclo de serviço, em arquivo não alterado. |
-| 7. QA visual, teclado e viewport | Concluída em desktop; móvel pendente | Comparação em 1280 × 720; teclado/foco confirmado; responsividade móvel ainda sem captura. Ver `design-qa.md`. |
-| 8. PR e integração | Em revisão | PR #4 aberta; merge pendente de QA móvel e triagem do timeout Windows. |
+| 6. Testes e revisão de código | Concluída | Typecheck/build e suíte completa passaram; timeout do teste Windows tratado com comparação nas duas branches, comprovação da saúde do processo e remoção de limpeza redundante. |
+| 7. QA visual, teclado e viewport | Concluída nos viewports pedidos | 390 × 844, 768 × 1024 e 1280 × 720; mapa, atividade, navegação, formulário, foco, alvos, loading/erro/vazio e movimento reduzido. Capturas em `test-results/`; ver `design-qa.md`. |
+| 8. PR e integração | Em revisão final | PR #4 segue aberta; diff/security review e merge são os próximos gates. |
 
-- **Progresso:** 7/8 etapas concluídas (**87,5%**); PR publicada, integração pendente.
-- **Tempo decorrido total:** aproximadamente 4 h 58 min 37 s (início 14:45:07; último registro 19:43:44 -03:00, incluindo espera pela imagem enviada pelo usuário).
-- **Pendências:** captura em viewport móvel e investigação do teste Windows de ciclo de serviço que excedeu 20s.
+- **Progresso:** 7/8 etapas concluídas (**87,5%**); QA completo, integração pendente.
+- **Tempo decorrido observado:** 5 h 41 min 55 s desde 14:45:07 até 20:27:02 -03:00, incluindo os intervalos desta execução.
+- **Pendências:** revisar/publicar as mudanças e integrar a PR #4 sem force push.
 
 ## Implementação
 
@@ -58,27 +58,31 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 | `npm run build` | Aprovado | Next compilou, TypeScript e geração estática concluídos após os ajustes finais. |
 | `npx vitest run tests/connections-map-model.test.ts --reporter=dot` | Aprovado | 1 arquivo; 5 testes passaram após os ajustes finais. |
 | `npx playwright test tests/e2e/mcp-clarity.spec.ts --reporter=list` | Aprovado | 2 testes E2E existentes de MCP passaram (cadastro/exclusão/análise e descoberta/cadastro). |
-| `npm test -- --reporter=dot` | Reprovado parcialmente | 52/53 arquivos passaram; 127/128 testes passaram. Um teste falhou por timeout 20s: `tests/server/service-scripts.test.ts` — “preserves a live process when only the health check times out”. Arquivo não alterado nesta missão. |
+| `npm test -- --reporter=dot --maxWorkers=4` | Aprovado após correção | 53/53 arquivos; 129/129 testes; 43,05 s na execução final. |
+| Timeout isolado na PR, antes da correção | Aprovado, margem curta | Teste levou 18,095 s; PowerShell e caso eram idênticos à `origin/main`. |
+| Timeout isolado em `origin/main` | Aprovado, margem curta | 17,628 s; não havia diferenças em `tests/server/service-scripts.test.ts` nem nos scripts de serviço frente à PR. |
+| Timeout isolado após correção | Aprovado | 16,422 s; PID existente confirmado, `/api/health` do fixture retornou 200 e o stop explícito passou. Limpeza final só repete `stop.ps1` se o stop do teste falhar. |
 | `git diff --check` | Aprovado | Executado após ajustes; sem erros de whitespace. |
 | QA visual desktop | Aprovado | Referência inspecionada e app capturado no navegador após incluir o stylesheet no layout Next; relatório detalhado em `design-qa.md`. |
-| QA mobile | Não executado | Sem captura de viewport estreito nesta sessão. |
+| QA responsivo Playwright | Aprovado | `m09-responsive.spec.ts` + `mcp-clarity.spec.ts`: 7/7; viewports 390 × 844, 768 × 1024 e 1280 × 720; sem `pageerror` nos três tamanhos. Capturas full-page em `test-results/`. |
+| Revisão de segurança | Aprovada para este diff | Alterações limitadas a relatório de QA, teste E2E responsivo e teste de serviço; varredura de padrões de segredo não encontrou correspondências. Nenhum `.env` ou arquivo sensível está no diff. |
 
 ## Limitações e decisões
 
 - Itens AWS/GCP no catálogo são referências e não indicam conexão. O inventário de conexões MCP atual tem presets Azure, Kubernetes e custom; não foi inferido acesso real a AWS/GCP sem perfis próprios.
 - Eventos exibidos são retornados pela API local de diagnóstico. Um painel vazio informa que não há operação registrada.
-- O teste Windows de timeout é de ciclo de serviço, fora dos arquivos modificados por esta missão. O timeout foi reproduzido; causa ambiental não está confirmada.
-- QA desktop foi feito e registrado em `design-qa.md`; permanece pendente validar viewport móvel antes do merge.
+- O timeout original era uma expiração do limite do teste, não um crash do serviço. A comparação isolada mediu 18,095 s na PR e 17,628 s em `origin/main`, com o mesmo código do teste e dos scripts; ambas passaram. O teste gastava mais tempo lançando um `stop.ps1` redundante no `finally` após já parar o serviço. A limpeza agora só repete a parada quando a parada explícita falha, e a duração caiu para 16,422 s com a saúde do processo verificada. A suíte completa final passou.
+- Os estados loading/erro/vazio da interface foram simulados via roteamento de APIs no Playwright; a inspeção CUA desktop também observou eventos reais do serviço local. A revisão não foi uma auditoria WCAG/axe completa.
+- Em uma tentativa inicial, a configuração Playwright foi colocada dentro do diretório de saída `test-results`; o Playwright limpou esse diretório ao começar. O inventário de arquivos ignorados anterior não havia sido registrado, portanto pode ter removido evidências prévias; as três capturas pedidas foram geradas novamente e estão listadas em `design-qa.md`. Os próximos outputs usam uma subpasta exclusiva.
 
 ## Publicação
 
 - Branch publicado: `codex/missao-09-visual-redesign`.
 - Commits `91ec1d0` (implementação), `2b32fc3`, `d9db119`, `446973c`, `bb8b5a2` e `6bba3cf` estão publicados no branch/PR #4.
-- PR #4 aberta para revisão: https://github.com/poyato70/azure-cost-local/pull/4. Merge pendente; revisão visual desktop passou, mas falta QA móvel e a falha isolada da suíte ainda requer triagem.
+- PR #4 aberta para revisão: https://github.com/poyato70/azure-cost-local/pull/4. QA responsivo e suíte de testes aprovados; integração aguarda revisão final dos diffs e publicação desta atualização.
 
 ## Pendências
 
-1. Completar captura e revisão da tela em viewport móvel.
-2. Aguardar revisão da PR #4 e resolver/reclassificar o timeout do teste Windows.
-3. Manter a imagem de referência e `design-qa.md` ligados à PR para rastreabilidade.
-4. Integrar somente depois dos gates pendentes.
+1. Atualizar descrição da PR para refletir o QA real e a comparação do timeout.
+2. Revisar diffs/segredos e publicar as mudanças na branch da PR.
+3. Integrar PR #4 por merge regular, sem force push, e registrar o commit remoto.

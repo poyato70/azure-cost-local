@@ -136,6 +136,7 @@ it.skipIf(!windows)("refuses another process on a busy port without terminating 
 it.skipIf(!windows)("preserves a live process when only the health check times out", async () => {
   const f = await fixture("tesseract-service-timeout-", false);
   const port = 14433;
+  let serviceStopped = false;
   try {
     const started = runScript(
       f.root,
@@ -148,10 +149,15 @@ it.skipIf(!windows)("preserves a live process when only the health check times o
     expect(started.stdout + started.stderr).toContain("foi preservado");
     const metadata = JSON.parse((await readFile(f.metadata, "utf8")).replace(/^\uFEFF/, ""));
     expect(metadata.pid).toBeGreaterThan(0);
-    const stopped = runScript(f.root, f.appData, "stop.ps1", ["-Port", String(port)]);
-    expect(stopped.status, stopped.stdout + stopped.stderr).toBe(0);
+    expect(() => process.kill(metadata.pid, 0)).not.toThrow();
+    const health = await fetch(`http://127.0.0.1:${port}/api/health`);
+    expect(health.status).toBe(200);
+    expect(await health.json()).toMatchObject({ ok: true, app: "fixture" });
+    const stopResult = runScript(f.root, f.appData, "stop.ps1", ["-Port", String(port)]);
+    expect(stopResult.status, stopResult.stdout + stopResult.stderr).toBe(0);
+    serviceStopped = true;
   } finally {
-    await stopFixture(f.root, f.appData, port);
+    if (!serviceStopped) await stopFixture(f.root, f.appData, port);
     await rm(f.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 }, 20000);

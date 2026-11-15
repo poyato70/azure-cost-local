@@ -1,11 +1,12 @@
 # Missão 09 — QA visual do mapa de conexões
 
-## Resultado final: passed
+## Resultado final: aprovado nos três viewports solicitados
 
 ### Alvo e evidência
 
 - **Fonte visual:** imagem anexada nesta conversa, `Foto 1.jpg` (1280 × 433 px; captura recortada do mapa).
-- **Implementação:** Tesseract servido localmente em `http://127.0.0.1:4317/`, tela Conexões MCP → Integração.
+- **Implementação desktop observada:** Tesseract local na tela Conexões MCP → Integração; captura ao vivo via CUA em 1280 × 720.
+- **Execução responsiva:** build de produção servido isoladamente em `http://127.0.0.1:14317/`, com `LOCALAPPDATA` dedicado em `test-results/m09-isolated-appdata` e APIs simuladas somente nos testes Playwright.
 - **Captura da implementação:** screenshot do navegador Codex via CUA, viewport 1280 × 720 CSS px, densidade do navegador 1 CSS px por pixel da captura. A ferramenta exibiu a captura na sessão, mas não ofereceu caminho local exportável; URL e estado foram registrados aqui.
 - **Estado comparado:** tema escuro; Azure selecionado; integração Azure OpenAI Usage selecionada. A referência usa estado ilustrativo “Consultando”; a implementação exibe capacidades de catálogo e eventos reais de diagnóstico, sem simular consulta.
 - **Comparação geral:** cabeçalho do mapa, seleção de provedor, lista de integrações e painel lateral de atividade foram inspecionados na captura ao vivo após a compilação corrigida.
@@ -36,13 +37,17 @@
 - **Texto/estados:** categorias e capacidades de catálogo separadas de perfil salvo/conexão; atividade real e estado vazio explícito.
 - **Teclado/foco:** navegação por Tab percorreu os itens do mapa; foco visível violeta foi confirmado por estilo computado (`outline` sólido).
 - **Interações primárias:** selecionar Azure/AWS e alternar integração alterou os itens e capacidades; Azure foi restaurado ao final.
-- **Responsividade:** viewport disponível testado em 1280 × 720. Viewport móvel dedicado não foi capturado; regra mobile de empilhamento foi inspecionada no CSS, mas falta validação visual em dispositivo estreito.
+- **Responsividade (registro histórico):** a primeira comparação desta missão cobriu apenas 1280 × 720; o fechamento abaixo concluiu os viewports mobile e tablet.
+- **Responsividade (fechamento):** Playwright definiu e mediu viewports de 390 × 844, 768 × 1024 e 1280 × 720. Não houve overflow horizontal. Mobile empilha Provedor → Integração → Métricas/Capacidades → Ações → Atividade; tablet e desktop mantêm as etapas do mapa legíveis, com atividade ao lado no desktop e abaixo no tablet.
+- **Navegação/formulário/alvos:** fluxo MCP → Integração percorreu o mapa e formulário. Botões de seleção do mapa mediram pelo menos 44 CSS px de altura; menu móvel abriu e fechou no teste responsivo, e Tab percorreu os provedores com foco visível.
+- **Estados e acessibilidade observada:** teste controlou loading da atividade, estado vazio, erro HTTP, foco Tab/visível e `prefers-reduced-motion: reduce`; não foram observados erros `pageerror`. Isso não substitui uma auditoria WCAG/axe completa.
+- **Capturas Playwright:** `test-results/m09-mobile-390x844.png`, `test-results/m09-tablet-768x1024.png` e `test-results/m09-desktop-1280x720.png` (full-page; largura CSS igual ao viewport de referência). Diretório permanece ignorado pelo Git conforme política do projeto.
 - **Console:** não foram coletados logs de console após a correção; o build e o render pós-correção foram observados.
 
-### Pendências menores
+### Limitações restantes
 
 - **P3:** aproximar a tipografia monoespaçada usada na atividade do protótipo, caso essa distinção seja mantida após revisão de produto.
-- Uma captura visual em viewport móvel permanece recomendada. O QA desta comparação desktop passou; não é declaração de aceite visual de todos os breakpoints.
+- Não foi executada auditoria automatizada axe/WCAG nem coleta geral de logs do console; o teste verifica `pageerror`, teclado/foco e alvos mínimos, e os limites de overflow medidos.
 
 ## Checklist
 
@@ -50,4 +55,5 @@
 - [x] Corrigir stylesheet ausente no entrypoint Next e recapturar.
 - [x] Conferir estado real do mapa, seleção de catálogo, atividade e foco de teclado.
 - [x] Registrar diferenças responsivas e de estado ilustrativo.
-- [ ] Revisar captura móvel antes de integrar PR #4.
+- [x] Revisar captura mobile, tablet e desktop antes de integrar PR #4.
+- [x] Percorrer navegação mobile, foco de teclado, estado de loading/vazio/erro e movimento reduzido.

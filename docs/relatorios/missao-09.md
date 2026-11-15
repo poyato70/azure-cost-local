@@ -4,7 +4,7 @@
 
 - **Estado atual:** Missão concluída; QA responsivo aprovado, timeout corrigido e PR #4 integrada à `main`.
 - **Início:** 2026-11-15 14:45:07 -03:00 (início registrado na execução original desta missão).
-- **Último registro:** 2026-11-15 20:33:45 -03:00
+- **Último registro:** 2026-11-15 20:35:28 -03:00
 - **Conclusão:** 2026-11-15 20:31:32 -03:00 (integração remota confirmada).
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-09-visual-redesign`.
@@ -34,10 +34,10 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 | 5. Harmonizar telas MCP e formulários | Concluída tecnicamente | Tema e mapa nas telas de integração/análise, ajuste de Discovery, formulário preenchido pela seleção do mapa. |
 | 6. Testes e revisão de código | Concluída | Typecheck/build e suíte completa passaram; timeout do teste Windows tratado com comparação nas duas branches, comprovação da saúde do processo e remoção de limpeza redundante. |
 | 7. QA visual, teclado e viewport | Concluída nos viewports pedidos | 390 × 844, 768 × 1024 e 1280 × 720; mapa, atividade, navegação, formulário, foco, alvos, loading/erro/vazio e movimento reduzido. Capturas em `test-results/`; ver `design-qa.md`. |
-| 8. PR e integração | Concluída | PR #4 integrada via merge regular; `origin/main` aponta para `6d7bcf5a5da987ca1e1a9a51c2127869be952a5b`, sem force push. |
+| 8. PR e integração | Concluída | PR #4 integrada via merge regular (`6d7bcf5a5da987ca1e1a9a51c2127869be952a5b`); o registro documental pós-merge também está publicado no `main`; sem force push. |
 
 - **Progresso:** 8/8 etapas concluídas (**100%**).
-- **Tempo decorrido observado:** 5 h 48 min 38 s desde 14:45:07 até 20:33:45 -03:00, incluindo os intervalos desta execução.
+- **Tempo decorrido observado:** 5 h 50 min 21 s desde 14:45:07 até 20:35:28 -03:00, incluindo os intervalos desta execução.
 - **Pendências:** nenhuma para o critério de conclusão desta missão.
 
 ## Implementação

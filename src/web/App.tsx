@@ -380,6 +380,7 @@ export function App() {
     }
   }
   async function openResourceLogin(id: string, kind = "mcp-connections") {
+    if (loginPending) return;
     const popup = window.open(
       "about:blank",
       "azure-cost-login",
@@ -389,6 +390,9 @@ export function App() {
       setError("Permita pop-ups para localhost.");
       return;
     }
+    setLoginPending(true);
+    setError("");
+    setInfo("Aguardando autorização Microsoft na janela separada…");
     try {
       const r = await manageRequest(
         "/" + kind + "/" + id + "/login",
@@ -396,31 +400,46 @@ export function App() {
         {},
       );
       popup.location.assign(r.url);
-      setInfo("Autorize o recurso na janela separada.");
+      popup.focus();
+      setInfo("Autorize o recurso na janela separada. Nenhuma conta ou tenant será trocado automaticamente.");
       let checking = false;
       const started = Date.now();
-      const timer = setInterval(async () => {
+      loginTimer.current = setInterval(async () => {
         if (checking) return;
         checking = true;
         try {
           const b = await api.bootstrap();
-          if (
-            b.authenticated ||
-            b.loginError ||
-            Date.now() - started > 600000
-          ) {
-            clearInterval(timer);
+          if (b.authenticated || b.loginError) {
+            if (loginTimer.current) clearInterval(loginTimer.current);
+            loginTimer.current = undefined;
+            setLoginPending(false);
             setBoot(b);
             setError(b.loginError?.message || "");
-            setInfo(b.authenticated ? "Recurso autorizado." : "");
+            setInfo(
+              b.authenticated
+                ? "Recurso autorizado com a identidade de usuário selecionada."
+                : "A autorização não foi concluída. Veja o diagnóstico Microsoft acima.",
+            );
             void reloadSettings();
+          } else if (Date.now() - started > 600000) {
+            if (loginTimer.current) clearInterval(loginTimer.current);
+            loginTimer.current = undefined;
+            setLoginPending(false);
+            setError("A autorização excedeu 10 minutos. O tenant e a identidade não foram alterados; inicie uma nova tentativa se desejar.");
           }
+        } catch (e) {
+          if (loginTimer.current) clearInterval(loginTimer.current);
+          loginTimer.current = undefined;
+          setLoginPending(false);
+          setError((e as Error).message);
         } finally {
           checking = false;
         }
       }, 1000);
     } catch (e) {
       popup.close();
+      setLoginPending(false);
+      setInfo("");
       setError((e as Error).message);
     }
   }
@@ -788,12 +807,14 @@ export function App() {
                 basis={basis}
                 selected={hubId}
                 onSelect={setHubId}
+                loginPending={loginPending}
                 onLogin={(id) => void openResourceLogin(id, "hubs")}
               />
             )}
             {tab === "accesses" && (
               <Accesses
                 profiles={accesses}
+                loginPending={loginPending}
                 onChanged={() => void reloadSettings()}
                 connectionFeedback={connectionFeedback}
                 onConnect={(id, mode) => void connect(id, mode, true)}
@@ -809,6 +830,7 @@ export function App() {
                 onDraftConsumed={() => setMcpDraft(undefined)}
                 activeAccessId={boot?.activeAccessId}
                 azureAuthenticated={boot?.authenticated}
+                loginPending={loginPending}
                 principalKind={boot?.principalKind}
                 onConnectAccess={(id, mode) => void connect(id, mode)}
                 mode={tab === "mcp-analysis" ? "analysis" : "integration"}

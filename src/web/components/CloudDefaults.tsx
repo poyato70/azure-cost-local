@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { cloudDefaults } from "../../shared/cloud-defaults.js";
+import {
+  parseAzureAiResourceId,
+  validateAzureAiUsagePeriod,
+} from "../../shared/azure-ai-usage.js";
 import { manageRequest } from "../api.js";
 
 type UsageResult = {
@@ -32,16 +36,35 @@ export function CloudDefaults({
   const entry = entries.find(({ name }) => name === selected) ?? entries[0];
 
   async function loadUsage() {
+    request.current?.abort();
+    setBusy(false);
+    const parsedResource = parseAzureAiResourceId(resourceId);
+    if (parsedResource.error) {
+      setError(parsedResource.error);
+      setUsage(undefined);
+      return;
+    }
+    const periodError = validateAzureAiUsagePeriod(from, toExclusive);
+    if (periodError) {
+      setError(periodError);
+      setUsage(undefined);
+      return;
+    }
+    if (parsedResource.extractedFromPortal) {
+      setResourceId(parsedResource.resourceId);
+      setError("Resource ID extraído da página do portal Azure.");
+    } else {
+      setError("");
+    }
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
-    setError("");
     setUsage(undefined);
     try {
       const result = await manageRequest<UsageResult>(
         "/cloud/azure-ai-usage",
         "POST",
-        { resourceId: resourceId.trim(), from, toExclusive },
+        { resourceId: parsedResource.resourceId, from, toExclusive },
         controller.signal,
       );
       if (!controller.signal.aborted) setUsage(result);
@@ -149,44 +172,61 @@ export function CloudDefaults({
         )}
       {entry.target === "azure-ai" && (
         <form
-          className="settings-form"
+          className="settings-form azure-ai-usage"
+          aria-busy={busy}
           onSubmit={(e) => {
             e.preventDefault();
             void loadUsage();
           }}
         >
           <label>
-            ID do recurso Azure OpenAI
+            Resource ID da conta Azure OpenAI
             <input
               required
+              disabled={busy}
               value={resourceId}
-              onChange={(e) => setResourceId(e.target.value)}
-              placeholder="/subscriptions/…/resourceGroups/…/providers/Microsoft.CognitiveServices/accounts/…"
+              aria-invalid={!!error && !parseAzureAiResourceId(resourceId).resourceId}
+              aria-describedby="azure-ai-resource-help"
+              onChange={(e) => {
+                setResourceId(e.target.value);
+                setError("");
+              }}
+              placeholder="/subscriptions/00000000-0000-4000-8000-000000000000/resourceGroups/rg-openai/providers/Microsoft.CognitiveServices/accounts/conta-openai"
             />
+            <small id="azure-ai-resource-help">
+              Cole esse caminho de Visão geral, ou uma URL HTTPS de portal.azure.com
+              aberta diretamente nessa conta. Não aceitamos URLs arbitrárias.
+            </small>
           </label>
           <label>
             Início (UTC)
             <input
               required
+              disabled={busy}
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
             />
           </label>
           <label>
-            Fim exclusivo (UTC)
+            Fim exclusivo (UTC; não incluído no intervalo)
             <input
               required
+              disabled={busy}
               type="date"
               value={toExclusive}
               onChange={(e) => setToExclusive(e.target.value)}
             />
           </label>
-          <button className="primary" disabled={busy}>
+          <button className="primary" disabled={busy} aria-busy={busy}>
             {busy ? "Consultando…" : "Consultar tokens"}
           </button>
           {error && (
-            <p role="alert" className="error">
+            <p
+              role={error.startsWith("Resource ID extraído") ? "status" : "alert"}
+              className={error.startsWith("Resource ID extraído") ? "notice" : "error"}
+              aria-live="polite"
+            >
               {error}
             </p>
           )}

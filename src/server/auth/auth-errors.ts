@@ -1,11 +1,28 @@
 import { AppError } from "../errors.js";
 
+export type AuthErrorContext = {
+  tenantId?: string;
+  resourceName?: string;
+  resourceAppId?: string;
+};
+
+const safeGuid = (value: unknown) =>
+  typeof value === "string" &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  )
+    ? value
+    : undefined;
+
 const safeIdentifier = (value: unknown) =>
   typeof value === "string" && /^[a-zA-Z][a-zA-Z0-9_]{2,79}$/.test(value)
     ? value
     : undefined;
 /** Expose diagnostic identifiers, never raw MSAL messages, authorization codes or URLs. */
-export function authError(error: unknown): AppError {
+export function authError(
+  error: unknown,
+  context: AuthErrorContext = {},
+): AppError {
   if (error instanceof AppError) return error;
   const e =
     error && typeof error === "object"
@@ -33,6 +50,23 @@ export function authError(error: unknown): AppError {
         ? e.message
         : "";
   const aad = text.match(/\bAADSTS(\d{4,9})\b/)?.[1];
+  const tenantId = safeGuid(context.tenantId) || safeGuid(e.tenantId);
+  const resourceAppId =
+    safeGuid(context.resourceAppId) ||
+    safeGuid(e.resourceAppId) ||
+    safeGuid(text.match(/resource(?: application)?(?: app)? id\s*[:=]\s*([0-9a-f-]{36})/i)?.[1]);
+  const resourceName =
+    context.resourceName ||
+    (typeof e.resourceName === "string" &&
+    /^[\p{L}\p{N} .()_-]{1,100}$/u.test(e.resourceName)
+      ? e.resourceName
+      : undefined) ||
+    text.match(/service\s+["(]([^"\r\n)]+)[")]/i)?.[1];
+  const correlationId =
+    safeGuid(e.correlationId) ||
+    safeGuid(text.match(/correlation\s+id\s*:\s*([0-9a-f-]{36})/i)?.[1]);
+  const traceId =
+    safeGuid(e.traceId) || safeGuid(text.match(/trace\s+id\s*:\s*([0-9a-f-]{36})/i)?.[1]);
   const label = aad
     ? `AADSTS${aad}`
     : msal || nodeCode || exceptionName || "erro_interno";
@@ -48,6 +82,20 @@ export function authError(error: unknown): AppError {
       `${label}: falta consentimento para acessar o Azure em nome do usuário. Verifique a permissão delegada Azure Service Management e as políticas do tenant.`,
       403,
     );
+  if (aad === "650052") {
+    const details = [
+      tenantId && `Tenant ID: ${tenantId}`,
+      resourceName && `Recurso: ${resourceName}`,
+      resourceAppId && `Application ID do recurso: ${resourceAppId}`,
+      correlationId && `Correlation ID: ${correlationId}`,
+      traceId && `Trace ID: ${traceId}`,
+    ].filter(Boolean);
+    return new AppError(
+      "auth_resource_unavailable",
+      `AADSTS650052: o Microsoft Entra informa que o tenant não tem o recurso solicitado habilitado/provisionado ou seu service principal disponível. Para o ARM MCP, o administrador deve confirmar o service principal do recurso, a permissão delegada MCP.Access e o consentimento exigido pela organização. Isso é diferente de autenticação do usuário e de RBAC nas subscriptions; o Tesseract não cria service principals nem concede consentimento. ${details.length ? "Diagnóstico: " + details.join(" · ") + "." : "Consulte o registro de entrada do Entra para obter o tenant e os IDs de correlação."}`,
+      403,
+    );
+  }
   if (aad === "50020" || aad === "500200" || aad === "500202")
     return new AppError(
       "auth_account",

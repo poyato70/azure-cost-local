@@ -13,12 +13,14 @@ export function Accesses({
   onChanged,
   onConnect,
   connectionFeedback,
+  loginPending = false,
 }: {
   connectionFeedback?: {
     id: string;
     kind: "pending" | "success" | "error";
     message: string;
   };
+  loginPending?: boolean;
   profiles: PublicAccessProfile[];
   onChanged: () => void;
   onConnect: (id: string, mode: "user" | "application") => void;
@@ -223,12 +225,12 @@ export function Accesses({
                 Client: {p.clientId}
               </small>
               <div className="actions">
-                <button disabled={busy} onClick={() => onConnect(p.id, "user")}>
+                <button disabled={busy || loginPending} aria-busy={loginPending} onClick={() => onConnect(p.id, "user")}>
                   Conectar usuário
                 </button>
                 <button
                   disabled={
-                    busy ||
+                    busy || loginPending ||
                     connectionFeedback?.kind === "pending" ||
                     !p.secretConfigured
                   }

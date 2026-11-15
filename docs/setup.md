@@ -10,7 +10,7 @@ npm run build
 npm start
 ```
 
-Abra http://localhost:4317. Ctrl+C encerra o serviço. `scripts/start.ps1` oferece início em segundo plano e abre o navegador; `scripts/stop.ps1` encerra somente o processo criado por esse script. Não exponha a porta na rede. Não há dados fictícios na execução normal.
+No Windows, use `install.ps1` uma vez, depois `start.ps1`, `status.ps1` e `stop.ps1` na raiz do checkout. O serviço inicia em segundo plano e confirma `/api/health`; use `-Port` com o mesmo valor em start/status/stop quando mudar a porta. Os wrappers em `scripts/` continuam disponíveis. PID e logs são isolados por checkout em `%LOCALAPPDATA%\AzureCostLocal\instances\<id>`. Não exponha a porta na rede. Não há dados fictícios na execução normal.
 
 ## Acessos salvos, MCPs e agentes
 

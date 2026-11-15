@@ -64,6 +64,90 @@ describe("local boundary", () => {
     ).toBe(403);
     await app.close();
   });
+  it("accepts both local Origins only on the configured port and still enforces CSRF", async () => {
+    const port = 14321;
+    const app = await buildApp({
+      config: {
+        tenantId: "",
+        clientId: "",
+        port,
+        origin: `http://localhost:${port}`,
+      },
+    });
+    const login = async () => {
+      const boot = await app.inject({
+        url: "/api/bootstrap",
+        headers: { host: `localhost:${port}` },
+      });
+      return {
+        cookie: String(boot.headers["set-cookie"]).split(";")[0],
+        csrf: boot.json().csrf,
+      };
+    };
+    const post = (
+      cookie: string,
+      origin: string | undefined,
+      csrf: string,
+      host = `127.0.0.1:${port}`,
+    ) =>
+      app.inject({
+        method: "POST",
+        url: "/api/auth/logout",
+        headers: {
+          host,
+          ...(origin ? { origin } : {}),
+          cookie,
+          "x-csrf-token": csrf,
+        },
+        payload: {},
+      });
+    try {
+      let { cookie, csrf } = await login();
+      expect(
+        (await post(cookie, `http://localhost:${port}`, csrf)).statusCode,
+      ).toBe(200);
+      ({ cookie, csrf } = await login());
+      expect(
+        (await post(cookie, `http://127.0.0.1:${port}`, csrf)).statusCode,
+      ).toBe(200);
+      ({ cookie, csrf } = await login());
+      expect(
+        (
+          await post(
+            cookie,
+            `http://127.0.0.1:${port}`,
+            csrf,
+            `localhost:${port}`,
+          )
+        ).statusCode,
+      ).toBe(200);
+      ({ cookie, csrf } = await login());
+      expect(
+        (await post(cookie, undefined, csrf, `localhost:${port}`)).statusCode,
+      ).toBe(200);
+      ({ cookie, csrf } = await login());
+      expect(
+        (await post(cookie, `http://127.0.0.1:${port + 1}`, csrf)).statusCode,
+      ).toBe(403);
+      expect(
+        (await post(cookie, "https://attacker.example", csrf)).statusCode,
+      ).toBe(403);
+      expect(
+        (await post(cookie, `http://localhost:${port}`, "invalid-csrf"))
+          .statusCode,
+      ).toBe(403);
+      expect(
+        (
+          await app.inject({
+            url: "/api/health",
+            headers: { host: `127.0.0.1:${port + 1}` },
+          })
+        ).statusCode,
+      ).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
   it("invalidates session and aborts work on logout", () => {
     const store = new SessionStore();
     const id = store.create("user", "tenant");

@@ -145,9 +145,13 @@ export async function buildApp(deps: AppDeps = {}) {
     };
     const host = req.headers.host;
     const allowed = [`localhost:${config.port}`, `127.0.0.1:${config.port}`];
-    if (!host || !allowed.includes(host))
+    if (!host || !allowed.includes(host.toLowerCase()))
       throw new AppError("forbidden", "Host recusado.", 403);
-    if (req.headers.origin && req.headers.origin !== config.origin)
+    const allowedOrigins = [
+      `http://localhost:${config.port}`,
+      `http://127.0.0.1:${config.port}`,
+    ];
+    if (req.headers.origin && !allowedOrigins.includes(req.headers.origin))
       throw new AppError("forbidden", "Origem recusada.", 403);
     if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const s = session(req),
@@ -275,7 +279,7 @@ export async function buildApp(deps: AppDeps = {}) {
     diagnostics.clear(session(req).id);
     return { ok: true };
   });
-  app.get("/api/health", async () => ({ ok: true }));
+  app.get("/api/health", async () => ({ ok: true, app: "Tesseract 2.0" }));
   app.get("/api/bootstrap", async (req, reply) => {
     let s = store.get(req.cookies.sid);
     if (!s) {
@@ -329,6 +333,9 @@ export async function buildApp(deps: AppDeps = {}) {
         throw authError({
           errorCode: upstream.error,
           errorMessage: upstream.error_description,
+        }, identities.authErrorContext(req.cookies.sid || "") || {
+          tenantId: config.tenantId,
+          resourceName: "Azure Resource Manager",
         });
       const q = z
         .object({ state: z.string(), code: z.string() })

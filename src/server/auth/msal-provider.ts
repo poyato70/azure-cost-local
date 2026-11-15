@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { PublicClientApplication } from "@azure/msal-node";
 import { AppError } from "../errors.js";
 import { authError } from "./auth-errors.js";
+import type { AuthErrorContext } from "./auth-errors.js";
 import type { SessionStore } from "./session-store.js";
 import type { Config } from "../config.js";
 import type { RequestContext } from "../../shared/contracts.js";
@@ -49,7 +50,12 @@ export class MicrosoftIdentity {
   constructor(
     private store: SessionStore,
     private config: Config,
-    private options: { scopes?: string[]; pca?: PublicClientApplication } = {},
+    private options: {
+      scopes?: string[];
+      pca?: PublicClientApplication;
+      resourceName?: string;
+      resourceAppId?: string;
+    } = {},
   ) {}
   async begin() {
     if (!this.config.clientId || !this.config.tenantId)
@@ -102,7 +108,11 @@ export class MicrosoftIdentity {
         nonce: f.nonce,
       })
       .catch((error) => {
-        throw authError(error);
+        throw authError(error, {
+          tenantId: this.config.tenantId,
+          resourceName: this.options.resourceName,
+          resourceAppId: this.options.resourceAppId,
+        } satisfies AuthErrorContext);
       });
     if (
       !result?.account ||

@@ -14,6 +14,8 @@ import type {
 } from "../../shared/connections.js";
 import { manageRequest } from "../api.js";
 import { applyPricingDefaults } from "../components/pricing-defaults.js";
+import { ConnectionsMap } from "../components/ConnectionsMap.js";
+import type { DiagnosticEvent } from "../../server/diagnostics/service.js";
 const defaults = {
   kubernetes: { endpoint: "", transport: "http" },
   custom: { endpoint: "", transport: "http" },
@@ -56,6 +58,11 @@ export function McpConnections({
   onChanged,
   onLogin,
   loginPending = false,
+  diagnosticEvents = [],
+  activityLoading = false,
+  onRefreshActivity,
+  onNavigate,
+  onConfigureDraft,
 }: {
   mode?: "integration" | "analysis";
   initialConnectionId?: string;
@@ -71,11 +78,25 @@ export function McpConnections({
   onChanged: () => void;
   onLogin: (id: string) => void;
   loginPending?: boolean;
+  diagnosticEvents?: DiagnosticEvent[];
+  activityLoading?: boolean;
+  onRefreshActivity?: () => void;
+  onNavigate?: (tab: string) => void;
+  onConfigureDraft?: (draft: Record<string, unknown>) => void;
 }) {
   const [catalogLoaded, setCatalogLoaded] = useState(false);
   useEffect(() => {
     if (initialDraft) onDraftConsumed?.();
   }, [initialDraft, onDraftConsumed]);
+  useEffect(() => {
+    if (!initialDraft) return;
+    const next = { ...empty, ...initialDraft };
+    setForm(next);
+    setContext(JSON.stringify(next.resourceContext || {}, null, 2));
+    setNotice("");
+    setToken("");
+    setTokenConfigured(false);
+  }, [initialDraft]);
   const [token, setToken] = useState("");
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [catalogBusy, setCatalogBusy] = useState(false);
@@ -100,6 +121,10 @@ export function McpConnections({
     [advanced, setAdvanced] = useState(false),
     [execution, setExecution] = useState<{ kind: string; message: string }>(),
     [matrix, setMatrix] = useState<any[]>([]);
+  useEffect(() => {
+    if (mode === "analysis" && initialConnectionId)
+      setInspected(initialConnectionId);
+  }, [mode, initialConnectionId]);
   const independent = ["kubernetes", "custom"].includes(form.preset);
   useEffect(() => {
     if (mode === "analysis") {
@@ -201,6 +226,19 @@ export function McpConnections({
   }
   const field = (k: string, v: unknown) =>
     setForm((f: any) => ({ ...f, [k]: v }));
+  function configureFromMap(draft: Record<string, any>) {
+    const preset = (draft.preset || "custom") as keyof typeof defaults;
+    const configured = { ...empty, ...defaults[preset], ...draft };
+    setForm(configured);
+    setContext(JSON.stringify(draft.resourceContext || {}, null, 2));
+    setNotice("");
+    document.getElementById("mcp-profile-form")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+  }
   const working = busy || catalogBusy;
   const connectIdentity = (p: any) =>
     p.transport === "http" && p.authMode === "delegated"
@@ -216,7 +254,7 @@ export function McpConnections({
     onConnect: connectIdentity,
   };
   return (
-    <>
+    <div className={`mcp-page mcp-page--${mode}`}>
       <div className="section-head">
         <div>
           <h2>
@@ -231,6 +269,7 @@ export function McpConnections({
           </p>
         </div>
         <button
+          className="button-secondary"
           hidden={mode === "analysis"}
           onClick={() => {
             setForm(empty);
@@ -244,6 +283,34 @@ export function McpConnections({
           Nova conexão
         </button>
       </div>
+      <ConnectionsMap
+        profiles={profiles}
+        accessesCount={accesses.length}
+        azureAuthenticated={!!azureAuthenticated}
+        events={diagnosticEvents}
+        activityLoading={activityLoading}
+        loginPending={loginPending}
+        onRefreshActivity={() => onRefreshActivity?.()}
+        onConfigure={(draft) => {
+          if (mode === "analysis") onConfigureDraft?.(draft);
+          else configureFromMap(draft);
+        }}
+        onConnect={async (id) => {
+          const result = await manageRequest(
+            `/mcp-connections/${id}/test`,
+            "POST",
+            {},
+          );
+          onChanged();
+          return result;
+        }}
+        onAuthorize={(id) => onLogin(id)}
+        onInspect={(id) => {
+          if (mode === "analysis") setInspected(id);
+          else onInspect?.(id);
+        }}
+        onNavigate={(tab) => onNavigate?.(tab)}
+      />
       {mode === "integration" &&
         profiles.filter((profile) => profile.id !== "default").length === 0 && (
           <section className="config-card" role="status">
@@ -303,6 +370,7 @@ export function McpConnections({
         }
       >
         <form
+          id="mcp-profile-form"
           hidden={mode === "analysis"}
           className="settings-form"
           onSubmit={(e) => {
@@ -340,10 +408,10 @@ export function McpConnections({
               Após salvar, use Autorizar recurso para entrar com o usuário Azure
               e consentir MCP.Access. O escopo escolhido delimita as consultas.
               Se o Entra retornar AADSTS650052, o administrador do tenant deve
-              verificar se o service principal do ARM MCP está disponível e se
-              a permissão delegada MCP.Access e o consentimento estão
-              habilitados. O Tesseract não provisiona esse recurso nem muda de
-              tenant ou identidade automaticamente.
+              verificar se o service principal do ARM MCP está disponível e se a
+              permissão delegada MCP.Access e o consentimento estão habilitados.
+              O Tesseract não provisiona esse recurso nem muda de tenant ou
+              identidade automaticamente.
             </p>
           )}
           <label>
@@ -631,14 +699,18 @@ export function McpConnections({
                   </button>
                   {p.transport === "http" && p.authMode === "delegated" && (
                     <button
+                      className="button-secondary"
                       disabled={loginPending}
                       aria-busy={loginPending}
                       onClick={() => onLogin(p.id)}
                     >
-                      {loginPending ? "Aguardando autorização…" : "Autorizar recurso"}
+                      {loginPending
+                        ? "Aguardando autorização…"
+                        : "Autorizar recurso"}
                     </button>
                   )}
                   <button
+                    className="button-secondary"
                     hidden={mode === "analysis"}
                     onClick={() => {
                       const {
@@ -676,6 +748,7 @@ export function McpConnections({
                     Editar
                   </button>
                   <button
+                    className="button-secondary"
                     disabled={working}
                     onClick={() =>
                       void run(async () => {
@@ -691,6 +764,7 @@ export function McpConnections({
                     Desconectar
                   </button>
                   <button
+                    className="button-danger"
                     hidden={mode === "analysis"}
                     disabled={working}
                     onClick={() =>
@@ -942,6 +1016,6 @@ export function McpConnections({
             </details>
           );
         })()}
-    </>
+    </div>
   );
 }

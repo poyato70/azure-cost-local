@@ -35,6 +35,7 @@ import type {
 import { Accesses } from "./pages/Accesses.js";
 import { McpConnections } from "./pages/McpConnections.js";
 import { Agents } from "./pages/Agents.js";
+import type { DiagnosticEvent } from "../server/diagnostics/service.js";
 const tabs: { id: string; label: string; group?: string }[] = [
   { id: "multicloud", label: "Visão multicloud", group: "EXPLORAR" },
   { id: "costs", label: "Custos" },
@@ -63,6 +64,10 @@ export function App() {
   const [analysisMcpId, setAnalysisMcpId] = useState("");
   const [mcpDraft, setMcpDraft] = useState<any>();
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [diagnosticEvents, setDiagnosticEvents] = useState<DiagnosticEvent[]>(
+    [],
+  );
+  const [activityLoading, setActivityLoading] = useState(false);
   const [accesses, setAccesses] = useState<PublicAccessProfile[]>([]),
     [mcpProfiles, setMcpProfiles] = useState<any[]>([]),
     [agentProfiles, setAgentProfiles] = useState<PublicAgent[]>([]),
@@ -70,6 +75,17 @@ export function App() {
     [accessMode, setAccessMode] = useState<"user" | "application">("user"),
     [source, setSource] = useState<"api" | "mcp">("api"),
     [mcpId, setMcpId] = useState("");
+  const refreshDiagnostics = async () => {
+    setActivityLoading(true);
+    try {
+      const events = await manageRequest<DiagnosticEvent[]>("/diagnostics");
+      setDiagnosticEvents(Array.isArray(events) ? events : []);
+    } catch {
+      setDiagnosticEvents([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
   const reloadSettings = async () => {
     try {
       const [a, m, g] = await Promise.all([
@@ -81,6 +97,7 @@ export function App() {
       setMcpProfiles(Array.isArray(m) ? m : []);
       setAgentProfiles(Array.isArray(g) ? g : []);
       setSettingsLoaded(true);
+      void refreshDiagnostics();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -401,7 +418,9 @@ export function App() {
       );
       popup.location.assign(r.url);
       popup.focus();
-      setInfo("Autorize o recurso na janela separada. Nenhuma conta ou tenant será trocado automaticamente.");
+      setInfo(
+        "Autorize o recurso na janela separada. Nenhuma conta ou tenant será trocado automaticamente.",
+      );
       let checking = false;
       const started = Date.now();
       loginTimer.current = setInterval(async () => {
@@ -425,7 +444,9 @@ export function App() {
             if (loginTimer.current) clearInterval(loginTimer.current);
             loginTimer.current = undefined;
             setLoginPending(false);
-            setError("A autorização excedeu 10 minutos. O tenant e a identidade não foram alterados; inicie uma nova tentativa se desejar.");
+            setError(
+              "A autorização excedeu 10 minutos. O tenant e a identidade não foram alterados; inicie uma nova tentativa se desejar.",
+            );
           }
         } catch (e) {
           if (loginTimer.current) clearInterval(loginTimer.current);
@@ -740,7 +761,10 @@ export function App() {
               />
             </section>
           </div>
-          <section className="content-card" hidden={tab === "multicloud"}>
+          <section
+            className={`content-card app-content app-content--${tab}`}
+            hidden={tab === "multicloud"}
+          >
             {tab === "home" && (
               <WorkspaceHome
                 mcps={mcpProfiles}
@@ -840,8 +864,16 @@ export function App() {
                 }}
                 profiles={mcpProfiles}
                 accesses={accesses}
+                diagnosticEvents={diagnosticEvents}
+                activityLoading={activityLoading}
+                onRefreshActivity={() => void refreshDiagnostics()}
                 onChanged={() => void reloadSettings()}
                 onLogin={(id) => void openResourceLogin(id)}
+                onNavigate={setTab}
+                onConfigureDraft={(draft) => {
+                  setMcpDraft(draft);
+                  setTab("mcps");
+                }}
               />
             )}
             {["agents", "agent-lab"].includes(tab) && (

@@ -4,7 +4,7 @@
 
 - **Estado atual:** Implementação técnica e comparação visual desktop concluídas; revisão móvel pendente; PR #4 aberta.
 - **Início:** 2026-11-15 14:45:07 -03:00 (início registrado na execução original desta missão).
-- **Último registro:** 2026-11-15 19:44:52 -03:00
+- **Último registro:** 2026-11-15 19:45:27 -03:00
 - **Conclusão:** Pendente até QA móvel, triagem do timeout e integração autorizada.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-09-visual-redesign`.
@@ -68,12 +68,12 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 - Itens AWS/GCP no catálogo são referências e não indicam conexão. O inventário de conexões MCP atual tem presets Azure, Kubernetes e custom; não foi inferido acesso real a AWS/GCP sem perfis próprios.
 - Eventos exibidos são retornados pela API local de diagnóstico. Um painel vazio informa que não há operação registrada.
 - O teste Windows de timeout é de ciclo de serviço, fora dos arquivos modificados por esta missão. O timeout foi reproduzido; causa ambiental não está confirmada.
-- Validar visualmente fonte, interface implementada, teclado e pontos de largura menor permanece necessário antes do merge.
+- QA desktop foi feito e registrado em `design-qa.md`; permanece pendente validar viewport móvel antes do merge.
 
 ## Publicação
 
 - Branch publicado: `codex/missao-09-visual-redesign`.
-- Commits anteriores do código/relatório publicados na PR #4; correção do entrypoint Next e `design-qa.md` estão neste turno e aguardam commit/push.
+- Commits `91ec1d0` (implementação), `2b32fc3`, `d9db119`, `446973c`, `bb8b5a2` e `6bba3cf` estão publicados no branch/PR #4.
 - PR #4 aberta para revisão: https://github.com/poyato70/azure-cost-local/pull/4. Merge pendente; revisão visual desktop passou, mas falta QA móvel e a falha isolada da suíte ainda requer triagem.
 
 ## Pendências

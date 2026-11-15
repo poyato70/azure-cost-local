@@ -20,6 +20,7 @@ export function Hubs({
   onSelect,
   selected,
   onLogin,
+  loginPending = false,
 }: {
   accesses: any[];
   mcps: any[];
@@ -28,6 +29,7 @@ export function Hubs({
   onSelect: (id: string) => void;
   selected: string;
   onLogin: (id: string) => void;
+  loginPending?: boolean;
 }) {
   const requestRef = useRef<AbortController | null>(null);
   const [profiles, setProfiles] = useState<HubProfile[]>([]),
@@ -241,8 +243,12 @@ export function Hubs({
               <p>
                 {h.endpoint} · {h.transport} · Hub / {h.schemaVersion}
               </p>
-              <button onClick={() => onLogin(h.id)}>
-                Autorizar ADX (usuário)
+              <button
+                disabled={loginPending}
+                aria-busy={loginPending}
+                onClick={() => onLogin(h.id)}
+              >
+                {loginPending ? "Aguardando autorização…" : "Autorizar ADX (usuário)"}
               </button>
               <button onClick={() => setForm(h)}>Editar</button>
               <button

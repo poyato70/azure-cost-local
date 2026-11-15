@@ -55,6 +55,7 @@ export function McpConnections({
   accesses,
   onChanged,
   onLogin,
+  loginPending = false,
 }: {
   mode?: "integration" | "analysis";
   initialConnectionId?: string;
@@ -69,6 +70,7 @@ export function McpConnections({
   accesses: PublicAccessProfile[];
   onChanged: () => void;
   onLogin: (id: string) => void;
+  loginPending?: boolean;
 }) {
   const [catalogLoaded, setCatalogLoaded] = useState(false);
   useEffect(() => {
@@ -259,6 +261,7 @@ export function McpConnections({
           <McpIdentity
             profile={profiles.find((p) => p.id === inspected)}
             {...identityProps}
+            loginPending={loginPending}
           />
         </section>
       )}
@@ -336,6 +339,11 @@ export function McpConnections({
             <p className="notice">
               Após salvar, use Autorizar recurso para entrar com o usuário Azure
               e consentir MCP.Access. O escopo escolhido delimita as consultas.
+              Se o Entra retornar AADSTS650052, o administrador do tenant deve
+              verificar se o service principal do ARM MCP está disponível e se
+              a permissão delegada MCP.Access e o consentimento estão
+              habilitados. O Tesseract não provisiona esse recurso nem muda de
+              tenant ou identidade automaticamente.
             </p>
           )}
           <label>
@@ -589,7 +597,11 @@ export function McpConnections({
               <article className="config-card" key={p.id}>
                 <h3>{p.name}</h3>
                 <McpDetails profile={p} />
-                <McpIdentity profile={p} {...identityProps} />
+                <McpIdentity
+                  profile={p}
+                  {...identityProps}
+                  loginPending={loginPending}
+                />
                 <p className="fine">
                   Estado: {p.status || "cadastrado"}. O cadastro não inicia uma
                   conexão; use Conectar e listar tools para descobrir o
@@ -618,8 +630,12 @@ export function McpConnections({
                     Conectar e listar tools
                   </button>
                   {p.transport === "http" && p.authMode === "delegated" && (
-                    <button onClick={() => onLogin(p.id)}>
-                      Autorizar recurso
+                    <button
+                      disabled={loginPending}
+                      aria-busy={loginPending}
+                      onClick={() => onLogin(p.id)}
+                    >
+                      {loginPending ? "Aguardando autorização…" : "Autorizar recurso"}
                     </button>
                   )}
                   <button

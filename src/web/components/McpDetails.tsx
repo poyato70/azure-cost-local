@@ -17,12 +17,14 @@ export function McpIdentity({
   activeAccessId,
   principalKind,
   onConnect,
+  loginPending = false,
 }: {
   profile: any;
   accesses: any[];
   activeAccessId?: string;
   principalKind?: string;
   onConnect?: (profile: any) => void;
+  loginPending?: boolean;
 }) {
   if (["custom", "kubernetes"].includes(profile.preset))
     return (
@@ -55,13 +57,21 @@ export function McpIdentity({
         access &&
         profile.transport === "http" &&
         profile.authMode === "delegated" && (
-          <button onClick={() => onConnect?.(profile)}>
-            Autorizar recurso MCP
+          <button
+            disabled={loginPending}
+            aria-busy={loginPending}
+            onClick={() => onConnect?.(profile)}
+          >
+            {loginPending ? "Aguardando autorização…" : "Autorizar recurso MCP"}
           </button>
         )}
       {!ready && access && (
-        <button onClick={() => onConnect?.(profile)}>
-          Conectar identidade {access.name}
+        <button
+          disabled={loginPending}
+          aria-busy={loginPending}
+          onClick={() => onConnect?.(profile)}
+        >
+          {loginPending ? "Aguardando login…" : `Conectar identidade ${access.name}`}
         </button>
       )}
     </div>

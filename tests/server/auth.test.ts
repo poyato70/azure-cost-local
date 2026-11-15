@@ -95,6 +95,28 @@ it("reports network failures without copying URLs or credentials", async () => {
     message: expect.stringContaining("conexão"),
   });
 });
+it("diagnoses AADSTS650052 with safe tenant, resource, app and correlation identifiers", () => {
+  const result = authError(
+    {
+      errorCode: "invalid_client",
+      errorMessage:
+        'AADSTS650052: The app needs access to a service ("Azure Resource Manager MCP") that your organization has not enabled. Trace ID: 33333333-3333-4333-8333-333333333333 Correlation ID: 44444444-4444-4444-8444-444444444444. access_token=private-token',
+    },
+    {
+      tenantId: "11111111-1111-4111-8111-111111111111",
+      resourceName: "Azure Resource Manager MCP",
+      resourceAppId: "22bfbae3-f4e7-485f-be43-8cee15065084",
+    },
+  );
+  expect(result).toMatchObject({ code: "auth_resource_unavailable", status: 403 });
+  expect(result.message).toContain("Tenant ID: 11111111-1111-4111-8111-111111111111");
+  expect(result.message).toContain("Application ID do recurso: 22bfbae3-f4e7-485f-be43-8cee15065084");
+  expect(result.message).toContain("Correlation ID: 44444444-4444-4444-8444-444444444444");
+  expect(result.message).toContain("Trace ID: 33333333-3333-4333-8333-333333333333");
+  expect(result.message).toContain("MCP.Access");
+  expect(result.message).not.toContain("private-token");
+  expect(result.message).not.toContain("organization");
+});
 it("redirects failed callbacks to dashboard and only exposes safe error text", async () => {
   const app = await buildApp();
   const r = await app.inject({

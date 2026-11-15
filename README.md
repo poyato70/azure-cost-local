@@ -10,12 +10,16 @@ Requisitos: Node.js LTS com npm e Git para atualização automática. O app escu
 git clone https://github.com/poyato70/azure-cost-local.git
 cd azure-cost-local
 .\install.ps1
-.\start.ps1
+.\start.ps1 -Port 4317 -StartupTimeoutSeconds 60
 .\status.ps1
-.\stop.ps1
+.\stop.ps1 -Port 4317
 ```
 
-`install.ps1` usa `npm ci` e compila o app. `start.ps1` inicia o processo Node separado do terminal, confirma `/api/health` e mostra o PID. `status.ps1` verifica a identidade do processo registrado e o health check. `stop.ps1` só encerra o PID se ele corresponder ao servidor deste checkout. `update.ps1` aceita somente branch `main` limpa e atualização fast-forward; instala e compila numa worktree temporária antes de atualizar o checkout. O PID de operação compartilhado fica em `%LOCALAPPDATA%\AzureCostLocal\service.pid`; rode uma instalação por usuário/checkout por vez para evitar conflito nesse marcador.
+`install.ps1` verifica arquitetura, Node.js/npm, registry configurado, conectividade, TLS estrito e gravação, depois usa `npm ci` e compila. Mantém as configurações npm e políticas corporativas; avisos sobre proxy, certificados ou registry pedem validação do suporte. `start.ps1` aceita `-Port` e `-StartupTimeoutSeconds`, detecta portas ocupadas e PID obsoleto, inicia o Node sem depender do terminal, verifica `/api/health` e mostra o PID. Em timeout de health, preserva um processo ainda ativo e informa os logs. `status.ps1` informa processo, porta e saúde; `stop.ps1` só encerra o processo cuja linha de comando corresponde ao entrypoint deste checkout. Metadados/PID ficam isolados por checkout em `%LOCALAPPDATA%\AzureCostLocal\instances\<id>\service.json`; logs ficam no mesmo diretório, em `logs\service.out.log` e `service.err.log`.
+
+Avisos de pacote obsoleto ou de vulnerabilidade do `npm audit` não significam, por si só, que a instalação falhou; revise a severidade e o relatório do npm. O build valida ferramentas como esbuild, e o instalador verifica o carregamento de `koffi`. Se a política do npm bloquear scripts e um binário necessário não estiver disponível, a validação falha com orientação para o administrador; o Tesseract não aprova scripts nem altera a política.
+
+`update.ps1` aceita somente branch `main` limpa e atualização fast-forward; instala e compila numa worktree temporária antes de atualizar o checkout. Se usar outra porta, forneça o mesmo `-Port` em start, status e stop. Os caminhos `scripts/start.ps1` e `scripts/stop.ps1` continuam como wrappers de compatibilidade para os scripts na raiz.
 
 Alternativa manual: `npm ci`, `npm run build`, `npm start`. `PORT` pode ser configurada no ambiente; seu padrão é `4317`. `AZURE_TENANT_ID` e `AZURE_CLIENT_ID` são opcionais para iniciar o workspace e habilitar conectores Azure. Consulte [.env.example](.env.example).
 
@@ -25,13 +29,15 @@ O aplicativo inicia sem servidores MCP cadastrados e sem instalar MCPs externos.
 
 Em **Conexões → MCPs → Análise**, selecione um perfil e liste capabilities, tools, prompts e resources. A tela mostra schemas e metadados, oferece argumentos de prompt, formulários derivados do schema das tools, retorno e diagnóstico. A execução de tools exige que cada operação seja explicitamente revisada/aprovada na conexão. O retorno do servidor continua sendo dado externo não confiável.
 
+Se o Microsoft Entra retornar `AADSTS650052` ao autorizar o ARM MCP, confira a mensagem diagnóstica e peça ao administrador do tenant para verificar o service principal do recurso, sua disponibilidade e o consentimento/permissão delegada `MCP.Access`. Isso não concede RBAC às subscriptions; nenhuma identidade, tenant ou política é trocada automaticamente. Veja [guia ARM MCP](docs/arm-mcp-copilot-policy.md).
+
 Presets guiam o cadastro, mas não provam permissões nem instalam software de terceiros. HTTP usa a autenticação configurada para aquele servidor; Bearer próprio é guardado no cofre local e não é enviado a outros hosts. stdio restringe executáveis e parâmetros por política do servidor. Parâmetros read-only são uma classificação conservadora da aplicação, não garantia semântica de que a operação não altere dados.
 
 ## Dados e segurança
 
 Configuração operacional fica no diretório local do usuário; `.env`, dados e logs locais não são publicados. Revise JSON exportado e remova valores sensíveis antes de compartilhar. Diagnóstico evita registrar credenciais; respostas MCP podem conter informação de negócio. O servidor local usa sessão e validação de origem/CSRF para rotas de gerenciamento. Não exponha a porta na rede sem controles próprios.
 
-Não use credenciais reais em testes. Acesso Azure requer identidade e permissões apropriadas. Descobrir uma tool não demonstra acesso aos dados nem autorização no provedor.
+Não use credenciais reais em testes. Acesso Azure requer identidade e permissões apropriadas. Descobrir uma tool não demonstra acesso aos dados nem autorização no provedor. No Azure OpenAI Usage, forneça um Resource ID completo ou uma URL HTTPS do `portal.azure.com` aberta em uma página de recurso que o Tesseract reconheça; outras URLs do portal ou de hosts externos não são parseadas. O período é UTC e o fim é exclusivo.
 
 ## Produto FinOps
 

@@ -67,7 +67,16 @@ export class ApplicationProvider {
         scopes: [audience + "/.default"],
       });
     } catch (e) {
-      throw authError(e);
+      throw authError(e, {
+        tenantId: p.tenantId,
+        resourceName:
+          audience === "https://management.azure.com"
+            ? "Azure Resource Manager"
+            : audience === "api://22bfbae3-f4e7-485f-be43-8cee15065084"
+              ? "Azure Resource Manager MCP"
+              : "Recurso Microsoft",
+        resourceAppId: audience.match(/^api:\/\/([0-9a-f-]{36})$/i)?.[1],
+      });
     }
     if (!result?.accessToken)
       throw new AppError(

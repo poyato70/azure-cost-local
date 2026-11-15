@@ -1,12 +1,11 @@
 import { z } from "zod";
+import { azureAiResourceIdPattern } from "../../shared/azure-ai-usage.js";
 
 export const azureAiUsageQuery = z
   .object({
     resourceId: z
       .string()
-      .regex(
-        /^\/subscriptions\/[a-f0-9-]{36}\/resourceGroups\/[\p{L}\p{N}_.() -]{1,90}\/providers\/Microsoft\.CognitiveServices\/accounts\/[a-z0-9-]{2,64}$/iu,
-      ),
+      .regex(azureAiResourceIdPattern),
     from: z.iso.date(),
     toExclusive: z.iso.date(),
   })

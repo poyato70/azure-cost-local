@@ -1,4 +1,4 @@
-import { resourceScopes } from "./resource-scopes.js";
+import { ARM_MCP_AUDIENCE, resourceScopes } from "./resource-scopes.js";
 import type { RequestContext } from "../../shared/contracts.js";
 import type { AccessService } from "../connections/access-service.js";
 import type { Invalidation } from "../connections/invalidation.js";
@@ -10,7 +10,12 @@ import { AppError, assertActive } from "../errors.js";
 export class IdentityProvider {
   private pending = new Map<
     string,
-    { identity: MicrosoftIdentity; accessId: string; version: number }
+    {
+      identity: MicrosoftIdentity;
+      accessId: string;
+      version: number;
+      authErrorContext: import("./auth-errors.js").AuthErrorContext;
+    }
   >();
   constructor(
     readonly applications: ApplicationProvider,
@@ -28,6 +33,15 @@ export class IdentityProvider {
       { ...this.config, tenantId: p.tenantId, clientId: p.clientId },
       {
         scopes: audience ? resourceScopes(audience) : undefined,
+        resourceName:
+          audience === ARM_MCP_AUDIENCE
+            ? "Azure Resource Manager MCP"
+            : audience === "https://management.azure.com"
+              ? "Azure Resource Manager"
+              : audience
+                ? "Recurso Microsoft delegado"
+                : "Azure Resource Manager",
+        resourceAppId: audience?.match(/^api:\/\/([0-9a-f-]{36})$/i)?.[1],
         pca:
           previous?.accessId === accessId && previous.principalKind === "user"
             ? previous.pca
@@ -39,6 +53,18 @@ export class IdentityProvider {
       identity,
       accessId,
       version: p.configurationVersion,
+      authErrorContext: {
+        tenantId: p.tenantId,
+        resourceName:
+          audience === ARM_MCP_AUDIENCE
+            ? "Azure Resource Manager MCP"
+            : audience === "https://management.azure.com"
+              ? "Azure Resource Manager"
+              : audience
+                ? "Recurso Microsoft delegado"
+                : "Azure Resource Manager",
+        resourceAppId: audience?.match(/^api:\/\/([0-9a-f-]{36})$/i)?.[1],
+      },
     });
     return result;
   }
@@ -55,6 +81,12 @@ export class IdentityProvider {
     s.principalKind = "user";
     this.bind(s);
     return next;
+  }
+  authErrorContext(sessionId: string) {
+    const pending = this.pending.get(sessionId);
+    if (!pending) return undefined;
+    this.pending.delete(sessionId);
+    return pending.authErrorContext;
   }
   async connectApplication(sessionId: string, accessId: string) {
     const p = await this.accesses.get(accessId);

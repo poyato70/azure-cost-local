@@ -97,7 +97,11 @@ export function Navigation({
                     <div className="mcp-tree" key={id}>
                       <button
                         aria-label="MCPs"
-                        aria-expanded={true}
+                        className={
+                          ["mcps", "mcp-analysis", "discovery"].includes(tab)
+                            ? "active"
+                            : ""
+                        }
                         onClick={() => onSelect("mcps")}
                       >
                         MCPs

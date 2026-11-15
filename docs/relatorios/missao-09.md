@@ -4,7 +4,7 @@
 
 - **Estado atual:** Implementação técnica concluída; revisão visual bloqueada; PR ainda não criado.
 - **Início:** 2026-11-15 14:45:07 -03:00 (início registrado na execução original desta missão).
-- **Último registro:** 2026-11-15 15:41:07 -03:00
+- **Último registro:** 2026-11-15 15:42:58 -03:00
 - **Conclusão:** Pendente até validação visual e integração.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-09-visual-redesign`.
@@ -71,9 +71,9 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 
 ## Publicação
 
-- Branch local: `codex/missao-09-visual-redesign`.
+- Branch publicado: `codex/missao-09-visual-redesign`.
 - Commit `a27eaf1f554933604ba87408026a45af5c5b7678` criado; envio do branch e PR pendentes.
-- Merge pendente; critérios visuais obrigatórios não foram demonstrados.
+- PR #4 aberta para revisão: https://github.com/poyato70/azure-cost-local/pull/4. Merge pendente; critérios visuais obrigatórios não foram demonstrados.
 
 ## Pendências
 

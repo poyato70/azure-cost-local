@@ -9,7 +9,7 @@
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-09-visual-redesign`.
 - **Commit inicial:** `46b5cf3dbbd5f3cefea115f4223c1304c513be48` (`origin/main`, após merge M08).
-- **Commit de implementação / Pull Request / commit de integração:** Pendente.
+- **Commit de implementação / Pull Request / commit de integração:** `91ec1d0` / [PR #4](https://github.com/poyato70/azure-cost-local/pull/4) / pendente.
 
 ## Objetivo e escopo
 
@@ -79,6 +79,6 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 
 1. Obter referência visual em formato que possa ser inspecionado nesta sessão e capturar a UI implementada em viewport equivalente.
 2. Validar visualmente as telas e navegação por teclado em tela MCP/Discovery e viewport móvel.
-3. Repetir typecheck/build/teste do modelo após os ajustes finais.
+3. Typecheck, build e teste do modelo foram repetidos após ajustes finais: aprovados.
 4. Investigar por que o teste de health-check Windows ultrapassa o timeout e registrar resultado.
 5. Aguardar revisão da PR #4 e gates antes de integrar.

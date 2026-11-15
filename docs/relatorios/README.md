@@ -8,7 +8,7 @@ Este índice reúne o histórico versionado das missões do repositório. Os rel
 | 06 | Consolidação do workspace MCP e operações | 2026-11-13 | Integrada à `main` conforme PR #1 | [missao-06.md](missao-06.md) | [PR #1](https://github.com/poyato70/azure-cost-local/pull/1) |
 | 07 | Correções de instalação corporativa | 2026-11-15 | Integrada à `main` conforme PR #2 | [missao-07.md](missao-07.md) | [PR #2](https://github.com/poyato70/azure-cost-local/pull/2) |
 | 08 | Governança de relatórios e rastreabilidade | 2026-11-15 | Implementação concluída; estado atual na PR #3 | [missao-08.md](missao-08.md) | [PR #3](https://github.com/poyato70/azure-cost-local/pull/3) |
-| 09 | Redesign visual e mapa operacional | 2026-11-15 | Implementação técnica; QA visual bloqueada; PR #4 aberto | [missao-09.md](missao-09.md) | [PR #4](https://github.com/poyato70/azure-cost-local/pull/4) |
+| 09 | Redesign visual e mapa operacional | 2026-11-15 | QA visual desktop aprovada; QA móvel pendente; PR #4 aberta | [missao-09.md](missao-09.md) | [PR #4](https://github.com/poyato70/azure-cost-local/pull/4) |
 
 ## Criar relatório de nova missão
 

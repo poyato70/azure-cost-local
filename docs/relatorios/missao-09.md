@@ -2,10 +2,10 @@
 
 ## Identificação
 
-- **Estado atual:** Implementação técnica concluída; revisão visual bloqueada; PR #4 aberta.
+- **Estado atual:** Implementação técnica e comparação visual desktop concluídas; revisão móvel pendente; PR #4 aberta.
 - **Início:** 2026-11-15 14:45:07 -03:00 (início registrado na execução original desta missão).
-- **Último registro:** 2026-11-15 15:43:58 -03:00
-- **Conclusão:** Pendente até validação visual e integração.
+- **Último registro:** 2026-11-15 19:44:52 -03:00
+- **Conclusão:** Pendente até QA móvel, triagem do timeout e integração autorizada.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-09-visual-redesign`.
 - **Commit inicial:** `46b5cf3dbbd5f3cefea115f4223c1304c513be48` (`origin/main`, após merge M08).
@@ -20,25 +20,25 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 - Frontend React/TypeScript em `src/web/`, build customizado com Next/Vite; biblioteca de ícones e CVA já existentes; nenhuma dependência nova adicionada.
 - Branch derivada limpa de `origin/main` em `46b5cf3d`.
 - ZIP recebido: `D:\temp\tesseract\tesseract-v2\tesseract-ui2.zip`; HTML/CSS/JS extraídos para `C:\Users\poyat\AppData\Local\Temp\tesseract-ui2-reference\tesseract-ui`. O README do protótipo alerta que provedores, eventos, status e ações em algumas telas são demonstrativos.
-- A imagem separada de referência do mapa não veio nos anexos. O protótipo fornece estrutura conceitual em três colunas.
-- O navegador da ferramenta bloqueou a abertura `file://` do protótipo. A QA visual comparativa não foi feita, nem a tela local foi aprovada visualmente.
+- Imagem `Foto 1.jpg` recebida posteriormente: mapa com provedor, integração, métricas e atividade. Ver QA em `design-qa.md`.
+- A abertura do protótipo `file://` permaneceu bloqueada, mas a imagem de referência foi inspecionada e o app foi capturado via navegador local após corrigir o import de estilos do Next.
 
 ## Plano e acompanhamento
 
 | Etapa | Estado | Evidência |
 |---|---|---|
-| 1. Inspecionar branch, stack, telas e referências | Concluída com limitação | `AGENTS.md`, checkout, endpoints e ZIP inspecionados; imagem ausente e captura bloqueada. |
+| 1. Inspecionar branch, stack, telas e referências | Concluída com limitação | Código do protótipo e imagem posterior inspecionados; abrir o ZIP como página continua bloqueado, sem prejuízo da comparação com a imagem fornecida. |
 | 2. Mapear estados e capacidades reais | Concluída | `cloudDefaults`, `/api/mcp-connections`, `/api/mcp-presets` e `/api/diagnostics`; perfil conectado é ligado à sessão no `McpRegistry`. |
 | 3. Consolidar tokens, botões e navegação | Concluída | Tokens dark/light, foco, movimento reduzido, três classes de botão e seleção de navegação. |
 | 4. Implementar mapa e atividade | Concluída tecnicamente | Modelo e componente novos; estados de catálogo/preset/configuração/sessão separados; evento recente vem do serviço; ações existentes reutilizadas. |
 | 5. Harmonizar telas MCP e formulários | Concluída tecnicamente | Tema e mapa nas telas de integração/análise, ajuste de Discovery, formulário preenchido pela seleção do mapa. |
 | 6. Testes e revisão de código | Concluída com uma falha preexistente/investigada | typecheck/build/model tests passaram; suíte ampla teve 1 timeout no teste Windows de ciclo de serviço, em arquivo não alterado. |
-| 7. QA visual, teclado e viewport | Bloqueada | Referência via `file://` recusada pela política do navegador; sem captura de tela para comparação. |
-| 8. PR e integração | Pendente | PR pode ser aberto para revisão técnica; merge não é seguro até liberar gate visual e resolver/reclassificar timeout. |
+| 7. QA visual, teclado e viewport | Concluída em desktop; móvel pendente | Comparação em 1280 × 720; teclado/foco confirmado; responsividade móvel ainda sem captura. Ver `design-qa.md`. |
+| 8. PR e integração | Em revisão | PR #4 aberta; merge pendente de QA móvel e triagem do timeout Windows. |
 
-- **Progresso:** 6/8 etapas técnicas concluídas (**75%**); visual e publicação permanecem pendentes.
-- **Tempo decorrido:** aproximadamente 36 min no último registro (2026-11-15 15:34:14 -03:00 menos 14:45:07 -03:00; trabalho foi retomado após interrompimento de sessão).
-- **Bloqueios:** imagem de referência separada ausente; captura do HTML local bloqueada; um teste de ciclo de serviço excedeu 20s nesta máquina.
+- **Progresso:** 7/8 etapas concluídas (**87,5%**); PR publicada, integração pendente.
+- **Tempo decorrido total:** aproximadamente 4 h 58 min 37 s (início 14:45:07; último registro 19:43:44 -03:00, incluindo espera pela imagem enviada pelo usuário).
+- **Pendências:** captura em viewport móvel e investigação do teste Windows de ciclo de serviço que excedeu 20s.
 
 ## Implementação
 
@@ -47,7 +47,7 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 - `src/web/styles-mission09.css`: tokens claro/escuro e estilos reutilizáveis para mapa, formulário, estados, foco, responsividade e movimento reduzido.
 - `src/web/App.tsx`, `src/web/pages/McpConnections.tsx`: carregamento de diagnóstico, integração do mapa, ações e preenchimento do formulário; mantém seleção ao abrir análise.
 - `src/web/components/Navigation.tsx`, `src/web/components/ui/button.tsx`: estado ativo e variantes de botões primário, secundário, fantasma e risco.
-- `src/web/main.tsx`: carrega a folha de estilos M09.
+- `src/web/main.tsx` e `app/layout.tsx`: carregam a folha M09 nos entrypoints Vite e Next; o import Next foi corrigido após captura inicial sem estilos.
 - `tests/connections-map-model.test.ts`: cobre associação de catálogo, presets, domínio AWS/custom e estados configurados.
 
 ## Validação
@@ -60,7 +60,8 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 | `npx playwright test tests/e2e/mcp-clarity.spec.ts --reporter=list` | Aprovado | 2 testes E2E existentes de MCP passaram (cadastro/exclusão/análise e descoberta/cadastro). |
 | `npm test -- --reporter=dot` | Reprovado parcialmente | 52/53 arquivos passaram; 127/128 testes passaram. Um teste falhou por timeout 20s: `tests/server/service-scripts.test.ts` — “preserves a live process when only the health check times out”. Arquivo não alterado nesta missão. |
 | `git diff --check` | Aprovado | Executado após ajustes; sem erros de whitespace. |
-| QA visual, teclado e viewport | Bloqueado | Sem comparação da referência nem captura da UI; compilação não é aceite visual. |
+| QA visual desktop | Aprovado | Referência inspecionada e app capturado no navegador após incluir o stylesheet no layout Next; relatório detalhado em `design-qa.md`. |
+| QA mobile | Não executado | Sem captura de viewport estreito nesta sessão. |
 
 ## Limitações e decisões
 
@@ -72,13 +73,12 @@ Modernizar as telas MCP e conexões sem reescrever o frontend, implementando um 
 ## Publicação
 
 - Branch publicado: `codex/missao-09-visual-redesign`.
-- Commits `91ec1d0`, `2b32fc3` e `d9db119` enviados para `origin/codex/missao-09-visual-redesign`.
-- PR #4 aberta para revisão: https://github.com/poyato70/azure-cost-local/pull/4. Merge pendente; critérios visuais obrigatórios não foram demonstrados.
+- Commits anteriores do código/relatório publicados na PR #4; correção do entrypoint Next e `design-qa.md` estão neste turno e aguardam commit/push.
+- PR #4 aberta para revisão: https://github.com/poyato70/azure-cost-local/pull/4. Merge pendente; revisão visual desktop passou, mas falta QA móvel e a falha isolada da suíte ainda requer triagem.
 
 ## Pendências
 
-1. Obter referência visual em formato que possa ser inspecionado nesta sessão e capturar a UI implementada em viewport equivalente.
-2. Validar visualmente as telas e navegação por teclado em tela MCP/Discovery e viewport móvel.
-3. Typecheck, build e teste do modelo foram repetidos após ajustes finais: aprovados.
-4. Investigar por que o teste de health-check Windows ultrapassa o timeout e registrar resultado.
-5. Aguardar revisão da PR #4 e gates antes de integrar.
+1. Completar captura e revisão da tela em viewport móvel.
+2. Aguardar revisão da PR #4 e resolver/reclassificar o timeout do teste Windows.
+3. Manter a imagem de referência e `design-qa.md` ligados à PR para rastreabilidade.
+4. Integrar somente depois dos gates pendentes.

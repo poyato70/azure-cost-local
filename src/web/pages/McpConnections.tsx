@@ -115,6 +115,7 @@ export function McpConnections({
     [inspected, setInspected] = useState(initialConnectionId || ""),
     [chosen, setChosen] = useState<string[]>([]),
     [toolName, setToolName] = useState(""),
+    [confirmedExecution, setConfirmedExecution] = useState(false),
     [args, setArgs] = useState("{}"),
     [result, setResult] = useState<any>(),
     [argumentsValue, setArgumentsValue] = useState<Record<string, unknown>>({}),
@@ -163,6 +164,7 @@ export function McpConnections({
   );
   function chooseTool(name: string) {
     setToolName(name);
+    setConfirmedExecution(false);
     const value = applyPricingDefaults(
       name,
       tools.find((t) => t.name === name)?.inputSchema,
@@ -177,6 +179,16 @@ export function McpConnections({
   }
   async function executeTool(e: React.FormEvent) {
     e.preventDefault();
+    const requiresEachCallApproval =
+      selectedTool?._meta?.["tesseract/approval"] === "each-call";
+    if (requiresEachCallApproval && !confirmedExecution) {
+      setExecution({
+        kind: "error",
+        message:
+          "Confirme explicitamente esta execução. A confirmação será solicitada novamente na próxima chamada.",
+      });
+      return;
+    }
     setBusy(true);
     setResult(undefined);
     setExecution({
@@ -195,7 +207,11 @@ export function McpConnections({
       const r = await manageRequest(
         "/mcp-connections/" + inspected + "/call",
         "POST",
-        { name: toolName, arguments: argumentsData },
+        {
+          name: toolName,
+          arguments: argumentsData,
+          confirmedExecution: requiresEachCallApproval && confirmedExecution,
+        },
       );
       setResult({
         tool: toolName,
@@ -220,8 +236,11 @@ export function McpConnections({
           (e as Error).message +
           " Consulte Diagnóstico para identificar a etapa que falhou.",
       });
+      onChanged();
+      onRefreshActivity?.();
     } finally {
       setBusy(false);
+      if (requiresEachCallApproval) setConfirmedExecution(false);
     }
   }
   const field = (k: string, v: unknown) =>
@@ -966,6 +985,18 @@ export function McpConnections({
                       value={args}
                       onChange={(e) => setArgs(e.target.value)}
                     />
+                  </label>
+                )}
+                {selectedTool._meta?.["tesseract/approval"] === "each-call" && (
+                  <label className="consent">
+                    <input
+                      type="checkbox"
+                      checked={confirmedExecution}
+                      onChange={(event) =>
+                        setConfirmedExecution(event.target.checked)
+                      }
+                    />
+                    Confirmo esta execução (obrigatório em cada chamada)
                   </label>
                 )}
               </>

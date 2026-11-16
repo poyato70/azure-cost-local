@@ -164,7 +164,10 @@ export function ConnectionsMap({
   const integrations = buildMapIntegrations(provider, profiles);
   const integration =
     integrations.find((item) => item.id === integrationId) || integrations[0];
-  const recentEvents = [...events].reverse().slice(0, 5);
+  const recentEvents = events
+    .filter((event) => event.source === "MCP")
+    .reverse()
+    .slice(0, 5);
 
   useEffect(() => {
     if (!providers.includes(provider)) setProvider("Azure");

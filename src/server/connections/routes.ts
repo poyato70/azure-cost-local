@@ -250,6 +250,7 @@ export function registerConnectionRoutes(
       .object({
         name: z.string().max(200),
         arguments: z.record(z.string(), z.unknown()),
+        confirmedExecution: z.boolean().optional(),
       })
       .strict()
       .parse(r.body);
@@ -258,6 +259,8 @@ export function registerConnectionRoutes(
       getId(r),
       v.name,
       v.arguments,
+      undefined,
+      v.confirmedExecution,
     );
   });
   app.get("/api/agents", async (r) => {

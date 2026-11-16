@@ -771,6 +771,14 @@ button.primary:hover:not(:disabled),
     column-gap: 14px;
   }
 }
+@media (max-width: 900px) {
+  .connections-map-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .map-detail {
+    grid-column: auto;
+  }
+}
 @media (max-width: 760px) {
   .connections-map-header {
     flex-direction: column;

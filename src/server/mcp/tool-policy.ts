@@ -7,6 +7,7 @@ export function descriptor(t: any): ToolDescriptor {
   const text = JSON.stringify({
     schema: t.inputSchema || {},
     annotations: t.annotations || {},
+    metadata: t._meta || {},
   });
   if (text.length > 65536)
     throw new AppError("unsupported", "Schema de ferramenta muito grande.");
@@ -16,6 +17,7 @@ export function descriptor(t: any): ToolDescriptor {
     inputSchema: t.inputSchema || {},
     schemaHash: createHash("sha256").update(text).digest("hex"),
     annotations: t.annotations,
+    _meta: t._meta,
   };
 }
 // Conservatively accept a small grammar; advanced queries are rejected rather than guessed safe.

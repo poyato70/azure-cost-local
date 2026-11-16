@@ -9,6 +9,7 @@ import type { Session } from "../auth/session-store.js";
 import type { AccessService } from "./access-service.js";
 import type { IdentityProvider } from "../auth/identity-provider.js";
 import type { McpRegistry } from "../mcp/registry.js";
+import type { McpOrchestration } from "../mcp/orchestration.js";
 import { presets, capability, httpAudience } from "../mcp/presets.js";
 import type { AgentService } from "../agents/service.js";
 import { ModelProvider } from "../agents/model-provider.js";
@@ -21,6 +22,7 @@ export function registerConnectionRoutes(
     accesses: AccessService;
     identity: IdentityProvider;
     mcps: McpRegistry;
+    orchestration: McpOrchestration;
     agents: AgentService;
     vault: SecretStore;
     session: (r: any) => Session;
@@ -96,6 +98,38 @@ export function registerConnectionRoutes(
     return sanitizeEvidence({ source: input.url, ...manifest });
   });
   const getId = (r: any) => z.object({ id }).parse(r.params).id;
+  app.post("/api/mcp-orchestrations", async (r) => {
+    const ctx = (d.mcpContext || d.context)(r);
+    const input = z
+      .object({
+        serverA: id,
+        toolA: z.string().min(1).max(200),
+        argsA: z.record(z.string(), z.unknown()),
+        serverB: id,
+        toolB: z.string().min(1).max(200),
+        idempotencyKey: z.string().uuid().optional(),
+        confirmedA: z.literal(true),
+      })
+      .strict()
+      .parse(r.body);
+    return d.orchestration.publicView(await d.orchestration.start(ctx, input));
+  });
+  app.get("/api/mcp-orchestrations/:id", async (r) =>
+    d.orchestration.publicView(
+      d.orchestration.get(
+        d.session(r).id,
+        z.object({ id: z.string().uuid() }).parse(r.params).id,
+      ),
+    ),
+  );
+  app.post("/api/mcp-orchestrations/:id/confirm", async (r) =>
+    d.orchestration.publicView(
+      await d.orchestration.confirm(
+        (d.mcpContext || d.context)(r),
+        z.object({ id: z.string().uuid() }).parse(r.params).id,
+      ),
+    ),
+  );
   app.get("/api/accesses", async (r) => {
     d.session(r);
     return d.accesses.list();

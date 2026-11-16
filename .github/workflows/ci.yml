@@ -94,6 +94,7 @@ jobs:
           path: |
             test-results/ci/*.xml
             test-results/m10-qa-run/playwright-output/**
+            test-results/mission-12/*.png
             !test-results/m10-qa-run/*.log
           if-no-files-found: ignore
           retention-days: 7

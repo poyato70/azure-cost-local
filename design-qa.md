@@ -57,3 +57,41 @@
 - [x] Registrar diferenças responsivas e de estado ilustrativo.
 - [x] Revisar captura mobile, tablet e desktop antes de integrar PR #4.
 - [x] Percorrer navegação mobile, foco de teclado, estado de loading/vazio/erro e movimento reduzido.
+
+---
+
+# Missão 12 — QA visual da jornada MCP A→B
+
+## Resultado final: passed
+
+### Fontes e implementação comparadas
+
+- Referências abertas: `C:\Users\poyat\Downloads\ui_modelo.jpg` (grafite, botões com relevo e brilho ciano/coral), `C:\Users\poyat\Downloads\image (7).png` (grafo de nós) e `C:\Users\poyat\Downloads\atahan_guc_pindown.io_1794792848.mp4` (pulso ao longo da conexão).
+- Implementação comparada em build local de produção, com dois servidores MCP Streamable HTTP sintéticos e independentes. A topologia foi reduzida ao escopo solicitado: caminho sequencial A→B; não foram adicionados ramos.
+- O componente M09 continua com tema e tokens existentes. O painel M12 acrescenta superfícies grafite, relevo discreto e brilho ciano localizado no trecho em chamada; estados incluem rótulo, não dependem só de cor/movimento.
+
+### Evidência inspecionada
+
+- `test-results/mission-12/mission12-awaiting-b-1280x720.png`: estado de autorização B, campos transferidos e mapa do caminho.
+- `test-results/mission-12/mission12-flow-390x844.png`: página empilhada em mobile sem overflow horizontal.
+- `test-results/mission-12/mission12-flow-768x1024.png`: cartões e atividade refluem em tablet.
+- `test-results/mission-12/mission12-flow-1280x720.png`: composição desktop com atividade, caminho e resultado concluído.
+- Playwright mede `scrollWidth <= innerWidth + 1` nos três viewports, revisa axe sem violações, Tab/foco visível e computed animation duration de 0s em movimento reduzido.
+
+### Achados e correções
+
+1. **[P1 corrigido] Nomes iniciais de ferramentas não correspondiam às tools MCP da fixture controlada.** A primeira execução via navegador falhou em A; atividade real mostrou `failed`, sem chamada B. Valores iniciais da UI foram alinhados às tools anunciadas; a nova execução chegou ao estado de confirmação B e concluiu.
+2. **Layout responsivo:** path A→B empilha abaixo de 600px; 390px, tablet 768px e desktop 1280px passaram sem overflow. A tela longa contém também formulários já existentes da página Conexões MCP; não foram removidos nesta missão.
+3. **Movimento e estados:** pulso é aplicado na aresta enquanto B está em execução, e removido sob reduced motion. Labels de etapa e estado mantêm a informação acessível sem depender do pulso.
+
+### Limitações
+
+- Capturas foram feitas com Playwright Chromium headless; não há validação manual em navegador físico ou leitores de tela.
+- Axe passou no estado concluído. O teste de integração MCP exercita falha/bloqueio/schema, porém a inspeção visual dedicada concentra-se nos estados pendente e concluído.
+
+### Checklist
+
+- [x] Abrir as três referências e comparar o estilo dos controles e do grafo com a implementação.
+- [x] Capturar e inspecionar estados de confirmação e conclusão em desktop, tablet e mobile.
+- [x] Verificar acessibilidade automatizada, foco de teclado e movimento reduzido.
+- [x] Registrar overflow, topologia sequencial e limitações.

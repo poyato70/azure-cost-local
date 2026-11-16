@@ -2,13 +2,15 @@
 
 ## Identificação
 
-- **Estado atual:** Em execução — adaptador Azure ARM MCP, integração seletiva e testes contratuais implementados; validações amplas e publicação pendentes; integração real ainda não validada.
+- **Estado atual:** Entrega técnica integrada à `main`; integração Azure real continua pendente de acesso autorizado, discovery e chamada efetiva.
 - **Início medido:** 2026-11-16 16:13:59 -03:00 (marco observado no relógio da sessão).
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-15-finops-real`.
 - **Worktree:** `D:\DEV\FinOps\Tesseract-missao-15`.
 - **Commit inicial:** `95ffe00e36f1b641dcb1bfc5fb54f62df5bccdf5`.
-- **Pull Request/CI/merge:** Pendente.
+- **Pull Request:** [#14](https://github.com/poyato70/azure-cost-local/pull/14), integrada por squash.
+- **Commit integrado em `main`:** `b4a5d7f6920fe365d52264c005c344d90bf29bab`.
+- **CI do HEAD final do PR:** workflow `CI`, run `43944231600` (#26), jobs Linux e Windows aprovados.
 
 ## Objetivo, escopo e decisão provisória
 
@@ -33,22 +35,23 @@ Preparar um caminho Azure somente leitura através do ARM MCP, adaptando respost
 | 2. Contrato e adaptador Azure ARM MCP | Concluída localmente | `azure-arm-mcp-adapter.ts` mapeia schemas descobertos, falha fechada, limita linhas, preserva IDs de origem e adapta tabelas/linhas para contratos M14. Fixtures contratuais em `tests/finops/azure-arm-mcp-adapter.test.ts`. |
 | 3. Integração M14 e interface | Concluída localmente | Fluxo sintético preservado; modo Azure restrito à mesma conexão ARM, escopo cadastrado e tools `query_costs`/`execute_query`; UI identifica sintético/Azure, métrica e limitações de reconciliação. |
 | 4. Testes e segurança | Concluída localmente | 62 arquivos/190 testes unitários; fixtures contratuais para mapeamento, partial, duplicidade, ID case-insensitive e autorização exata. Playwright 40/40 com duas fixtures MCP e reinicialização real. |
-| 5. Validação final e documentação | Concluída localmente | Typecheck, build, audit e `git diff --check` executados; Axe e viewports registrados em E2E. Revisão final de publicação ainda depende de CI remota. |
-| 6. PR, CI e integração | Em andamento | PR #14 aberta; run #25 aprovou `Quality / Linux` e `PowerShell / Windows`; merge pendente. |
+| 5. Validação final e documentação | Concluída | Typecheck, build, audit, `git diff --check`, Axe e viewports registrados; CI Linux/Windows concluída com sucesso. |
+| 6. PR, CI e integração | Concluída | PR #14 integrada por squash; run #26 aprovou `Quality / Linux` e `PowerShell / Windows`; SHA de `main` confirmado. |
 
-- **Progresso:** 5/6 etapas completas (83%); publicação pendente.
-- **Tempo decorrido:** 34m21s no marco de 2026-11-16 16:48:20 -03:00, medido em relação ao início registrado; não inclui espera futura por CI.
-- **Bloqueios atuais:** não há acesso autenticado ao Azure ARM MCP nesta execução; schemas dinâmicos e payloads reais não podem ser confirmados. Nenhum bypass ou credencial será usado.
+- **Progresso:** 6/6 etapas de entrega completas (100%); validação Azure real permanece pendente como critério adicional separado.
+- **Tempo decorrido:** 45m15s no marco de 2026-11-16 16:59:14 -03:00, medido desde o início observado.
+- **Bloqueio residual:** não há conexão autorizada ao Azure ARM MCP nesta execução; schemas dinâmicos e payloads reais não podem ser confirmados. Nenhum bypass ou credencial foi usado.
 
 ## Inventário AS-IS inicial
 
 - `src/server/costs/service.ts` implementa consultas diretas à Azure Cost Management Query REST API, com escopo autorizado, período, agregação Decimal e limite de paginação. Isso é código existente e não prova integração atual a tenant. Fonte: símbolo `AzureCosts.queryCosts`.
 - `src/server/mcp/presets.ts` define preset `arm` no endpoint `https://mcp.management.azure.com`; `src/server/auth/resource-scopes.ts` define audience MCP ARM.
-- `src/server/mcp/tool-policy.ts` hoje permite `query_costs` para preset `arm`; `execute_query` ainda não está autorizado como ferramenta de inventário ARM. Nenhuma operação de escrita será habilitada.
-- `src/server/mcp/arm-policy.ts` exige escopo configurado e rejeita argumentos de query/destino genéricos; ampliar esse limite exigirá um gerador determinístico de query, validação exata contra o escopo e testes negativos.
+- Na base inicial M15, `src/server/mcp/tool-policy.ts` permitia `query_costs`, mas não `execute_query`; M15 adiciona somente a allowlist de leitura com validação estrita de query gerada pelo servidor.
+- Na base inicial, `src/server/mcp/arm-policy.ts` rejeitava query genérica. M15 mantém a recusa de query/destinos genéricos e permite unicamente a projeção exata escopada e limitada do adaptador.
 - M14 usa `src/server/finops/correlation.ts` e `McpOrchestration.startFinOpsCorrelation` com contratos de fixtures `{rows}`. Payloads externos não são intercambiáveis automaticamente com esses schemas.
 - A API e UI M14 já selecionam conexões/tools MCP e exibem resultados e proveniência. Não foi identificada consulta real nesse fluxo.
 - O ARM MCP está documentado como preview; schemas variam e devem ser descobertos no cliente. A disponibilidade de `query_costs`/`execute_query` na conexão configurada e o shape real de resposta são desconhecidos nesta sessão.
+- As fontes oficiais consultadas divergem em limites de linhas documentados: a página Learn indica até 100 linhas, enquanto material upstream consultado menciona máximo 5000. M15 escolhe o teto conservador 100, sem assumir que a paginação real está implementada.
 
 ## Implementação
 
@@ -99,17 +102,17 @@ Preparar um caminho Azure somente leitura através do ARM MCP, adaptando respost
 
 ## Publicação
 
-- Commit de implementação: `8abc41afe78fe4a72d6480de294164b0bd6fe797` (`feat: add bounded Azure ARM MCP FinOps correlation`).
+- Commits do branch de trabalho: implementação `8abc41afe78fe4a72d6480de294164b0bd6fe797`, documentação/CI `dee1f0d4ed1049bee22dce8c86bb371f551751d4` e fechamento pré-merge `cc7384c2d394a645b390bf819db1b0522f506a42`.
 - Branch remota: `codex/missao-15-finops-real`.
-- Pull Request: [#14](https://github.com/poyato70/azure-cost-local/pull/14), aberta contra `main` em `2026-11-16T19:49:28Z`.
-- CI do commit de implementação/documentação `dee1f0d4ed1049bee22dce8c86bb371f551751d4`: workflow `CI`, run `43943496937` (#25); `Quality / Linux` e `PowerShell / Windows` concluídos com `success`, incluindo typecheck, build, testes unitários/MCP, audit e E2E M10/M12/M14 no Windows.
-- Este registro dos resultados da CI cria um commit de relatório adicional; aguardar nova execução sobre esse HEAD antes do merge.
-- O PR ainda não foi integrado; merge depende dos checks obrigatórios aprovados.
+- Pull Request [#14](https://github.com/poyato70/azure-cost-local/pull/14) foi integrada por squash em `2026-11-16T19:58:35Z`.
+- SHA remoto de `main`, conferido por Git e metadados do PR: `b4a5d7f6920fe365d52264c005c344d90bf29bab`.
+- CI do HEAD final `cc7384c2d394a645b390bf819db1b0522f506a42`: workflow `CI`, run `43944231600` (#26); `Quality / Linux` e `PowerShell / Windows` concluídos com `success`. Windows incluiu E2E M10/M12/M14 e acessibilidade; Linux incluiu typecheck, build, unit/MCP e dependências.
 - Nenhuma credencial ou dado corporativo incluído no relatório.
 
 ## Pendências e evolução
 
-1. Executar suíte completa, regressão M10/M12/M14, Playwright, build, audit, diff check e revisão visual/acessível solicitada.
-2. Revisar payloads MCP reais somente quando uma conexão autorizada e discovery forem disponibilizados; não contornar RBAC ou credenciais.
-3. Atualizar evidências e critérios residuais no relatório; criar PR e acompanhar Linux/Windows após validação local.
-4. Integrar à `main` somente depois de todos os checks obrigatórios aprovados; não declarar integração real operacional sem chamada autorizada observada.
+1. Realizar discovery `tools/list` e consulta somente leitura com identidade e autorização corporativas aprovadas; registrar schema/runtime e amostra sanitizada.
+2. Revisar payloads reais e verificar completude/paginação, status do RBAC e limites da fonte antes de habilitar uso operacional. Não contornar controles.
+3. Concluir revisão visual humana em browser; Axe e viewports automatizados não substituem essa aceitação.
+
+As pendências 1–2 bloqueiam a classificação de **integração real validada**, mas não anulam a entrega técnica contratual publicada. Não chamar dados sintéticos ou fixtures de dados reais.

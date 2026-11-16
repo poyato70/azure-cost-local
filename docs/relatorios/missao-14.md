@@ -2,13 +2,13 @@
 
 ## Identificação
 
-- **Estado atual:** Em execução — correlação, adapter MCP, API, UI e primeiras validações locais implementados; validação final e publicação pendentes.
+- **Estado atual:** Concluída — implementação integrada à `main` via PR #12 após aprovação da CI Linux/Windows.
 - **Início medido:** 2026-11-16 13:48:19 -03:00.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch de trabalho:** `codex/missao-14-finops-correlation`.
 - **Worktree:** `D:\DEV\FinOps\Tesseract-missao-14`.
 - **Commit inicial:** `87851310b08a8ef76c5d506da059b8c9ae6e8878` (`origin/main` na criação da worktree).
-- **Pull Request/merge:** ainda não aplicável.
+- **Pull Request/merge:** [PR #12](https://github.com/poyato70/azure-cost-local/pull/12), integrada em 2026-11-16; SHA de merge `d3935cc1bceecc447b6157a79e395939c3356888`.
 
 ## Objetivo e escopo
 
@@ -32,11 +32,11 @@ Executar análise reproduzível usando custos e inventário sintéticos de dois 
 | 3. Integração MCP e interface | Concluída localmente | Duas fixtures reais Streamable HTTP, Registry e confirmação B independente, armazenamento M13, endpoint dedicado e painel na navegação existente. |
 | 4. Regressões, segurança e UX | Concluída localmente | 178 testes unitários e M10/M12/M14 E2E aprovados; M14 cobre escopo, canonização, projeção e reinícios. |
 | 5. Documentação e validação final | Concluída localmente | Build, audit, suíte, E2E, typecheck, relatório, índice e revisão final do diff aprovados. O histórico MCP M12 exclui execuções M14 e foi verificado no E2E. |
-| 6. PR, CI e integração | Em andamento | PR #12 aberta; CI Linux/Windows pendente; não integrar antes dos checks obrigatórios. |
+| 6. PR, CI e integração | Concluída | PR #12 integrada à `main`; Quality / Linux e PowerShell / Windows aprovados na execução CI #20 (run `43920106330`). |
 
-- **Progresso:** 5/6 etapas completas (83%); publicação/CI remotas em andamento.
-- **Tempo decorrido observado:** 47 min 26 s até 14:35:45 -03:00; sem previsão de prazo.
-- **Bloqueios:** CI remota ainda pendente. `npm ci --ignore-scripts --prefer-offline` concluiu sem alterar manifests ou lockfile: 371 pacotes adicionados, 378 auditados, 0 vulnerabilidades; aviso de depreciação para `node-domexception@1.0.0`.
+- **Progresso:** 6/6 etapas completas (100%).
+- **Tempo decorrido observado:** 52 min 30 s até 14:40:49 -03:00; sem estimativa de prazo.
+- **Bloqueios:** nenhum bloqueio de implementação ou publicação identificado. `npm ci --ignore-scripts --prefer-offline` concluiu sem alterar manifests ou lockfile: 371 pacotes adicionados, 378 auditados, 0 vulnerabilidades; aviso de depreciação para `node-domexception@1.0.0`.
 
 ## Implementação
 
@@ -84,11 +84,11 @@ Executar análise reproduzível usando custos e inventário sintéticos de dois 
 - **Commit local de implementação:** `77760437c17b90e850a668849758b433df232e4e` (`feat: add persisted FinOps MCP correlation`).
 - **Commit de documentação do estado local:** `d4c96f1488638ee24dc29a4cb474d2dfb4d6789f`.
 - **Branch remota:** `codex/missao-14-finops-correlation` publicada.
-- **Pull Request:** [PR #12](https://github.com/poyato70/azure-cost-local/pull/12), aberta.
-- **CI:** checks Linux/Windows aguardando execução/conclusão.
-- **Estado do merge:** pendente.
-- **Commit final confirmado na `main`:** pendente.
+- **Pull Request:** [PR #12](https://github.com/poyato70/azure-cost-local/pull/12), integrada.
+- **CI:** execução #20 (`43920106330`); `Quality / Linux` e `PowerShell / Windows` concluídos com sucesso.
+- **Estado do merge:** concluído por squash em 2026-11-16.
+- **Commit de merge confirmado em `origin/main`:** `d3935cc1bceecc447b6157a79e395939c3356888`.
 
-## Pendências
+## Encerramento
 
-Publicar a branch, abrir PR, aguardar CI Linux/Windows e integrar somente com os checks obrigatórios aprovados.
+A implementação M14, documentação e CI foram integradas após os checks obrigatórios passarem. A confirmação de `origin/main` foi feita com `git fetch origin main` e `git rev-parse origin/main`; o resultado corresponde ao SHA de merge registrado acima.

@@ -125,6 +125,8 @@ export function registerConnectionRoutes(
       period: z.object({ from: z.string(), toExclusive: z.string() }).strict(),
       idempotencyKey: z.string().uuid().optional(),
       confirmedA: z.literal(true),
+      sourceMode: z.enum(["synthetic", "azure-arm-mcp"]).optional(),
+      metric: z.enum(["ActualCost", "AmortizedCost"]).optional(),
     }).strict().parse(r.body);
     return d.orchestration.publicView(await d.orchestration.startFinOpsCorrelation(ctx, input));
   });

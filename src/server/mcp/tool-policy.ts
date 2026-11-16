@@ -69,7 +69,7 @@ export function reviewable(p: McpProfile, t: ToolDescriptor) {
       t.annotations?.destructiveHint !== true
     );
   const patterns: Record<string, RegExp> = {
-    arm: /^(query_costs|forecast_costs|list_budgets|get_budget|list_dimensions)$/,
+    arm: /^(query_costs|execute_query|forecast_costs|list_budgets|get_budget|list_dimensions)$/,
     azure:
       /^(?:azmcp_)?(?:subscription_list|group_list|pricing_get|advisor_recommendation_list|optimization_recommendation_(?:list|alternatives|explain))$/,
     adx: /^(?:azmcp_)?kusto_(?:(?:cluster|database|table)_(?:get|list)|query|query_execute)$/,

@@ -16,6 +16,7 @@ type Flow = {
   error?: string;
   events: Array<{ time: string; stage: string; state: string; detail: string }>;
   correlation?: any;
+  collection?: any;
 };
 
 const statusText: Record<string, string> = {
@@ -28,13 +29,20 @@ const statusText: Record<string, string> = {
   indeterminate: "Resultado indeterminado — não repetir automaticamente",
 };
 const flowTitle = (value: Flow) =>
-  value.correlation?.status === "complete_with_discrepancies"
+  value.correlation?.dataQuality?.completeness === "partial"
+    ? "Coleta incompleta — reconciliação não concluída"
+    : value.correlation?.status === "complete_with_discrepancies"
     ? "Concluído com divergências"
     : value.correlation?.status === "insufficient_data"
       ? "Dados insuficientes"
       : statusText[value.state] || value.state;
+const sourceLabel = (value: Flow) => value.collection?.sourceMode === "azure-arm-mcp"
+  ? `Azure ARM MCP · ${value.collection?.metric || "métrica não registrada"}`
+  : "Demonstração sintética";
 
 export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
+  const [sourceMode, setSourceMode] = useState<"synthetic" | "azure-arm-mcp">("synthetic");
+  const [metric, setMetric] = useState<"ActualCost" | "AmortizedCost">("ActualCost");
   const [serverA, setServerA] = useState("");
   const [serverB, setServerB] = useState("");
   const [toolA, setToolA] = useState("");
@@ -56,7 +64,10 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
         `/mcp-connections/${id}/tools`,
         "GET",
       );
-      const readable = result.filter((tool) => tool.reviewable);
+      const readable = result.filter((tool) => tool.reviewable && (
+        sourceMode !== "azure-arm-mcp" ||
+        (side === "A" ? tool.name === "query_costs" : tool.name === "execute_query")
+      ));
       if (side === "A") setToolsA(readable);
       else setToolsB(readable);
     } catch (e) {
@@ -96,6 +107,8 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
           toolB,
           scope,
           period: { from, toExclusive },
+          sourceMode,
+          ...(sourceMode === "azure-arm-mcp" ? { metric } : {}),
           idempotencyKey: crypto.randomUUID(),
           confirmedA: true,
         },
@@ -159,17 +172,36 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
         <h2 id="finops-setup-title">Configurar consulta</h2>
         <div className="toolbar compact">
           <label>
-            Servidor MCP de custos
+            Fonte de dados
+            <select
+              value={sourceMode}
+              onChange={(event) => {
+                const next = event.target.value as "synthetic" | "azure-arm-mcp";
+                setSourceMode(next);
+                setServerA(""); setServerB(""); setToolA(""); setToolB("");
+                setToolsA([]); setToolsB([]);
+                setScope(next === "synthetic" ? "sub-01" : "");
+              }}
+            >
+              <option value="synthetic">Demonstração sintética</option>
+              <option value="azure-arm-mcp">Azure ARM MCP · somente leitura (preview)</option>
+            </select>
+          </label>
+          <label>
+            {sourceMode === "azure-arm-mcp" ? "Conexão Azure ARM MCP" : "Servidor MCP de custos"}
             <select
               value={serverA}
               onChange={(event) => {
-                setServerA(event.target.value);
-                setToolA("");
-                void loadTools(event.target.value, "A");
+                const id = event.target.value;
+                setServerA(id); setToolA(""); void loadTools(id, "A");
+                if (sourceMode === "azure-arm-mcp") {
+                  setServerB(id); setToolB(""); void loadTools(id, "B");
+                  setScope(profiles.find((profile) => profile.id === id)?.resourceContext?.scope || "");
+                }
               }}
             >
               <option value="">Selecione uma conexão</option>
-              {profiles.map((profile) => (
+              {profiles.filter((profile) => sourceMode !== "azure-arm-mcp" || profile.preset === "arm").map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name} ·{" "}
                   {profile.connected
@@ -195,7 +227,7 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
               ))}
             </select>
           </label>
-          <label>
+          {sourceMode === "synthetic" ? <label>
             Servidor MCP de inventário
             <select
               value={serverB}
@@ -218,6 +250,7 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
                 ))}
             </select>
           </label>
+          : <p role="note">Custos e inventário serão consultados pela mesma conexão; cada tool mantém aprovação de schema própria.</p>}
           <label>
             Tool de inventário
             <select
@@ -235,13 +268,21 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
             </select>
           </label>
           <label>
-            Escopo sintético
+            {sourceMode === "azure-arm-mcp" ? "Escopo ARM cadastrado" : "Escopo sintético"}
             <input
               value={scope}
               maxLength={512}
+              readOnly={sourceMode === "azure-arm-mcp"}
               onChange={(event) => setScope(event.target.value)}
             />
           </label>
+          {sourceMode === "azure-arm-mcp" && <label>
+            Métrica financeira
+            <select value={metric} onChange={(event) => setMetric(event.target.value as "ActualCost" | "AmortizedCost")}>
+              <option value="ActualCost">Custo real (ActualCost)</option>
+              <option value="AmortizedCost">Custo amortizado (AmortizedCost)</option>
+            </select>
+          </label>}
           <label>
             De (inclusivo)
             <input
@@ -260,9 +301,9 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
           </label>
         </div>
         <p className="muted">
-          A e B exigem aprovação independente no Registry. A execução consulta o
-          schema atual de cada tool; B pode exigir uma segunda confirmação antes
-          da chamada.
+          {sourceMode === "azure-arm-mcp"
+            ? "Integração Azure em preparação: conexão, schemas e RBAC são validados no momento da consulta. A consulta Resource Graph é fixa, somente leitura e limitada ao escopo cadastrado. Resultado não será classificado como real validado sem resposta autorizada do Azure."
+            : "A e B exigem aprovação independente no Registry. A execução consulta o schema atual de cada tool; B pode exigir uma segunda confirmação antes da chamada."}
         </p>
         <button
           className="primary"
@@ -273,10 +314,11 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
             !eligibleB?.approved ||
             !scope.trim() ||
             from >= toExclusive ||
-            serverA === serverB
+            (sourceMode === "synthetic" && serverA === serverB) ||
+            (sourceMode === "azure-arm-mcp" && (!serverA || serverA !== serverB || !/^\/subscriptions\//i.test(scope)))
           }
         >
-          {busy ? "Executando…" : "Executar correlação A → B"}
+          {busy ? "Executando…" : sourceMode === "azure-arm-mcp" ? "Consultar custos e inventário Azure" : "Executar correlação A → B"}
         </button>
         {error && (
           <p role="alert" className="error-text">
@@ -292,7 +334,7 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
         >
           <h2 id="correlation-run-title">Execução</h2>
           <p role="status">
-            <strong>{flowTitle(flow)}</strong> · etapa {flow.stage} · {flow.id}
+            <strong>{flowTitle(flow)}</strong> · {sourceLabel(flow)} · etapa {flow.stage} · {flow.id}
           </p>
           {flow.state === "awaiting_b_confirmation" && (
             <button
@@ -328,7 +370,7 @@ export function FinOpsCorrelation({ profiles }: { profiles: any[] }) {
             {flows.map((item) => (
               <li key={item.id}>
                 <button onClick={() => void inspect(item.id)}>
-                  {flowTitle(item)} · {item.id}
+                  {flowTitle(item)} · {sourceLabel(item)} · {item.id}
                 </button>
               </li>
             ))}
@@ -349,12 +391,20 @@ function CorrelationResult({ result }: { result: any }) {
     <div className="correlation-result">
       <h3>
         Resultado:{" "}
-        {result.status === "complete"
+        {result.dataQuality?.sourceTotalReconciliation === "not_available"
+          ? "correlação calculada; total da fonte não disponível para reconciliação"
+          : result.status === "complete"
           ? "sem divergências"
           : result.status === "complete_with_discrepancies"
             ? "concluído com divergências"
             : "dados insuficientes"}
       </h3>
+      {result.dataQuality && <p role="note" className={result.dataQuality.completeness === "partial" ? "error-text" : "muted"}>
+        {result.dataQuality.completeness === "partial"
+          ? "Coleta parcial: valores abaixo são provisórios e não representam reconciliação completa. "
+          : "Total independente da fonte não disponibilizado; os totais abaixo foram calculados a partir das linhas retornadas. "}
+        {result.dataQuality.note} {result.dataQuality.costClassification}
+      </p>}
       <p>
         Escopo: {result.requestedScope}. Período: {result.requestedPeriod.from}{" "}
         até {result.requestedPeriod.toExclusive} (exclusivo). Valores mantidos
@@ -396,6 +446,9 @@ function CorrelationResult({ result }: { result: any }) {
               Regra: {association.rule}. Evidências:{" "}
               {association.evidenceRefs.join(", ")}
             </p>
+            {association.originalResourceIds?.length > 0 && (
+              <p>IDs de recurso recebidos da fonte: {association.originalResourceIds.join(", ")}</p>
+            )}
             {association.resources.map((resource: any) => (
               <p key={resource.inventoryId}>
                 Recurso: {resource.name} ({resource.resourceType}) · ID de
@@ -419,6 +472,7 @@ function CorrelationResult({ result }: { result: any }) {
               {item.costLineIds.join(", ")} · evidências:{" "}
               {item.evidenceRefs.join(", ")}
             </p>
+            {item.originalResourceId && <p>ID de recurso recebido da fonte: {item.originalResourceId}</p>}
             {item.inventoryIds?.length > 0 && (
               <p>Candidatos de inventário: {item.inventoryIds.join(", ")}</p>
             )}

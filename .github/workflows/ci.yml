@@ -37,12 +37,6 @@ jobs:
         run: npx vitest run --exclude=tests/storage/config-store.test.ts --exclude=tests/connections/access-service.test.ts --reporter=default --reporter=junit --outputFile=test-results/ci/vitest.junit.xml
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: MCP browser journey and accessibility scan
-        env:
-          CI: "true"
-        run: npx playwright test --config=playwright.m10.config.ts --reporter=list,junit --output=test-results/ci/playwright.junit.xml
       - name: Upload sanitized failure evidence
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -50,8 +44,6 @@ jobs:
           name: linux-failure-evidence
           path: |
             test-results/ci/*.xml
-            test-results/m10-qa-run/playwright-output/**
-            !test-results/m10-qa-run/*.log
           if-no-files-found: ignore
           retention-days: 7
 
@@ -69,6 +61,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Build production app
+        run: npm run build
       - name: Parse PowerShell scripts
         shell: pwsh
         run: |
@@ -85,11 +79,21 @@ jobs:
         env:
           TESSERACT_TEST_POWERSHELL: pwsh
         run: npx vitest run tests/server/service-scripts.test.ts tests/storage/config-store.test.ts tests/connections/access-service.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-tests.junit.xml
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+      - name: MCP browser journey and accessibility scan
+        env:
+          CI: "true"
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: test-results/ci/playwright.junit.xml
+        run: npx playwright test --config=playwright.m10.config.ts --reporter=list,junit
       - name: Upload sanitized failure evidence
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: windows-failure-evidence
-          path: test-results/ci/*.xml
+          path: |
+            test-results/ci/*.xml
+            test-results/m10-qa-run/playwright-output/**
+            !test-results/m10-qa-run/*.log
           if-no-files-found: ignore
           retention-days: 7

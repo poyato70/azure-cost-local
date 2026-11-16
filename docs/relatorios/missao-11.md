@@ -2,9 +2,9 @@
 
 ## Identificação
 
-- **Estado:** Em execução; primeira run remota falhou com causas identificadas e correções locais validadas; segunda run pendente.
+- **Estado:** Em execução; segunda run remota identificou dependências de ambiente; configuração e fixture corrigidas, aguardando terceira run.
 - **Início:** 2026-11-16 00:39:38 -03:00.
-- **Último registro:** 2026-11-16 01:00:45 -03:00.
+- **Último registro:** 2026-11-16 01:29:00 -03:00.
 - **Conclusão:** Pendente.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-11-ci`.
@@ -27,17 +27,17 @@ Adicionar CI reproduzível em PRs para `main`, pushes na `main` e acionamento ma
 | 5. Investigar timeout Windows                 | Concluída localmente | Duração medida antes/depois; job dedicado serial e remoção da parada duplicada.                              |
 | 6. Rodar validações locais                    | Concluída            | Typecheck, build, 129 testes Linux aplicáveis, 6 testes Windows específicos e E2E passaram; npm audit limpo. |
 | 7. Revisar segurança e documentação           | Concluída localmente | README, este relatório e índice atualizados; `git diff --check` limpo.                                       |
-| 8. Commit, push e abrir PR                    | Concluída            | `4aad757` / PR #6; revisão subsequente em andamento.                                                         |
-| 9. Validar CI GitHub e resolver falhas        | Em andamento         | Primeira run #43802384035 falhou; correções submetidas, aguardando segunda run.                              |
+| 8. Commit, push e abrir PR                    | Concluída            | `4aad757`, `ceeedf6` / PR #6; revisão subsequente em andamento.                                              |
+| 9. Validar CI GitHub e resolver falhas        | Em andamento         | Runs #43802384035 e #43803549347 falharam; causas identificadas e corrigidas localmente.                     |
 | 10. Proteger `main`, integrar e confirmar SHA | Pendente             | Branch sem proteção preexistente; requer CI aprovada e permissão administrativa.                             |
 
 - **Progresso do plano:** 8/10 etapas (80%; percentual de etapas, não previsão de duração).
-- **Tempo medido no último registro:** ~21 min desde 00:39:38 -03:00.
+- **Tempo medido no último registro:** ~49 min desde 00:39:38 -03:00.
 - **Bloqueios:** nenhum de implementação. Proteção de branch ainda sem configuração; permissão efetiva será verificada.
 
 ## Implementação
 
-- `.github/workflows/ci.yml`: PR/push/manual; permissões mínimas; concorrência cancela apenas runs de PR; Ubuntu 24.04 com npm ci, typecheck, produção, Vitest, audit high+, Chromium/Playwright; Windows 2025 com parse PowerShell e teste direcionado serial. Jobs têm timeout; artefatos de falha limitados a XML JUnit e saída de Playwright, retenção de 7 dias.
+- `.github/workflows/ci.yml`: PR/push/manual; permissões mínimas; concorrência cancela apenas runs de PR; Ubuntu 24.04 com npm ci, typecheck, produção, testes Vitest aplicáveis e audit high+; Windows 2025 com build, parser PowerShell, testes DPAPI/de serviço e jornada Playwright/axe via Chromium. Jobs têm timeout; artefatos de falha limitados a XML JUnit, traces e screenshots, retenção de 7 dias.
 - Ações externas fixadas a SHAs completos: checkout v7.0.1, setup-node v7.1.0 e upload-artifact v6.0.0.
 - `@axe-core/playwright` 4.11.0 e axe-core adicionados como dependência de desenvolvimento. Playwright alinhado com `@playwright/test` em 1.64.1 e `playwright-core` override para evitar tipos de versões distintas.
 - `playwright.m10.config.ts` usa Chromium empacotado no CI e mantém Edge no modo local Windows.
@@ -48,25 +48,25 @@ Adicionar CI reproduzível em PRs para `main`, pushes na `main` e acionamento ma
 
 ## Validação local observada
 
-| Verificação                         | Resultado                        | Evidência/limitação                                                                                                                                                                       |
-| ----------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Branch/base/remote                  | Aprovado                         | `codex/missao-11-ci` baseada no SHA `3977d181...`, remoto `origin` GitHub esperado.                                                                                                       |
-| `npm run typecheck`                 | Aprovado                         | Executado após alinhar versões Playwright.                                                                                                                                                |
-| `npm run build`                     | Aprovado                         | Build Next otimizado e TypeScript servidor; estático `/` e `/_not-found`.                                                                                                                 |
-| Suíte Vitest                        | Aprovado                         | 55 arquivos, 132 testes; duração 49,52 s. Inclui protocolo SDK MCP stdio real e testes registry/HTTP.                                                                                     |
-| Windows service tests baseline      | Aprovado, lento                  | 3/3; 45,07 s no conjunto, cenário timeout 16,288 s; repetição 43,70 s, timeout 16,240 s.                                                                                                  |
-| Windows service tests após correção | Aprovado                         | 3/3 em 43,96 s; ciclo de vida 22,552 s, busy-port 3,970 s, timeout 16,371 s. O cenário crítico não ficou mais rápido; job serial/escopo focal reduz concorrência, não mascara limite.     |
-| E2E MCP + axe                       | Aprovado                         | 1 teste, 28,1 s (11,7 s do caso); Chromium local. Fixture Streamable HTTP MCP real, jornada com resultado e erro, atividade, desconexão. axe sem violações nos estados vazio e resultado. |
-| Responsividade e teclado            | Aprovado                         | O E2E mede 390×844, 768×1024 e 1280×720 sem overflow horizontal; movimento reduzido e foco por Tab validados.                                                                             |
-| `npm audit --audit-level=high`      | Aprovado                         | 0 vulnerabilidades total (info, low, moderate, high, critical).                                                                                                                           |
-| `git diff --check`                  | Aprovado                         | Sem erros de whitespace no diff local.                                                                                                                                                    |
-| Parser workflow YAML                | Não executado                    | Não havia actionlint/cmdlet YAML disponível no host; validação autoritativa pendente no Actions remoto.                                                                                   |
-| GitHub Actions remoto               | Reprovado na 1a run; 2a pendente | Run #43802384035 diagnosticada; correções aguardam nova execução.                                                                                                                         |
-| Proteção `main`                     | Pendente                         | API indicou branch sem proteção e regrasets vazios antes desta mudança.                                                                                                                   |
+| Verificação                         | Resultado                         | Evidência/limitação                                                                                                                                                                       |
+| ----------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Branch/base/remote                  | Aprovado                          | `codex/missao-11-ci` baseada no SHA `3977d181...`, remoto `origin` GitHub esperado.                                                                                                       |
+| `npm run typecheck`                 | Aprovado                          | Executado após alinhar versões Playwright.                                                                                                                                                |
+| `npm run build`                     | Aprovado                          | Build Next otimizado e TypeScript servidor; estático `/` e `/_not-found`.                                                                                                                 |
+| Suíte Vitest                        | Aprovado                          | 55 arquivos, 132 testes; duração 49,52 s. Inclui protocolo SDK MCP stdio real e testes registry/HTTP.                                                                                     |
+| Windows service tests baseline      | Aprovado, lento                   | 3/3; 45,07 s no conjunto, cenário timeout 16,288 s; repetição 43,70 s, timeout 16,240 s.                                                                                                  |
+| Windows service tests após correção | Aprovado                          | 3/3 em 43,96 s; ciclo de vida 22,552 s, busy-port 3,970 s, timeout 16,371 s. O cenário crítico não ficou mais rápido; job serial/escopo focal reduz concorrência, não mascara limite.     |
+| E2E MCP + axe                       | Aprovado                          | 1 teste, 28,1 s (11,7 s do caso); Chromium local. Fixture Streamable HTTP MCP real, jornada com resultado e erro, atividade, desconexão. axe sem violações nos estados vazio e resultado. |
+| Responsividade e teclado            | Aprovado                          | O E2E mede 390×844, 768×1024 e 1280×720 sem overflow horizontal; movimento reduzido e foco por Tab validados.                                                                             |
+| `npm audit --audit-level=high`      | Aprovado                          | 0 vulnerabilidades total (info, low, moderate, high, critical).                                                                                                                           |
+| `git diff --check`                  | Aprovado                          | Sem erros de whitespace no diff local.                                                                                                                                                    |
+| Parser workflow YAML                | Não executado                     | Não havia actionlint/cmdlet YAML disponível no host; validação autoritativa pendente no Actions remoto.                                                                                   |
+| GitHub Actions remoto               | Reprovado nas duas primeiras runs | #43802384035 e #43803549347; causas identificadas, terceira run pendente.                                                                                                                 |
+| Proteção `main`                     | Pendente                          | API indicou branch sem proteção e regrasets vazios antes desta mudança.                                                                                                                   |
 
 ### Investigação do teste Windows
 
-O teste passou localmente tanto em Windows PowerShell 5.1 quanto em PowerShell 7.6.9. A primeira CI usou Windows PowerShell 5.1 e falhou em duas verificações (campo de log ausente na desserialização usada pelo teste e metadado não encontrado depois de health timeout). Em CI, o teste agora seleciona `pwsh`; os três testes de serviço e três testes DPAPI passaram localmente com esse host. A run remota ainda precisa confirmar a correção. Três medições do arquivo (45,07 s, 43,70 s, 43,96 s) confirmaram custo elevado de operações PowerShell; o caso “preserves a live process...” durou 16,24–16,37 s em todas as execuções. A primeira operação de ciclo de vida é que variou ~22,55–24,42 s. Portanto, não se aumentou timeout nem se declarou a falha como preexistente; ajustou-se a limpeza redundante e CI executa o arquivo serialmente com 20 min de limite de job. O host explícito `pwsh` passou o conjunto Windows específico local; o gate remoto é que confirmará comportamento sob runner Windows.
+As falhas remotas foram diagnosticadas: no runner, TEMP usa caminho curto (`C:\Users\RUNNER~1\...`), enquanto `service.ps1` resolve `$PSScriptRoot` para caminho canônico antes de calcular o hash do checkout. A fixture calculava o hash sem `realpath()`, por isso lia metadados em outra pasta; isso explica o campo ausente e arquivo não encontrado sem apontar erro no serviço ou flutuação. A fixture agora canonicaliza com `realpath()`. Três testes de serviço e três DPAPI passaram localmente com `pwsh` (53,73 s). O workflow usa execução serial e não eleva timeout de produto; a nova run remota confirmará a correção.
 
 ### Incidente de instalação local
 
@@ -106,10 +106,10 @@ Fixture MCP do E2E: `tests/fixtures/mcp-mission10-server.ts`. Não usa credencia
 ## Publicação
 
 - **Commit/PR:** `4aad757`; [PR #6](https://github.com/poyato70/azure-cost-local/pull/6).
-- **Checks remotos:** Run inicial #43802384035 falhou nos jobs Linux/Windows; correções enviadas, segunda run pendente.
+- **Checks remotos:** Runs #43802384035 e #43803549347 falharam; realpath e mudança do E2E para Windows aguardam terceira run.
 - **Integração/commit remoto:** Pendente.
 - **Última verificação de segurança de segredo:** busca direcionada no diff, sem padrões de credenciais; `git diff --check` aprovado.
 
 ## Último registro
 
-2026-11-16 01:19:10 -03:00 — primeira CI real falhou e foi diagnosticada; Linux/Windows repartidos conforme dependência DPAPI; PowerShell 7 validado com 6/6 testes; aguardando segunda run. Build/typecheck, E2E/axe, 129 testes Linux, audit e diff passam localmente.
+2026-11-16 01:29:00 -03:00 — segunda run confirmou divergência de caminho curto na fixture e DPAPI necessário ao E2E; jornada movida ao Windows e hash canonicalizado com realpath(). 129 testes Linux, seis testes Windows e E2E com axe passaram localmente; validação remota pendente.

@@ -6,7 +6,7 @@ Workspace local para conectar, inspecionar e executar servidores MCP, com capaci
 
 ### CI e verificações locais
 
-O workflow em `.github/workflows/ci.yml` roda em pull requests para `main`, pushes em `main` e execução manual. A validação principal usa Node.js 24, `npm ci`, typecheck, build, testes Vitest aplicáveis ao Linux, `npm audit --audit-level=high` e a jornada MCP Streamable HTTP real com Playwright/Chromium e axe-core; os testes de cofre DPAPI rodam no job Windows junto aos testes de scripts de serviço. Nenhum segredo ou credencial externa é necessário. Artefatos de falha são restritos a XML JUnit e traces/screenshots Playwright, com retenção de sete dias.
+O workflow em `.github/workflows/ci.yml` roda em pull requests para `main`, pushes em `main` e execução manual. O job Linux usa Node.js 24, `npm ci`, typecheck, build, testes Vitest compatíveis, `npm audit --audit-level=high` e protocolo MCP SDK. O job Windows roda os testes DPAPI e scripts de serviço, compila o app e valida a jornada MCP real com Playwright/Chromium e axe-core; essa jornada precisa do cofre Windows real. Nenhum segredo ou credencial externa é necessário. Artefatos de falha são restritos a XML JUnit e traces/screenshots Playwright, com retenção de sete dias.
 
 Para reproduzir a jornada MCP e os testes locais:
 

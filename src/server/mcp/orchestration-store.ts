@@ -5,6 +5,9 @@ import { AppError } from "../errors.js";
 import { resolvePersistentDirectory, resolveTesseractDataDirectory } from "../storage/data-directory.js";
 
 export type StoredFlow = {
+  kind?: "finops-correlation";
+  finopsRequest?: { scope: string; period: { from: string; toExclusive: string } };
+  correlation?: unknown;
   id: string;
   ownerId: string;
   sessionId: string;
@@ -131,6 +134,11 @@ export class OrchestrationStore {
             !isRecord(f.serverB) ||
             typeof f.serverB.id !== "string" ||
             typeof f.serverB.tool !== "string" ||
+            (f.kind !== undefined && f.kind !== "finops-correlation") ||
+            (f.finopsRequest !== undefined &&
+              (!isRecord(f.finopsRequest) || typeof f.finopsRequest.scope !== "string" ||
+                !isRecord(f.finopsRequest.period) || typeof f.finopsRequest.period.from !== "string" ||
+                typeof f.finopsRequest.period.toExclusive !== "string")) ||
             typeof f.createdAt !== "string" ||
             typeof f.updatedAt !== "string" ||
             (f.processId !== undefined && !Number.isInteger(f.processId)) ||

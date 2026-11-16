@@ -81,7 +81,7 @@ jobs:
         run: npx vitest run tests/server/service-scripts.test.ts tests/storage/config-store.test.ts tests/connections/access-service.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-tests.junit.xml
       - name: Install Playwright Chromium
         run: npx playwright install chromium
-      - name: MCP browser journey and accessibility scan
+      - name: MCP M10/M12/M14 browser journeys and accessibility scans
         env:
           CI: "true"
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: test-results/ci/playwright.junit.xml

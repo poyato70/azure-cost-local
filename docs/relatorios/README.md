@@ -4,6 +4,7 @@ Este índice reúne o histórico versionado das missões do repositório. Os rel
 
 | Missão | Título | Data | Status registrado | Relatório | Pull Request |
 |---|---|---|---|---|---|
+| 14 | Correlação FinOps entre servidores MCP com proveniência verificável | 2026-11-16 | Implementada e validada localmente; publicação/CI remota pendentes | [missao-14.md](missao-14.md) | — |
 | 13 | Persistência, recuperação e rastreabilidade da orquestração MCP | 2026-11-16 | Integrada à `main` após CI Linux/Windows aprovada; backup original perdido e não recuperado | [missao-13.md](missao-13.md) | [PR #10](https://github.com/poyato70/azure-cost-local/pull/10) |
 | 04–05 | MCP Inspector e instalação automatizada | 2026-11-13 | Relatório fonte: implementação local; publicação não comprovada no registro da época | [missao-04-05.md](missao-04-05.md) | — |
 | 06 | Consolidação do workspace MCP e operações | 2026-11-13 | Integrada à `main` conforme PR #1 | [missao-06.md](missao-06.md) | [PR #1](https://github.com/poyato70/azure-cost-local/pull/1) |

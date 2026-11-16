@@ -114,6 +114,25 @@ export function registerConnectionRoutes(
       .parse(r.body);
     return d.orchestration.publicView(await d.orchestration.start(ctx, input));
   });
+  app.post("/api/finops-correlations", async (r) => {
+    const ctx = (d.mcpContext || d.context)(r);
+    const input = z.object({
+      serverA: id,
+      toolA: z.string().min(1).max(200),
+      serverB: id,
+      toolB: z.string().min(1).max(200),
+      scope: z.string().min(1).max(512),
+      period: z.object({ from: z.string(), toExclusive: z.string() }).strict(),
+      idempotencyKey: z.string().uuid().optional(),
+      confirmedA: z.literal(true),
+    }).strict().parse(r.body);
+    return d.orchestration.publicView(await d.orchestration.startFinOpsCorrelation(ctx, input));
+  });
+  app.get("/api/finops-correlations", async (r) => {
+    const s = d.session(r);
+    const flows = await d.orchestration.list(s.userId ? `user:${s.userId}` : `session:${s.id}`);
+    return flows.filter((flow: any) => flow.kind === "finops-correlation");
+  });
   app.get("/api/mcp-orchestrations/:id", async (r) => {
     const s = d.session(r);
     return d.orchestration.publicView(
@@ -126,9 +145,10 @@ export function registerConnectionRoutes(
   });
   app.get("/api/mcp-orchestrations", async (r) => {
     const s = d.session(r);
-    return d.orchestration.list(
+    const flows = await d.orchestration.list(
       s.userId ? `user:${s.userId}` : `session:${s.id}`,
     );
+    return flows.filter((flow: any) => flow.kind !== "finops-correlation");
   });
   app.post("/api/mcp-orchestrations/:id/confirm", async (r) =>
     d.orchestration.publicView(

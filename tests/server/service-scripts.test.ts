@@ -96,7 +96,7 @@ it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop o
     expect(started.status, started.stdout + started.stderr).toBe(0);
     expect(started.stdout).toContain("iniciado");
     const metadata = JSON.parse((await readFile(f.metadata, "utf8")).replace(/^\uFEFF/, ""));
-    expect(metadata.projectRoot).toBe(f.root);
+    expect(metadata.projectRoot).toBe(await realpath(f.root));
     expect(metadata.port).toBe(port);
     expect(metadata.stdoutLog).toContain("service.out.log");
     expect(runScript(f.root, f.appData, "status.ps1", ["-Port", String(port)]).status).toBe(0);

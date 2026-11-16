@@ -4,7 +4,7 @@
 
 - **Estado:** Em execução; segunda run remota identificou dependências de ambiente; configuração e fixture corrigidas, aguardando terceira run.
 - **Início:** 2026-11-16 00:39:38 -03:00.
-- **Último registro:** 2026-11-16 01:29:00 -03:00.
+- **Último registro:** 2026-11-16 01:36:30 -03:00.
 - **Conclusão:** Pendente.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-11-ci`.
@@ -105,11 +105,11 @@ Fixture MCP do E2E: `tests/fixtures/mcp-mission10-server.ts`. Não usa credencia
 
 ## Publicação
 
-- **Commit/PR:** `4aad757`; [PR #6](https://github.com/poyato70/azure-cost-local/pull/6).
-- **Checks remotos:** Runs #43802384035 e #43803549347 falharam; realpath e mudança do E2E para Windows aguardam terceira run.
+- **Commit/PR:** `4aad757`, `ceeedf6`, `ec94279` e revisão pendente; [PR #6](https://github.com/poyato70/azure-cost-local/pull/6).
+- **Checks remotos:** Linux passou na run #43804696937; Windows falhou somente na expectativa `projectRoot` (caminho longo versus curto). O ajuste local passou 3/3; nova run pendente.
 - **Integração/commit remoto:** Pendente.
 - **Última verificação de segurança de segredo:** busca direcionada no diff, sem padrões de credenciais; `git diff --check` aprovado.
 
 ## Último registro
 
-2026-11-16 01:29:00 -03:00 — segunda run confirmou divergência de caminho curto na fixture e DPAPI necessário ao E2E; jornada movida ao Windows e hash canonicalizado com realpath(). 129 testes Linux, seis testes Windows e E2E com axe passaram localmente; validação remota pendente.
+2026-11-16 01:36:30 -03:00 — terceira run aprovou Linux (129 testes e audit); Windows confirmou correção de hash, mas falhou na comparação literal de `projectRoot`. A expectativa agora compara `realpath()` e 3/3 testes de serviço passam localmente. E2E/axe aprovado localmente com CI=true; nova CI pendente.

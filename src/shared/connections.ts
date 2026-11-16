@@ -169,4 +169,5 @@ export type ToolDescriptor = {
   inputSchema: Record<string, unknown>;
   schemaHash: string;
   annotations?: Record<string, unknown>;
+  _meta?: Record<string, unknown>;
 };

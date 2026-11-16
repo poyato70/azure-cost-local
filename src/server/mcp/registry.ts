@@ -594,6 +594,7 @@ export class McpRegistry {
     name: string,
     args: Record<string, unknown>,
     registeredQuery?: string,
+    confirmedExecution = false,
   ) {
     const live = await this.connect(ctx, id),
       current = await this.get(id);
@@ -611,6 +612,15 @@ export class McpRegistry {
         "Verificando aprovação, schema e escopo. Argumentos e credenciais não são registrados.",
     });
     authorizeTool(current, t, args, registeredQuery);
+    if (
+      t._meta?.["tesseract/approval"] === "each-call" &&
+      !confirmedExecution
+    )
+      throw new AppError(
+        "forbidden",
+        "Esta ferramenta exige confirmação explícita para cada execução.",
+        403,
+      );
     const validate = new AjvJsonSchemaValidator().getValidator(
       t.inputSchema as any,
     );

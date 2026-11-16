@@ -34,7 +34,7 @@ Preparar um caminho Azure somente leitura através do ARM MCP, adaptando respost
 | 3. Integração M14 e interface | Concluída localmente | Fluxo sintético preservado; modo Azure restrito à mesma conexão ARM, escopo cadastrado e tools `query_costs`/`execute_query`; UI identifica sintético/Azure, métrica e limitações de reconciliação. |
 | 4. Testes e segurança | Concluída localmente | 62 arquivos/190 testes unitários; fixtures contratuais para mapeamento, partial, duplicidade, ID case-insensitive e autorização exata. Playwright 40/40 com duas fixtures MCP e reinicialização real. |
 | 5. Validação final e documentação | Concluída localmente | Typecheck, build, audit e `git diff --check` executados; Axe e viewports registrados em E2E. Revisão final de publicação ainda depende de CI remota. |
-| 6. PR, CI e integração | Em andamento | PR #14 aberta; `Quality / Linux` e `PowerShell / Windows` observados em execução; merge pendente. |
+| 6. PR, CI e integração | Em andamento | PR #14 aberta; run #25 aprovou `Quality / Linux` e `PowerShell / Windows`; merge pendente. |
 
 - **Progresso:** 5/6 etapas completas (83%); publicação pendente.
 - **Tempo decorrido:** 34m21s no marco de 2026-11-16 16:48:20 -03:00, medido em relação ao início registrado; não inclui espera futura por CI.
@@ -102,7 +102,8 @@ Preparar um caminho Azure somente leitura através do ARM MCP, adaptando respost
 - Commit de implementação: `8abc41afe78fe4a72d6480de294164b0bd6fe797` (`feat: add bounded Azure ARM MCP FinOps correlation`).
 - Branch remota: `codex/missao-15-finops-real`.
 - Pull Request: [#14](https://github.com/poyato70/azure-cost-local/pull/14), aberta contra `main` em `2026-11-16T19:49:28Z`.
-- CI do commit inicial: workflow `CI`, run `43943353928`; `Quality / Linux` e `PowerShell / Windows` observados `in_progress` no último snapshot. Aguardando conclusão.
+- CI do commit de implementação/documentação `dee1f0d4ed1049bee22dce8c86bb371f551751d4`: workflow `CI`, run `43943496937` (#25); `Quality / Linux` e `PowerShell / Windows` concluídos com `success`, incluindo typecheck, build, testes unitários/MCP, audit e E2E M10/M12/M14 no Windows.
+- Este registro dos resultados da CI cria um commit de relatório adicional; aguardar nova execução sobre esse HEAD antes do merge.
 - O PR ainda não foi integrado; merge depende dos checks obrigatórios aprovados.
 - Nenhuma credencial ou dado corporativo incluído no relatório.
 

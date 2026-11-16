@@ -4,7 +4,7 @@ Este índice reúne o histórico versionado das missões do repositório. Os rel
 
 | Missão | Título | Data | Status registrado | Relatório | Pull Request |
 |---|---|---|---|---|---|
-| 15 | Integração FinOps real, contratos de dados e confiabilidade financeira | 2026-11-16 | PR #14 aberta; CI em execução; validação real Azure pendente | [missao-15.md](missao-15.md) | [PR #14](https://github.com/poyato70/azure-cost-local/pull/14) |
+| 15 | Integração FinOps real, contratos de dados e confiabilidade financeira | 2026-11-16 | PR #14; CI Linux/Windows aprovado; validação real Azure pendente | [missao-15.md](missao-15.md) | [PR #14](https://github.com/poyato70/azure-cost-local/pull/14) |
 | 14 | Correlação FinOps entre servidores MCP com proveniência verificável | 2026-11-16 | Integrada à `main` via PR #12; CI Linux/Windows aprovada | [missao-14.md](missao-14.md) | [PR #12](https://github.com/poyato70/azure-cost-local/pull/12) |
 | 13 | Persistência, recuperação e rastreabilidade da orquestração MCP | 2026-11-16 | Integrada à `main` após CI Linux/Windows aprovada; backup original perdido e não recuperado | [missao-13.md](missao-13.md) | [PR #10](https://github.com/poyato70/azure-cost-local/pull/10) |
 | 04–05 | MCP Inspector e instalação automatizada | 2026-11-13 | Relatório fonte: implementação local; publicação não comprovada no registro da época | [missao-04-05.md](missao-04-05.md) | — |

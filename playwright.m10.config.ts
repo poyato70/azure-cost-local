@@ -3,7 +3,7 @@ import { createUniqueTestOutputDir } from "./scripts/test-path-safety.js";
 
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: ["mission-10-mcp.spec.ts", "mission-12-orchestration.spec.ts"],
+  testMatch: ["mission-10-mcp.spec.ts", "mission-12-orchestration.spec.ts", "mission-14-finops-correlation.spec.ts"],
   workers: 1,
   timeout: 45000,
   expect: { timeout: 6000 },

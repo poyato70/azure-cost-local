@@ -295,6 +295,40 @@ small {
   max-width: 1700px;
   margin: auto;
 }
+.finops-correlation {
+  display: grid;
+  gap: 18px;
+}
+.correlation-card {
+  min-height: 0;
+  overflow-wrap: anywhere;
+}
+.correlation-card .toolbar {
+  flex-wrap: wrap;
+  align-items: end;
+}
+.correlation-card .toolbar label {
+  flex: 1 1 220px;
+}
+.correlation-card input,
+.correlation-card select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+.correlation-card article {
+  border-left: 3px solid var(--border);
+  margin: 12px 0;
+  padding: 4px 12px;
+}
+.correlation-card [role="status"] {
+  border-left: 3px solid var(--primary);
+  padding: 8px 12px;
+}
+.correlation-card summary {
+  cursor: pointer;
+  font-weight: 600;
+}
 .page-heading {
   display: flex;
   justify-content: space-between;

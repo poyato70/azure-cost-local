@@ -57,6 +57,7 @@ export function Navigation({
         ["budgets", "Budgets"],
         ["benefits", "Compromissos"],
         ["multicloud", "Visão multicloud"],
+        ["finops-correlation", "Correlação MCP"],
         ["hubs", "FinOps hub"],
       ],
     },

@@ -35,6 +35,7 @@ import type {
 import { Accesses } from "./pages/Accesses.js";
 import { McpConnections } from "./pages/McpConnections.js";
 import { Agents } from "./pages/Agents.js";
+import { FinOpsCorrelation } from "./pages/FinOpsCorrelation.js";
 import type { DiagnosticEvent } from "../server/diagnostics/service.js";
 const tabs: { id: string; label: string; group?: string }[] = [
   { id: "multicloud", label: "Visão multicloud", group: "EXPLORAR" },
@@ -822,6 +823,7 @@ export function App() {
               </section>
             )}
             {tab === "diagnostics" && <DiagnosticPanel />}
+            {tab === "finops-correlation" && <FinOpsCorrelation profiles={mcpProfiles} />}
             {tab === "hubs" && (
               <Hubs
                 key={boot?.activeAccessId}

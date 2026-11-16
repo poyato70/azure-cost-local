@@ -35,7 +35,7 @@ Executar análise reproduzível usando custos e inventário sintéticos de dois 
 | 6. PR, CI e integração | Em andamento | Commit/PR e CI Linux/Windows pendentes; não integrar antes dos checks obrigatórios. |
 
 - **Progresso:** 5/6 etapas completas (83%); publicação/CI remotas em andamento.
-- **Tempo decorrido observado:** 45 min 32 s até 14:33:51 -03:00; sem previsão de prazo.
+- **Tempo decorrido observado:** 46 min 05 s até 14:34:24 -03:00; sem previsão de prazo.
 - **Bloqueios:** CI remota ainda pendente. `npm ci --ignore-scripts --prefer-offline` concluiu sem alterar manifests ou lockfile: 371 pacotes adicionados, 378 auditados, 0 vulnerabilidades; aviso de depreciação para `node-domexception@1.0.0`.
 
 ## Implementação
@@ -81,11 +81,12 @@ Executar análise reproduzível usando custos e inventário sintéticos de dois 
 
 ## Publicação
 
-- **Branch/commit publicado:** pendente.
+- **Commit local de implementação:** `77760437c17b90e850a668849758b433df232e4e` (`feat: add persisted FinOps MCP correlation`).
+- **Branch remota:** push pendente.
 - **Pull Request/CI:** pendente.
 - **Estado do merge:** pendente.
 - **Commit final confirmado na `main`:** pendente.
 
 ## Pendências
 
-Completar integração no adapter limitado do orquestrador, contratos/dataset MCP independente, autorização separada, persistência segura de resultado derivado, APIs/UI, E2E e CI. Reexecutar validações no estado final.
+Publicar a branch, abrir PR, aguardar CI Linux/Windows e integrar somente com os checks obrigatórios aprovados.

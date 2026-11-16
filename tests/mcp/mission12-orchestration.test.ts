@@ -7,8 +7,14 @@ import { z } from "zod";
 import { McpRegistry } from "../../src/server/mcp/registry.js";
 import { McpOrchestration } from "../../src/server/mcp/orchestration.js";
 import { Invalidation } from "../../src/server/connections/invalidation.js";
+import { OrchestrationStore } from "../../src/server/mcp/orchestration-store.js";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { protectedTestPaths, safeRemoveTestDirectory } from "../../scripts/test-path-safety.js";
 
 it("orchestrates two real Streamable HTTP MCP servers once and preserves A through B confirmation", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "tesseract-m12-store-"));
   const calls = { a: 0, b: 0, received: undefined as any };
   const behavior = { invalidA: false, errorA: false, errorB: false };
   let changeBSchema = () => {};
@@ -161,7 +167,10 @@ it("orchestrates two real Streamable HTTP MCP servers once and preserves A throu
   try {
     await registry.approve(ctx, ids[0], ["fixture_cost"]);
     await registry.approve(ctx, ids[1], ["fixture_summary"]);
-    const flowService = new McpOrchestration(registry);
+    const flowService = new McpOrchestration(
+      registry,
+      new OrchestrationStore(join(temp, "orchestrations.json")),
+    );
     const input = {
       serverA: ids[0],
       toolA: "fixture_cost",
@@ -254,5 +263,6 @@ it("orchestrates two real Streamable HTTP MCP servers once and preserves A throu
       }
       await new Promise<void>((resolve) => item.http.close(() => resolve()));
     }
+    safeRemoveTestDirectory(temp, tmpdir(), protectedTestPaths());
   }
 });

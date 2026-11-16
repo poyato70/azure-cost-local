@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { createUniqueTestOutputDir } from "./scripts/test-path-safety.js";
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -6,7 +7,7 @@ export default defineConfig({
   workers: 1,
   timeout: 45000,
   expect: { timeout: 6000 },
-  outputDir: "test-results/m10-qa-run/playwright-output",
+  outputDir: createUniqueTestOutputDir("tesseract-playwright-m10-"),
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:14517",

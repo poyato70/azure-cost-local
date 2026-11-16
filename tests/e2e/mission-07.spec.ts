@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures.js";
 
 test("validates Azure OpenAI Usage inputs and submits a recognized portal resource", async ({
   page,
-}) => {
+}, testInfo) => {
   const submissions: unknown[] = [];
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -54,7 +54,7 @@ test("validates Azure OpenAI Usage inputs and submits a recognized portal resour
   await expect(form).toHaveAttribute("aria-busy", "true");
   await expect(form.locator("div[role=status]")).toContainText("Fonte: fixture: Azure Monitor");
   await expect(page.getByText("1.234 tokens")).toBeVisible();
-  await page.screenshot({ path: "test-results/mission-07-azure-ai-usage.png", fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("mission-07-azure-ai-usage.png"), fullPage: true });
   expect(submissions).toEqual([
     {
       resourceId:

@@ -635,16 +635,33 @@ export class McpRegistry {
       ...(current.accessId ? ["access:" + current.accessId] : []),
     ]);
     const callStarted = Date.now();
-    const result = await live.client.callTool(
-      { name, arguments: args },
-      undefined,
-      {
-        signal: AbortSignal.any([ctx.signal, live.controller.signal]),
-        timeout: 60000,
-      },
-    );
-    await this.gate.assertCurrent(versions);
-    assertActive(ctx.signal);
+    let result;
+    try {
+      result = await live.client.callTool(
+        { name, arguments: args },
+        undefined,
+        {
+          signal: AbortSignal.any([ctx.signal, live.controller.signal]),
+          timeout: 60000,
+        },
+      );
+    } catch {
+      throw new AppError(
+        "mcp_result_indeterminate",
+        "A chamada foi enviada, mas o MCP não confirmou o resultado. Consulte o servidor antes de repetir.",
+        502,
+      );
+    }
+    try {
+      await this.gate.assertCurrent(versions);
+      assertActive(ctx.signal);
+    } catch {
+      throw new AppError(
+        "mcp_result_indeterminate",
+        "O MCP respondeu, mas a sessão ou configuração mudou antes do registro. Consulte o servidor antes de repetir.",
+        502,
+      );
+    }
     let commandStatus: number | undefined;
     const payload = (result as any).structuredContent;
     if (typeof payload?.status === "number") commandStatus = payload.status;

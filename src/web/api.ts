@@ -9,6 +9,16 @@ import type {
   ChatEvent,
 } from "../shared/contracts.js";
 let csrf = "";
+export class ManageRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ManageRequestError";
+  }
+}
 let dataSource: { source: "api" | "mcp"; mcpConnectionId?: string } = {
   source: "api",
 };
@@ -32,9 +42,11 @@ export async function manageRequest<T = any>(
   });
   const result = await r.json();
   if (!r.ok)
-    throw new Error(
+    throw new ManageRequestError(
       (result.message || "A operação falhou.") +
         (result.requestId ? ` [operação ${result.requestId}]` : ""),
+      result.code || "request_failed",
+      r.status,
     );
   return result;
 }

@@ -4,18 +4,23 @@ import { randomUUID } from "node:crypto";
 import type { ConfigSnapshot } from "../../shared/connections.js";
 import { AppError } from "../errors.js";
 import { dpapi } from "./dpapi.js";
+import {
+  isTesseractTestRuntime,
+  resolvePersistentDirectory,
+  resolveTesseractDataDirectory,
+} from "./data-directory.js";
 const queues = new Map<string, Promise<unknown>>();
 export class ConfigStore {
   private initialized?: Promise<void>;
-  constructor(
-    readonly root = join(
-      process.env.LOCALAPPDATA || "",
-      "AzureCostLocal",
-      "config",
-    ),
-  ) {
-    if (!process.env.LOCALAPPDATA && !root)
-      throw new Error("LOCALAPPDATA ausente");
+  readonly root: string;
+  constructor(root?: string) {
+    const defaultRoot = isTesseractTestRuntime()
+      ? resolveTesseractDataDirectory("AzureCostLocal", "config")
+      : join(process.env.LOCALAPPDATA || "", "AzureCostLocal", "config");
+    this.root = resolvePersistentDirectory(
+      root ?? defaultRoot,
+      "ConfigStore",
+    );
   }
   async init() {
     return (this.initialized ??= (async () => {

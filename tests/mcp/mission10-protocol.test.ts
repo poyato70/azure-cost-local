@@ -2,6 +2,7 @@ import { afterEach, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { protectedTestPaths, safeRemoveTestDirectory } from "../../scripts/test-path-safety.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -18,7 +19,7 @@ const dirs: string[] = [];
 afterEach(async () => {
   for (const client of clients.splice(0)) await client.close().catch(() => {});
   for (const dir of dirs.splice(0))
-    await rm(dir, { recursive: true, force: true });
+    safeRemoveTestDirectory(dir, tmpdir(), protectedTestPaths());
 });
 
 async function validateProtocol(client: Client) {

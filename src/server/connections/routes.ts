@@ -114,14 +114,22 @@ export function registerConnectionRoutes(
       .parse(r.body);
     return d.orchestration.publicView(await d.orchestration.start(ctx, input));
   });
-  app.get("/api/mcp-orchestrations/:id", async (r) =>
-    d.orchestration.publicView(
-      d.orchestration.get(
-        d.session(r).id,
+  app.get("/api/mcp-orchestrations/:id", async (r) => {
+    const s = d.session(r);
+    return d.orchestration.publicView(
+      await d.orchestration.get(
+        s.id,
         z.object({ id: z.string().uuid() }).parse(r.params).id,
+        s.userId ? `user:${s.userId}` : `session:${s.id}`,
       ),
-    ),
-  );
+    );
+  });
+  app.get("/api/mcp-orchestrations", async (r) => {
+    const s = d.session(r);
+    return d.orchestration.list(
+      s.userId ? `user:${s.userId}` : `session:${s.id}`,
+    );
+  });
   app.post("/api/mcp-orchestrations/:id/confirm", async (r) =>
     d.orchestration.publicView(
       await d.orchestration.confirm(

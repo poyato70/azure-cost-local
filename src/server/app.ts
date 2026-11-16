@@ -34,6 +34,7 @@ import { ApplicationProvider } from "./auth/application-provider.js";
 import { IdentityProvider } from "./auth/identity-provider.js";
 import { McpRegistry } from "./mcp/registry.js";
 import { McpOrchestration } from "./mcp/orchestration.js";
+import { OrchestrationStore } from "./mcp/orchestration-store.js";
 import { AgentService } from "./agents/service.js";
 import { LocalAgentRuntime } from "./agents/runtime.js";
 import { KnowledgeService } from "./knowledge/service.js";
@@ -45,6 +46,7 @@ export type AppDeps = {
   store?: SessionStore;
   http?: ArmHttp;
   configStore?: ConfigStore;
+  orchestrationStore?: OrchestrationStore;
 };
 export async function buildApp(deps: AppDeps = {}) {
   const config = deps.config || readConfig(),
@@ -63,7 +65,7 @@ export async function buildApp(deps: AppDeps = {}) {
       identity,
     ),
     mcps = new McpRegistry(saved, vault, accesses, gate, identities),
-    orchestration = new McpOrchestration(mcps),
+    orchestration = new McpOrchestration(mcps, deps.orchestrationStore),
     agents = new AgentService(saved, vault, gate);
   const http = deps.http || new ArmHttp((ctx) => identities.getToken(ctx)),
     inventory = new Inventory(http),
@@ -72,6 +74,7 @@ export async function buildApp(deps: AppDeps = {}) {
     benefits = new Benefits(http),
     forecast = new ForecastService(http);
   const diagnostics = new Diagnostics();
+  await orchestration.init();
   const app = Fastify({ logger: false, bodyLimit: 32000 });
   await app.register(cookie);
   const hubs = new HubService(saved, gate, identities, mcps, {
@@ -333,13 +336,16 @@ export async function buildApp(deps: AppDeps = {}) {
         })
         .parse(req.query);
       if (upstream.error)
-        throw authError({
-          errorCode: upstream.error,
-          errorMessage: upstream.error_description,
-        }, identities.authErrorContext(req.cookies.sid || "") || {
-          tenantId: config.tenantId,
-          resourceName: "Azure Resource Manager",
-        });
+        throw authError(
+          {
+            errorCode: upstream.error,
+            errorMessage: upstream.error_description,
+          },
+          identities.authErrorContext(req.cookies.sid || "") || {
+            tenantId: config.tenantId,
+            resourceName: "Azure Resource Manager",
+          },
+        );
       const q = z
         .object({ state: z.string(), code: z.string() })
         .parse(req.query);

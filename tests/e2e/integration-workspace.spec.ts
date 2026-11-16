@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-test("workspace remains usable on desktop and mobile", async ({ page }) => {
+test("workspace remains usable on desktop and mobile", async ({ page }, testInfo) => {
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     const fixtures: Record<string, unknown> = {
@@ -32,7 +32,7 @@ test("workspace remains usable on desktop and mobile", async ({ page }) => {
     page.getByText("Sessão MCP aberta", { exact: false }),
   ).toBeVisible();
   await page.screenshot({
-    path: "test-results/workspace-desktop.png",
+    path: testInfo.outputPath("workspace-desktop.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -54,7 +54,7 @@ test("workspace remains usable on desktop and mobile", async ({ page }) => {
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "test-results/workspace-mobile.png",
+    path: testInfo.outputPath("workspace-mobile.png"),
     fullPage: true,
   });
 });

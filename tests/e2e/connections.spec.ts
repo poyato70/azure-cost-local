@@ -102,7 +102,7 @@ test("exposes the independent agent selector and MCP configuration", async ({
 
 test("shows application connection feedback beneath the selected access buttons", async ({
   page,
-}) => {
+}, testInfo) => {
   let fail = false;
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -172,7 +172,7 @@ test("shows application connection feedback beneath the selected access buttons"
     feedback = await confirmation.boundingBox();
   expect(feedback!.y).toBeGreaterThanOrEqual(actions!.y + actions!.height);
   await page.screenshot({
-    path: "test-results/access-connection-feedback.png",
+    path: testInfo.outputPath("access-connection-feedback.png"),
     fullPage: true,
   });
   fail = true;

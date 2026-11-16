@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
+import { appendFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 async function launch(role: "a" | "b") {
   const sessions = new Map<
@@ -28,15 +30,24 @@ async function launch(role: "a" | "b") {
             inputSchema: { scope: z.string() },
             annotations: { readOnlyHint: true },
           },
-          async () => ({
-            content: [{ type: "text", text: "M12_SYNTHETIC_COST" }],
-            structuredContent: {
-              marker: "M12_SYNTHETIC_COST",
-              amount: 42.5,
-              currency: "USD",
-              period: "2026-10",
-            },
-          }),
+          async () => {
+            if (process.env.M12_FIXTURE_CALLS)
+              await appendFile(process.env.M12_FIXTURE_CALLS, "a\n");
+            if (
+              process.env.M12_A_DELAY_FILE &&
+              existsSync(process.env.M12_A_DELAY_FILE)
+            )
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+            return {
+              content: [{ type: "text", text: "M12_SYNTHETIC_COST" }],
+              structuredContent: {
+                marker: "M12_SYNTHETIC_COST",
+                amount: 42.5,
+                currency: "USD",
+                period: "2026-10",
+              },
+            };
+          },
         );
       else
         server.registerTool(
@@ -51,15 +62,19 @@ async function launch(role: "a" | "b") {
             annotations: { readOnlyHint: true },
             _meta: { "tesseract/approval": "each-call" },
           },
-          async (args) => ({
-            content: [{ type: "text", text: "M12_SYNTHETIC_SUMMARY" }],
-            structuredContent: {
-              marker: "M12_SYNTHETIC_SUMMARY",
-              total: args.amount,
-              currency: args.currency,
-              period: args.period,
-            },
-          }),
+          async (args) => {
+            if (process.env.M12_FIXTURE_CALLS)
+              await appendFile(process.env.M12_FIXTURE_CALLS, "b\n");
+            return {
+              content: [{ type: "text", text: "M12_SYNTHETIC_SUMMARY" }],
+              structuredContent: {
+                marker: "M12_SYNTHETIC_SUMMARY",
+                total: args.amount,
+                currency: args.currency,
+                period: args.period,
+              },
+            };
+          },
         );
       let transport!: StreamableHTTPServerTransport;
       transport = new StreamableHTTPServerTransport({

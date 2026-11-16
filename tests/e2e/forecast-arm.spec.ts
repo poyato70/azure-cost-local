@@ -70,6 +70,6 @@ test("shows Forecast and Actual separately and offers the official delegated ARM
   await expect(page.getByLabel("Endpoint MCP")).toHaveValue(
     "https://mcp.management.azure.com",
   );
-  await expect(page.getByLabel("scope", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Escopo ARM", { exact: true })).toBeVisible();
   await expect(page.getByText(/MCP.Access/)).toBeVisible();
 });

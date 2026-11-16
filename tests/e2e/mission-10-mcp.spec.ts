@@ -1,9 +1,10 @@
 import { test, expect } from "./fixtures.js";
-import { mkdir, mkdtemp, open, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import AxeBuilder from "@axe-core/playwright";
+import { createUniqueTestOutputDir, protectedTestPaths, safeRemoveTestDirectory } from "../../scripts/test-path-safety.js";
 
 const appPort = 14517;
 const fixtureScript = join(
@@ -12,7 +13,11 @@ const fixtureScript = join(
   "fixtures",
   "mcp-mission10-server.ts",
 );
-const evidenceRoot = join(process.cwd(), "test-results", "m10-qa-run");
+const evidenceRoot = createUniqueTestOutputDir(
+  "tesseract-m10-evidence-",
+  protectedTestPaths(),
+  join(process.cwd(), "test-results"),
+);
 let appProcess: ChildProcess | undefined;
 let fixtureProcess: ChildProcess | undefined;
 let tempRoot = "";
@@ -40,7 +45,13 @@ test.beforeAll(async () => {
     ["--import", "tsx", fixtureScript, "--http"],
     {
       cwd: process.cwd(),
-      env: { ...process.env, M10_FIXTURE_TEMP: fixtureTemp },
+      env: {
+        ...process.env,
+        TESSERACT_TEST_RUNTIME: "1",
+        TESSERACT_TEST_DATA_DIR: join(tempRoot, "fixture-data"),
+        LOCALAPPDATA: join(tempRoot, "fixture-local-app-data"),
+        M10_FIXTURE_TEMP: fixtureTemp,
+      },
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
@@ -76,6 +87,8 @@ test.beforeAll(async () => {
     );
 
   const localApp = join(tempRoot, "local-app-data");
+  await mkdir(localApp, { recursive: true });
+  await mkdir(join(tempRoot, "fixture-data"), { recursive: true });
   const appStdout = await open(join(evidenceRoot, "tesseract.stdout.log"), "a");
   const appStderr = await open(join(evidenceRoot, "tesseract.stderr.log"), "a");
   appProcess = spawn(process.execPath, ["dist/server/main.js"], {
@@ -84,6 +97,12 @@ test.beforeAll(async () => {
       ...process.env,
       PORT: String(appPort),
       LOCALAPPDATA: localApp,
+      TESSERACT_TEST_RUNTIME: "1",
+      TESSERACT_TEST_DATA_DIR: localApp,
+      TESSERACT_TEST_PROTECTED_ROOTS: JSON.stringify([
+        join(process.env.LOCALAPPDATA || tmpdir(), "Tesseract"),
+        join(process.env.LOCALAPPDATA || tmpdir(), "AzureCostLocal"),
+      ]),
       AZURE_TENANT_ID: "",
       AZURE_CLIENT_ID: "",
     },
@@ -108,7 +127,8 @@ test.afterAll(async () => {
       });
     });
   }
-  if (tempRoot) await rm(tempRoot, { recursive: true, force: true });
+  if (tempRoot)
+    safeRemoveTestDirectory(tempRoot, tmpdir(), protectedTestPaths());
 });
 
 test("connects to controlled MCP, reviews, authorizes, executes and verifies activity", async ({

@@ -3,7 +3,7 @@ const a = "11111111-1111-4111-8111-111111111111",
   m = "22222222-2222-4222-8222-222222222222";
 test("discovers tools, renders a nested schema and displays the executed result", async ({
   page,
-}) => {
+}, testInfo) => {
   let approved = false;
   let called: any;
   const tool = () => ({
@@ -131,7 +131,7 @@ test("discovers tools, renders a nested schema and displays the executed result"
   await page
     .getByRole("region", { name: "Resultado da tool" })
     .scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "test-results/mcp-schema-result.png" });
+  await page.screenshot({ path: testInfo.outputPath("mcp-schema-result.png") });
 });
 test("filters subscription names using a wildcard search", async ({ page }) => {
   await page.route("**/api/**", async (r) => {

@@ -23,7 +23,7 @@ async function openConnectionsMap(page: Page) {
 }
 
 for (const viewport of viewports) {
-  test(`Missão 09 layout responsivo em ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`Missão 09 layout responsivo em ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await openConnectionsMap(page);
@@ -65,21 +65,17 @@ for (const viewport of viewports) {
     expect(layout.providerButton.height).toBeGreaterThanOrEqual(44);
     expect(layout.integrationButton.height).toBeGreaterThanOrEqual(44);
     expect(pageErrors).toEqual([]);
-    if (viewport.width < 761) {
+    if (viewport.width <= 900) {
       expect(layout.provider.bottom).toBeLessThanOrEqual(layout.integration.y + 1);
       expect(layout.integration.bottom).toBeLessThanOrEqual(layout.detail.y + 1);
       expect(layout.activity.y).toBeGreaterThan(layout.detail.bottom);
     } else {
       expect(layout.provider.x).toBeLessThan(layout.integration.x);
       expect(layout.detail.y).toBeGreaterThan(layout.provider.bottom);
-      if (viewport.width > 1050) {
-        expect(layout.activity.x).toBeGreaterThan(layout.provider.x);
-      } else {
-        expect(layout.activity.y).toBeGreaterThan(layout.detail.bottom);
-      }
+      expect(layout.activity.x).toBeGreaterThan(layout.provider.x);
     }
 
-    await page.screenshot({ path: `test-results/m09-${viewport.name}-${viewport.width}x${viewport.height}.png`, fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath(`m09-${viewport.name}-${viewport.width}x${viewport.height}.png`), fullPage: true });
   });
 }
 

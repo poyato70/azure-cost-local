@@ -12,7 +12,7 @@ import type {
   McpProfile,
   PublicAccessProfile,
 } from "../../shared/connections.js";
-import { manageRequest } from "../api.js";
+import { manageRequest, ManageRequestError } from "../api.js";
 import { applyPricingDefaults } from "../components/pricing-defaults.js";
 import { ConnectionsMap } from "../components/ConnectionsMap.js";
 import { Play, CheckCircle2 } from "lucide-react";
@@ -129,6 +129,7 @@ export function McpConnections({
   const [toolB, setToolB] = useState("m12_summarize_cost");
   const [flowArgs, setFlowArgs] = useState('{"scope":"TEST_ONLY"}');
   const [flow, setFlow] = useState<any>();
+  const [flowHistory, setFlowHistory] = useState<any[]>([]);
   const [flowBusy, setFlowBusy] = useState(false);
   const [confirmA, setConfirmA] = useState(false);
   useEffect(() => {
@@ -137,6 +138,13 @@ export function McpConnections({
       void manageRequest(`/mcp-orchestrations/${id}`, "GET")
         .then(setFlow)
         .catch(() => sessionStorage.removeItem("tesseract-mcp-flow"));
+  }, []);
+  const refreshFlowHistory = () =>
+    void manageRequest("/mcp-orchestrations", "GET")
+      .then((rows) => setFlowHistory(Array.isArray(rows) ? rows : []))
+      .catch(() => setFlowHistory([]));
+  useEffect(() => {
+    refreshFlowHistory();
   }, []);
   useEffect(() => {
     const candidates = profiles.filter((p) => p.id !== "default");
@@ -176,6 +184,7 @@ export function McpConnections({
         confirmedA: true,
       });
       setFlow(next);
+      refreshFlowHistory();
       sessionStorage.setItem("tesseract-mcp-flow", next.id);
       onRefreshActivity?.();
       if (
@@ -183,12 +192,19 @@ export function McpConnections({
         next.state !== "indeterminate"
       )
         sessionStorage.removeItem("tesseract-mcp-flow-key");
-    } catch {
-      setFlow({
-        state: "indeterminate",
-        error:
-          "A resposta da solicitação não foi confirmada. O identificador idempotente foi mantido; consultar novamente não repetirá chamadas já registradas.",
-      });
+    } catch (error) {
+      if (error instanceof ManageRequestError) {
+        setFlow({
+          state: "failed",
+          error: `${error.code}: ${error.message}`,
+        });
+      } else {
+        setFlow({
+          state: "indeterminate",
+          error:
+            "A resposta da solicitação não foi confirmada. O identificador idempotente foi mantido; consultar novamente não repetirá chamadas já registradas.",
+        });
+      }
     } finally {
       setFlowBusy(false);
     }
@@ -203,6 +219,7 @@ export function McpConnections({
         {},
       );
       setFlow(next);
+      refreshFlowHistory();
       sessionStorage.removeItem("tesseract-mcp-flow-key");
       onRefreshActivity?.();
     } finally {
@@ -583,6 +600,49 @@ export function McpConnections({
               )}
             </div>
           )}
+          <section
+            className="mcp-flow-history"
+            aria-label="Histórico de orquestrações"
+          >
+            <div className="section-head">
+              <h4>Histórico persistido</h4>
+              <button type="button" onClick={refreshFlowHistory}>
+                Atualizar
+              </button>
+            </div>
+            {!flowHistory.length && (
+              <p>Nenhuma execução registrada para esta identidade.</p>
+            )}
+            {flowHistory.map((item: any) => (
+              <article key={item.id} className="config-card">
+                <strong>
+                  {item.serverA?.tool} → {item.serverB?.tool} · {item.state}
+                </strong>
+                <p>
+                  {new Date(item.updatedAt || item.createdAt).toLocaleString()}{" "}
+                  · Correlação {item.requestId}
+                </p>
+                {item.state === "indeterminate" && (
+                  <p role="status">
+                    O pedido pode ter chegado ao servidor MCP, mas o resultado
+                    não foi confirmado. O Tesseract não repetirá a chamada.
+                  </p>
+                )}
+                {item.error && <p>{item.error}</p>}
+                <button
+                  type="button"
+                  onClick={() =>
+                    void manageRequest(
+                      `/mcp-orchestrations/${item.id}`,
+                      "GET",
+                    ).then(setFlow)
+                  }
+                >
+                  Inspecionar estado
+                </button>
+              </article>
+            ))}
+          </section>
         </section>
       )}
       {mode === "integration" &&

@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { it, expect } from "vitest";
+import { protectedTestPaths, safeRemoveTestDirectory } from "../../scripts/test-path-safety.js";
 
 const windows = process.platform === "win32";
 const shell = process.env.TESSERACT_TEST_POWERSHELL ?? "powershell.exe";
@@ -106,7 +107,7 @@ it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop o
     await expect(readFile(f.metadata)).rejects.toThrow();
   } finally {
     if (!serviceStopped) await stopFixture(f.root, f.appData, port);
-    await rm(f.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+    safeRemoveTestDirectory(f.root, tmpdir(), protectedTestPaths());
   }
 }, 30000);
 
@@ -134,7 +135,7 @@ it.skipIf(!windows)("refuses another process on a busy port without terminating 
     expect(await readFile(f.metadata).catch(() => "")).toBe("");
   } finally {
     server.kill();
-    await rm(f.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+    safeRemoveTestDirectory(f.root, tmpdir(), protectedTestPaths());
   }
 }, 15000);
 
@@ -163,6 +164,6 @@ it.skipIf(!windows)("preserves a live process when only the health check times o
     serviceStopped = true;
   } finally {
     if (!serviceStopped) await stopFixture(f.root, f.appData, port);
-    await rm(f.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+    safeRemoveTestDirectory(f.root, tmpdir(), protectedTestPaths());
   }
 }, 20000);

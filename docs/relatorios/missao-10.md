@@ -2,14 +2,17 @@
 
 ## Identificação
 
-- **Estado:** validação local concluída; revisão e publicação pendentes.
+- **Estado:** concluída e integrada à `main`.
 - **Início observado:** 2026-11-15 22:16:45 -03:00.
 - **Último registro de teste:** 2026-11-15 23:51:37 -03:00.
-- **Tempo observado até o último teste:** 1 h 34 min 52 s.
+- **Integração confirmada:** 2026-11-15 23:57:22 -03:00.
+- **Tempo observado até a integração:** 1 h 40 min 37 s.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch de trabalho:** `codex/missao-10-mcp-e2e`.
 - **Base:** `origin/main` em `b664ccd9b7f4bdde3790df73782bd0ff78868488`; confirmado novamente após `git fetch`.
-- **Pull Request / commit da missão / SHA integrado:** pendentes.
+- **Pull Request:** [#5](https://github.com/poyato70/azure-cost-local/pull/5), merged.
+- **Commits da branch:** `00f848b3d8f7...` e `3ce224d3e27a...`.
+- **SHA integrado em `main`:** `77cd2a50e5900d1b1dfcc5c92baba7030ea66aaa`.
 
 ## Resumo
 
@@ -28,12 +31,12 @@ A auditoria encontrou e corrigiu dois problemas funcionais: o mapa priorizava tr
 | 5. Jornada Playwright com aplicação real | Concluída | `tests/e2e/mission-10-mcp.spec.ts`; uma jornada passou contra a aplicação de produção e fixture MCP real, sem mocks HTTP. |
 | 6. Corrigir defeitos e auditar UX/acessibilidade responsiva | Concluída | Eventos MCP priorizados e atualizados após falha; mapa reorganizado para tablet; três viewports, teclado e movimento reduzido inspecionados. |
 | 7. Validação final | Concluída | 55 arquivos/132 testes, typecheck, build, E2E e `git diff --check` passaram. |
-| 8. Consolidar relatório e índice | Em andamento | Este relatório e `README.md` atualizados; revisar diffs e segredos antes do commit. |
-| 9. Abrir PR e integrar | Pendente | Branch será publicada; aguardar checks/revisão remotos antes de integrar. |
+| 8. Consolidar relatório e índice | Concluída | Relatório final e índice registram PR, resultados, limitações e SHA integrado. |
+| 9. Abrir PR e integrar | Concluída | PR #5 integrada via merge commit; SHA remoto relido em `origin/main`. |
 
-- **Progresso:** 7/9 etapas (78%). O percentual mede etapas concluídas, não prazo estimado.
-- **Tempo desde o início até o último teste:** 1 h 34 min 52 s.
-- **Bloqueios:** nenhum bloqueio local atual. Integração aguarda revisão e checks da PR. O transporte stdio da aplicação usa somente os lançadores fixos dos presets; por isso a fixture stdio foi exercitada pelo cliente/servidor SDK diretamente e não pelo registry da aplicação. O E2E da aplicação exercitou o registry e o endpoint Streamable HTTP.
+- **Progresso:** 9/9 etapas (100%). O percentual mede etapas concluídas, não prazo estimado.
+- **Tempo desde o início até a integração:** 1 h 40 min 37 s.
+- **Bloqueios:** nenhum bloqueio local. O transporte stdio da aplicação usa somente os lançadores fixos dos presets; por isso a fixture stdio foi exercitada pelo cliente/servidor SDK diretamente e não pelo registry da aplicação. O E2E da aplicação exercitou o registry e o endpoint Streamable HTTP.
 
 ## Ambiente e servidor controlado
 
@@ -112,18 +115,15 @@ O Playwright inicia a aplicação compilada e o servidor HTTP MCP de teste, cria
 ## Publicação
 
 - **Branch baseada em:** `origin/main` `b664ccd9b7f4bdde3790df73782bd0ff78868488`.
-- **Commit:** pendente de revisão final.
-- **Pull Request:** pendente.
-- **Merge / SHA remoto:** pendente dos checks e da revisão da PR.
-- **Publicação:** não realizada nesta atualização do relatório.
+- **Commits:** `00f848b` (confirmação por execução) e `3ce224d` (fixture, testes e relatório).
+- **Pull Request:** [#5 — Missão 10: validar jornada MCP e política de execução](https://github.com/poyato70/azure-cost-local/pull/5).
+- **Estado:** merged em 2026-11-15 23:57:22 -03:00. O GitHub informou PR mergeable; não publicou status checks remotos para esta branch.
+- **Merge commit confirmado em `origin/main`:** `77cd2a50e5900d1b1dfcc5c92baba7030ea66aaa`.
 
 ## Pendências
 
-1. Revisar/stagear apenas arquivos da Missão 10; executar `git diff --cached --check` e varredura final de segredos.
-2. Criar commits claros, publicar a branch e abrir PR.
-3. Aguardar checks remotos; integrar somente se permanecerem aprovados, sem force push.
-4. Confirmar o SHA remoto e completar o relatório/índice com URL e resultado final da PR.
+Missão encerrada. A inspeção automatizada de acessibilidade quantitativa permanece como melhoria futura, pois axe não fazia parte das dependências instaladas e não foi adicionada nesta missão.
 
 ## Último registro
 
-2026-11-15 23:51:37 -03:00 — suíte completa: 55 arquivos e 132 testes aprovados em 50,33 s.
+2026-11-15 23:58:41 -03:00 — relatório final atualizado após a integração; SHA remoto `77cd2a50e5900d1b1dfcc5c92baba7030ea66aaa` confirmado em `origin/main`.

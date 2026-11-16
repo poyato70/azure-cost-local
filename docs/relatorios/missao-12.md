@@ -2,9 +2,9 @@
 
 ## Identificação
 
-- **Estado atual:** QA local aprovado; publicação pendente da CI remota.
+- **Estado atual:** PR #8 aberta; primeira execução de CI passou; revisão documental final será validada na nova execução.
 - **Início:** 2026-11-16 01:52:16 -03:00.
-- **Último registro:** 2026-11-16 02:31:23 -03:00.
+- **Último registro:** 2026-11-16 02:36:11 -03:00.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-12-mcp-orchestration`.
 - **Commit inicial:** `ee51e17a31fef86254fca603deefbbd332ed0cc1` (main atualizada da Missão 11).
@@ -16,7 +16,7 @@ Compor duas chamadas MCP independentes em sequência, manter autorização e val
 
 ## Progresso e duração
 
-Plano operacional: 4 etapas verificáveis. **3/4 concluídas (75% das etapas; não é estimativa de tempo restante).** Tempo observado até o QA local: aproximadamente 39 min 7 s desde o início informado no gerador.
+Plano operacional: 4 etapas verificáveis. **3/4 concluídas (75% das etapas; não é estimativa de tempo restante).** Tempo observado no registro: aproximadamente 43 min 55 s desde o início informado no gerador.
 
 | Etapa | Estado | Evidência |
 |---|---|---|
@@ -39,6 +39,7 @@ Plano operacional: 4 etapas verificáveis. **3/4 concluídas (75% das etapas; n�
 |---|---|---|---|
 | `npx vitest run` | Windows | Aprovado | 56 arquivos, 133 testes. O teste M12 foi repetido após os cenários finais de schema e falhas: 1 passou. |
 | `npx playwright test --config=playwright.m10.config.ts` | Windows, app real + fixture M10 e duas fixtures M12 Streamable HTTP | Aprovado | Duas jornadas passaram na execução final; fluxo M12 recuperou o mesmo ID após refresh e finalizou o resumo sintético. |
+| CI PR #8, run `43810918487` | GitHub Actions | Aprovado | `Quality / Linux` 43 s; `PowerShell / Windows` 2m45s. Esta execução valida o commit inicial da PR; a atualização deste relatório dispara nova execução obrigatória. [Run](https://github.com/poyato70/azure-cost-local/actions/runs/43810918487). |
 | `npm run typecheck` | Windows | Aprovado | Sem erros TS registrados após as rotas de recuperação. |
 | `npm run build` | Windows | Aprovado | Build Next.js e TypeScript de produção concluído após as últimas alterações de serviço/API. |
 | `npm audit --audit-level=high` | Windows | Aprovado | `found 0 vulnerabilities`; nenhuma dependência nova. |
@@ -55,12 +56,11 @@ Plano operacional: 4 etapas verificáveis. **3/4 concluídas (75% das etapas; n�
 
 ## Publicação
 
-- **Branch/commit publicado:** Pendente.
-- **Pull Request/CI:** Pendente.
-- **Merge/commit final na `main`:** Pendente.
+- **Branch/commit publicado:** `codex/missao-12-mcp-orchestration` / `29b050edd8d2c45f21cfaf652686864a3c97944e`.
+- **Pull Request/CI:** [PR #8](https://github.com/poyato70/azure-cost-local/pull/8), aberta e mergeable; primeiro CI aprovado (run `43810918487`).
+- **Merge/commit final na `main`:** Pendente da nova CI após atualização do relatório.
 
 ## Próximas ações
 
-1. Revisar diff e busca de segredos, criar commit e abrir PR.
-2. Acompanhar checks obrigatórios Linux/Windows e corrigir falhas relacionadas.
-3. Integrar à main após CI aprovada; confirmar SHA remoto e atualizar relatório/índice com links e duração final.
+1. Revalidar o relatório/index atualizados com os checks Linux/Windows.
+2. Integrar à main após CI aprovada; confirmar SHA remoto e concluir o status deste relatório.

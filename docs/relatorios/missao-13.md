@@ -325,3 +325,17 @@ Tempo decorrido medido desde 12:29:35 até a captura de 13:09:58 (-03:00): **40 
 Commit 17cff1267226f8b309ae67b5b7b42e8e47798640 foi publicado na branch codex/missao-13-persistencia; Pull Request [#10](https://github.com/poyato70/azure-cost-local/pull/10) está aberta contra main. Na consulta de 13:13:02 (-03:00), os checks obrigatórios Quality / Linux e PowerShell / Windows estavam IN_PROGRESS, associados ao commit acima. Nenhum merge foi feito. O resultado remoto ainda não pode ser declarado aprovado; a integração permanece condicionada à conclusão bem-sucedida de ambos os checks.
 
 O progresso permanece **6/7 etapas (86%) concluídas**: estado reconciliado, correções/revisão técnica, validações locais e PR publicada; CI e integração ainda pendentes. Tempo decorrido desde 12:29:35 até 13:13:02 (-03:00): 43 min 27 s.
+
+## Encerramento da implementação — PR #10 integrada (2026-11-16, 13:17:03 -03:00)
+
+**Resultado da publicação:** Pull Request [#10](https://github.com/poyato70/azure-cost-local/pull/10) foi integrada por squash após aprovação dos checks obrigatórios no commit de PR 1db27cec0088ae4b6a92a9d15529c84706def1a4:
+
+- Quality / Linux: **SUCCESS**, execução [43905067356](https://github.com/poyato70/azure-cost-local/actions/runs/43905067356/job/133431730129), 54 s; typecheck, build, Vitest e audit passaram.
+- PowerShell / Windows: **SUCCESS**, execução [43905067356](https://github.com/poyato70/azure-cost-local/actions/runs/43905067356/job/133431728823), 2 min 13 s; build, parse dos scripts, testes Windows e jornada Playwright MCP passaram.
+- Merge confirmado em origin/main: 37ee64380a97564a7256661ac2ce32bd7f394e6a, às 13:16:13 -03:00. A branch principal remota apontou para esse SHA na verificação posterior.
+
+A validação local completa foi executada antes da publicação e está detalhada neste relatório; os checks remotos cobriram o workflow CI existente. Nenhuma proteção de branch foi contornada, nenhum force push foi usado. O stash codex-preserve-before-mission-13 permanece intacto. O armazenamento operacional continuou com 30 bytes e SHA-256 6C9B9DD26B7657A87733F60C0A6B1ECAFEBB123000C047823D2A0B398A393BD7; a ACL corrigida localmente permanece restrita ao usuário atual, SYSTEM e Administrators, sem alterar ACLs ancestrais.
+
+O backup original continua ausente e **não foi recuperado**; nenhuma aceitação da perda foi presumida. As limitações de durabilidade física, exatamente-uma-vez externo, retomada de aprovação e corrida TOCTOU continuam válidas conforme seções anteriores. O merge conclui a implementação M13 e sua publicação; não altera o estado do incidente do backup.
+
+Progresso: **7/7 etapas (100%)** da implementação/publicação concluídas. Tempo medido de 12:29:35 a 13:17:03 (-03:00): 47 min 28 s.

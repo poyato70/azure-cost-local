@@ -2,15 +2,15 @@
 
 ## Identificação
 
-- **Estado:** CI aprovada na run #43805202584; branch protection configurada; documentação final pendente de nova CI para merge.
+- **Estado:** Concluída; PR #6 integrada à `main` e proteção de branch ativa.
 - **Início:** 2026-11-16 00:39:38 -03:00.
-- **Último registro:** 2026-11-16 01:41:00 -03:00.
-- **Conclusão:** Pendente.
+- **Último registro:** 2026-11-16 01:46:57 -03:00.
+- **Conclusão:** 2026-11-16 01:46:09 -03:00.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-11-ci`.
 - **Commit inicial:** `3977d1813944148c3c09876e128ae6412b374f3a` (`origin/main`).
 - **Commit de implementação:** `371fb970fc68b4d4788f46df12629bf1d70b5ab1`.
-- **PR:** [#6](https://github.com/poyato70/azure-cost-local/pull/6); merge após nova CI do relatório final.
+- **PR:** [#6](https://github.com/poyato70/azure-cost-local/pull/6), integrada no commit `0dade49038b6d6542b6fe9281eab6193e3cefb7e`.
 
 ## Objetivo e escopo
 
@@ -28,12 +28,12 @@ Adicionar CI reproduzível em PRs para `main`, pushes na `main` e acionamento ma
 | 6. Rodar validações locais                    | Concluída            | Typecheck, build, 129 testes Linux aplicáveis, 6 testes Windows específicos e E2E passaram; npm audit limpo. |
 | 7. Revisar segurança e documentação           | Concluída localmente | README, este relatório e índice atualizados; `git diff --check` limpo.                                       |
 | 8. Commit, push e abrir PR                    | Concluída            | `4aad757`, `ceeedf6`, `ec94279`, `371fb97` / PR #6; revisão final de documentação.                           |
-| 9. Validar CI GitHub e resolver falhas        | Concluída            | Run #43805202584: Linux e Windows aprovados, incluindo E2E MCP/axe.                                          |
-| 10. Proteger `main`, integrar e confirmar SHA | Em andamento         | Proteção configurada; commit documental final e merge pendentes.                                           |
+| 9. Validar CI GitHub e resolver falhas        | Concluída            | Run #43805732153: Linux e Windows aprovados no SHA final `b75d97a`, incluindo E2E MCP/axe.                   |
+| 10. Proteger `main`, integrar e confirmar SHA | Concluída            | Checks obrigatórios configurados; PR #6 integrada e SHA `0dade490...` confirmado em `origin/main`.          |
 
-- **Progresso do plano:** 9/10 etapas (90%; percentual de etapas, não previsão de duração).
-- **Tempo medido no último registro:** ~49 min desde 00:39:38 -03:00.
-- **Bloqueios:** nenhum de implementação. Proteção de `main` configurada com os checks verdes; integração aguarda nova CI da atualização documental.
+- **Progresso do plano:** 10/10 etapas (100%; percentual de etapas concluídas).
+- **Tempo efetivamente decorrido:** 1 h 7 min 19 s, de 00:39:38 a 01:46:57 -03:00.
+- **Bloqueios:** nenhum.
 
 ## Implementação
 
@@ -61,7 +61,7 @@ Adicionar CI reproduzível em PRs para `main`, pushes na `main` e acionamento ma
 | `npm audit --audit-level=high`      | Aprovado                     | 0 vulnerabilidades total (info, low, moderate, high, critical).                                                                                                                           |
 | `git diff --check`                  | Aprovado                     | Sem erros de whitespace no diff local.                                                                                                                                                    |
 | Parser workflow YAML                | Não executado                | Não havia actionlint/cmdlet YAML disponível no host; validação autoritativa pendente no Actions remoto.                                                                                   |
-| GitHub Actions remoto               | Aprovado na run #43805202584 | Linux 48 s e Windows 2m18s; ambos os jobs passaram em 2026-11-16.                                                                                                                         |
+| GitHub Actions remoto               | Aprovado na run #43805732153 | Linux 55 s e Windows 2m45s; ambos os jobs passaram no SHA final antes do merge.                                                                                                         |
 | Proteção `main`                     | Aprovado                     | API confirmou checks `Quality / Linux`, `PowerShell / Windows`, strict=true, enforce_admins=true e allow_force_pushes=false.                                                               |
 
 ### Investigação do teste Windows
@@ -105,11 +105,11 @@ Fixture MCP do E2E: `tests/fixtures/mcp-mission10-server.ts`. Não usa credencia
 
 ## Publicação
 
-- **Commits/PR:** `4aad757`, `ceeedf6`, `ec94279`, `371fb97`; [PR #6](https://github.com/poyato70/azure-cost-local/pull/6).
-- **Checks remotos:** [Run #43805202584 aprovada](https://github.com/poyato70/azure-cost-local/actions/runs/43805202584); Linux 129/129, Windows 6/6 mais E2E MCP/axe.
-- **Integração/commit remoto:** Pendente.
+- **Commits/PR:** `4aad757`, `ceeedf6`, `ec94279`, `371fb97`, `b75d97a`; [PR #6 integrada](https://github.com/poyato70/azure-cost-local/pull/6).
+- **Checks remotos:** [Run #43805732153 aprovada](https://github.com/poyato70/azure-cost-local/actions/runs/43805732153); Linux 129 testes, Windows 6 testes DPAPI/serviço e jornada MCP/axe.
+- **Integração/commit remoto:** `0dade49038b6d6542b6fe9281eab6193e3cefb7e`, confirmado em `origin/main`.
 - **Última verificação de segurança de segredo:** busca direcionada no diff, sem padrões de credenciais; `git diff --check` aprovado.
 
 ## Último registro
 
-2026-11-16 01:41:00 -03:00 — CI #43805202584 aprovada: Linux 129 testes, typecheck, build e audit; Windows build/parser, seis testes (DPAPI e scripts) e Playwright MCP/axe. Duração total da run 2m21s. Proteção de main exige os dois checks, enforce_admins=true e force-push proibido. PR #6 aguarda nova CI após commit final e merge.
+2026-11-16 01:46:57 -03:00 — CI #43805732153 aprovada no SHA final: Linux (129 testes, typecheck, build, audit) 55 s; Windows (build, parser, 6 testes e Playwright MCP/axe) 2m45s. Proteção exige `Quality / Linux` e `PowerShell / Windows`, enforcement administrativo ativo e force-push desabilitado. PR #6 integrada; merge SHA `0dade49038b6d6542b6fe9281eab6193e3cefb7e` confirmado em `origin/main`.

@@ -2,65 +2,66 @@
 
 ## Identificação
 
-- **Estado atual:** PR #8 aberta; primeira execução de CI passou; revisão documental final será validada na nova execução.
+- **Estado atual:** Implementação, QA e integração concluídos.
 - **Início:** 2026-11-16 01:52:16 -03:00.
-- **Último registro:** 2026-11-16 02:36:11 -03:00.
+- **Último registro:** 2026-11-16 02:40:02 -03:00.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-12-mcp-orchestration`.
-- **Commit inicial:** `ee51e17a31fef86254fca603deefbbd332ed0cc1` (main atualizada da Missão 11).
-- **Pull Request / commit publicado:** Ainda não criados.
+- **Commit inicial:** `ee51e17a31fef86254fca603deefbbd332ed0cc1` (main da Missão 11).
+- **Pull Request:** [#8](https://github.com/poyato70/azure-cost-local/pull/8), merged.
+- **Commit de integração na main:** `d6ce754bac03aef4ef8c3bcde65872045ad5bfd3`.
 
 ## Objetivo e escopo
 
-Compor duas chamadas MCP independentes em sequência, manter autorização e validação de schema do registry, transferir campos explicitamente mapeados e expor estado/correlação na superfície de Conexões. Referências visuais consultadas: `ui_modelo.jpg` (grafite, relevo sutil, acento ciano/coral), `image (7).png` (topologia de nós) e vídeo `atahan_guc_pindown.io_1794792848.mp4` (pulso luminoso). As amostras do vídeo foram guardadas temporariamente em `test-results/mission-12/references/`.
+Compor duas chamadas MCP independentes em sequência, manter autorização e validação de schema do registry, transferir campos explicitamente mapeados e expor estado/correlação na superfície de Conexões. Referências consultadas: `ui_modelo.jpg` (grafite, relevo sutil, acento ciano/coral), `image (7).png` (topologia de nós) e `atahan_guc_pindown.io_1794792848.mp4` (pulso luminoso). Amostras temporárias do vídeo e evidências estão em `test-results/mission-12/` (diretório ignorado pelo Git).
 
 ## Progresso e duração
 
-Plano operacional: 4 etapas verificáveis. **3/4 concluídas (75% das etapas; não é estimativa de tempo restante).** Tempo observado no registro: aproximadamente 43 min 55 s desde o início informado no gerador.
+Plano operacional: 4 etapas verificáveis. **4/4 concluídas (100% das etapas; não é estimativa de tempo restante).** Duração observada do início até a integração PR #8: **47 min 05 s**.
 
 | Etapa | Estado | Evidência |
 |---|---|---|
-| 1. Instruções, branch, arquitetura e referências | Concluída | `AGENTS.md`, Mapa, rotas, registry, política, diagnóstico, fixture M10 e CI inspecionados. SDK presente: `@modelcontextprotocol/sdk` 1.32.2; Streamable HTTP real disponível; E2E M10 é executado em Windows CI. |
-| 2. Serviço, rota e UI sequencial | Concluída | Serviço, endpoints, visual A→B, confirmações e idempotência adicionados; API não devolve o session ID interno. |
-| 3. Validação e revisão | Concluída localmente | Suíte, build, typecheck, Playwright M10+M12, axe, viewports, audit e diff passaram; capturas revisadas em 390×844, 768×1024 e 1280×720. |
-| 4. PR, CI e integração | Pendente | Aguardando commit/PR e CI remota. |
+| 1. Inspeção e contexto | Concluída | `AGENTS.md`, mapa, rotas, registry, política, diagnóstico, fixtures e CI inspecionados. SDK MCP 1.32.2; transporte Streamable HTTP. |
+| 2. Implementação | Concluída | Serviço, rotas, visual A→B, autorizações, idempotência, correlação e relatório adicionados. |
+| 3. Validação e revisão | Concluída | Suíte, build, typecheck, Playwright M10/M12, axe, auditoria e QA visual aprovados. |
+| 4. PR, CI e integração | Concluída | PR #8 integrada após CI Linux e Windows aprovadas; SHA remoto confirmado. |
 
 ## Implementação observada
 
-- `src/server/mcp/orchestration.ts`: estado por sessão limitado aos 100 fluxos recentes, ID de correlação, sequência A→B, mapeamento estrito de `amount`, `currency`, `period`, confirmação de B, resultado A preservado em falhas, estado indeterminado em erros de transporte não classificados e sem retries automáticos.
-- `src/server/connections/routes.ts` e `src/server/app.ts`: POST start, GET da execução por ID (recuperável após refresh enquanto o processo permanece ativo) e POST de confirmação B.
-- `src/web/pages/McpConnections.tsx` e `src/web/styles-mission09.css`: controles A/B, representação da topologia, confirmação de execução A e confirmação separada de B quando `_meta` é `tesseract/approval=each-call`. Pulso só durante chamada B; reduced motion usa destaque estático. Perda de resposta é apresentada como indeterminada e permite consultar o mesmo ID/chave, sem iniciar uma nova execução.
-- `tests/mcp/mission12-orchestration.test.ts`: duas instâncias `McpServer` via Streamable HTTP real; valida schema/aprovação, mapeamento, chamadas únicas, B sem aprovação, erro de A, saída incompleta, erro de B preservando A e schema B alterado sem atingir o handler.
-- `tests/fixtures/mcp-mission12-pair.ts` e `tests/e2e/mission-12-orchestration.spec.ts`: dois servidores HTTP sintéticos, app de produção em porta temporária, estado local isolado, confirmação no browser, refresh durante espera, resultado, atividade, screenshots, Axe e movimento reduzido.
+- `src/server/mcp/orchestration.ts`: execução sequencial por sessão, ID de correlação, estado para cada etapa, mapeamento estrito de `amount`, `currency`, `period`, confirmação de B, preservação de A em falhas, estado indeterminado sem retry automático, retenção em memória limitada a 100 execuções.
+- `src/server/connections/routes.ts` e `src/server/app.ts`: POST start, GET por ID e POST de confirmação B. Session ID interno não é devolvido.
+- `src/web/pages/McpConnections.tsx` e `src/web/styles-mission09.css`: topologia A→B, confirmação A e confirmação B conforme `_meta=tesseract/approval=each-call`, pulso só durante chamada e destaque estático em reduced motion. Perda de resposta preserva ID/chave para consultar o estado sem nova execução.
+- Testes: duas instâncias `McpServer` reais Streamable HTTP; mapeamento, chamada única, B sem aprovação, erro em A, saída incompleta, erro em B preservando A e schema de B alterado. Playwright usa app real, duas fixtures MCP, estado local isolado e portas temporárias.
 
 ## Validação
 
-| Comando/procedimento | Ambiente | Resultado | Evidência e limitações |
+| Verificação | Ambiente | Resultado | Evidência/limitação |
 |---|---|---|---|
-| `npx vitest run` | Windows | Aprovado | 56 arquivos, 133 testes. O teste M12 foi repetido após os cenários finais de schema e falhas: 1 passou. |
-| `npx playwright test --config=playwright.m10.config.ts` | Windows, app real + fixture M10 e duas fixtures M12 Streamable HTTP | Aprovado | Duas jornadas passaram na execução final; fluxo M12 recuperou o mesmo ID após refresh e finalizou o resumo sintético. |
-| CI PR #8, run `43810918487` | GitHub Actions | Aprovado | `Quality / Linux` 43 s; `PowerShell / Windows` 2m45s. Esta execução valida o commit inicial da PR; a atualização deste relatório dispara nova execução obrigatória. [Run](https://github.com/poyato70/azure-cost-local/actions/runs/43810918487). |
-| `npm run typecheck` | Windows | Aprovado | Sem erros TS registrados após as rotas de recuperação. |
-| `npm run build` | Windows | Aprovado | Build Next.js e TypeScript de produção concluído após as últimas alterações de serviço/API. |
-| `npm audit --audit-level=high` | Windows | Aprovado | `found 0 vulnerabilities`; nenhuma dependência nova. |
-| `git diff --check` + Prettier check | Windows | Aprovado | Sem erros de whitespace ou formatação. |
-| QA visual, Axe, teclado e reduced motion: 390×844, 768×1024, 1280×720 | Chromium headless | Aprovado | Sem overflow horizontal, Axe sem violações, foco Tab visível e pulso reduzido a 0s sob `prefers-reduced-motion`. Capturas visuais revisadas. |
+| `npx vitest run` | Windows | Aprovado | 56 arquivos, 133 testes; teste M12 também repetido após cenários finais. |
+| `npx playwright test --config=playwright.m10.config.ts` | Windows, app real + fixtures MCP | Aprovado | 2 jornadas aprovadas (M10 e M12); refresh recupera o mesmo fluxo aguardando autorização. |
+| `npm run typecheck` | Windows | Aprovado | Sem erros. |
+| `npm run build` | Windows | Aprovado | Build Next.js e TypeScript de produção. |
+| `npm audit --audit-level=high` | Windows | Aprovado | Zero vulnerabilidades; nenhuma dependência adicionada. |
+| `git diff --check` e Prettier | Windows | Aprovado | Sem erros. |
+| QA 390×844, 768×1024, 1280×720; Axe, Tab e reduced motion | Chromium headless | Aprovado | Sem overflow; axe sem violações; foco visível; pulso desativado sob reduced motion. Capturas revisadas em `test-results/mission-12/`. |
+| CI run `43811379370` | GitHub Actions | Aprovado | Quality/Linux 1m00s; PowerShell/Windows 2m15s. [Run](https://github.com/poyato70/azure-cost-local/actions/runs/43811379370). |
 
-## Segurança, falhas e limitações
+## Segurança e limitações
 
-- Toda tool usa `McpRegistry.call`, preservando identidade do servidor, aprovação e schema atual. Aprovação de A não autoriza B.
-- Diagnósticos não registram valores de argumentos; resultado MCP só é exposto ao usuário na execução. Session ID interno não é devolvido pela API.
-- Chave idempotente por sessão impede repetição de POST; confirmação concorrente/repetida não executa B novamente. Fluxos ficam em memória, com limite de 100 registros, e não sobrevivem ao reinício do processo.
-- Fixtures usam somente dados sintéticos/loopback e portas dinâmicas; nenhum acesso a credenciais ou endpoints corporativos.
-- Busca de padrões de chaves privadas/tokens nos arquivos alterados: nenhum resultado. CI GitHub e publicação ainda não executadas.
+- Todas as tools são chamadas via `McpRegistry.call`, usando identidade, aprovação e schema vigentes. Aprovação A não concede autorização a B.
+- Diagnósticos não registram valores dos argumentos. A saída MCP é tratada como dado e exibida ao usuário.
+- Execuções recuperáveis enquanto o serviço está ativo; o estado é volátil, limitado às 100 mais recentes e não persiste após reinício.
+- Fixtures usam somente valores sintéticos e loopback. Nenhuma credencial ou endpoint corporativo foi acessado.
+- Busca de padrões de chaves privadas/tokens nos arquivos alterados não encontrou resultados.
 
 ## Publicação
 
-- **Branch/commit publicado:** `codex/missao-12-mcp-orchestration` / `29b050edd8d2c45f21cfaf652686864a3c97944e`.
-- **Pull Request/CI:** [PR #8](https://github.com/poyato70/azure-cost-local/pull/8), aberta e mergeable; primeiro CI aprovado (run `43810918487`).
-- **Merge/commit final na `main`:** Pendente da nova CI após atualização do relatório.
+- **Branch:** `codex/missao-12-mcp-orchestration`.
+- **Commit head publicado:** `94dd6cbefb23cc3d7ef5f0fe4795c5a2ec9ef3b8`.
+- **PR:** [#8](https://github.com/poyato70/azure-cost-local/pull/8), merged.
+- **CI:** [run `43811379370`](https://github.com/poyato70/azure-cost-local/actions/runs/43811379370), ambos os checks obrigatórios aprovados.
+- **Commit final confirmado em `origin/main`:** `d6ce754bac03aef4ef8c3bcde65872045ad5bfd3`.
 
-## Próximas ações
+## Evolução opcional
 
-1. Revalidar o relatório/index atualizados com os checks Linux/Windows.
-2. Integrar à main após CI aprovada; confirmar SHA remoto e concluir o status deste relatório.
+Persistir estado além do ciclo de vida do processo, mantendo política explícita de privacidade, expiração e retenção.

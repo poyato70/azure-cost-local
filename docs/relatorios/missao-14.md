@@ -32,10 +32,10 @@ Executar análise reproduzível usando custos e inventário sintéticos de dois 
 | 3. Integração MCP e interface | Concluída localmente | Duas fixtures reais Streamable HTTP, Registry e confirmação B independente, armazenamento M13, endpoint dedicado e painel na navegação existente. |
 | 4. Regressões, segurança e UX | Concluída localmente | 178 testes unitários e M10/M12/M14 E2E aprovados; M14 cobre escopo, canonização, projeção e reinícios. |
 | 5. Documentação e validação final | Concluída localmente | Build, audit, suíte, E2E, typecheck, relatório, índice e revisão final do diff aprovados. O histórico MCP M12 exclui execuções M14 e foi verificado no E2E. |
-| 6. PR, CI e integração | Em andamento | Commit/PR e CI Linux/Windows pendentes; não integrar antes dos checks obrigatórios. |
+| 6. PR, CI e integração | Em andamento | PR #12 aberta; CI Linux/Windows pendente; não integrar antes dos checks obrigatórios. |
 
 - **Progresso:** 5/6 etapas completas (83%); publicação/CI remotas em andamento.
-- **Tempo decorrido observado:** 46 min 05 s até 14:34:24 -03:00; sem previsão de prazo.
+- **Tempo decorrido observado:** 47 min 26 s até 14:35:45 -03:00; sem previsão de prazo.
 - **Bloqueios:** CI remota ainda pendente. `npm ci --ignore-scripts --prefer-offline` concluiu sem alterar manifests ou lockfile: 371 pacotes adicionados, 378 auditados, 0 vulnerabilidades; aviso de depreciação para `node-domexception@1.0.0`.
 
 ## Implementação
@@ -82,8 +82,10 @@ Executar análise reproduzível usando custos e inventário sintéticos de dois 
 ## Publicação
 
 - **Commit local de implementação:** `77760437c17b90e850a668849758b433df232e4e` (`feat: add persisted FinOps MCP correlation`).
-- **Branch remota:** push pendente.
-- **Pull Request/CI:** pendente.
+- **Commit de documentação do estado local:** `d4c96f1488638ee24dc29a4cb474d2dfb4d6789f`.
+- **Branch remota:** `codex/missao-14-finops-correlation` publicada.
+- **Pull Request:** [PR #12](https://github.com/poyato70/azure-cost-local/pull/12), aberta.
+- **CI:** checks Linux/Windows aguardando execução/conclusão.
 - **Estado do merge:** pendente.
 - **Commit final confirmado na `main`:** pendente.
 

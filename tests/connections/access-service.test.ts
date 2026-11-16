@@ -7,7 +7,7 @@ import { ConfigStore } from "../../src/server/storage/config-store.js";
 import { SecretStore } from "../../src/server/storage/secret-store.js";
 import { AccessService } from "../../src/server/connections/access-service.js";
 import { Invalidation } from "../../src/server/connections/invalidation.js";
-it("rotates credentials, rejects stale edits and aborts old configuration", async () => {
+it.skipIf(process.platform !== "win32")("rotates credentials, rejects stale edits and aborts old configuration", async () => {
   const root = await mkdtemp(join(tmpdir(), "azure-cost-access-")),
     store = new ConfigStore(root),
     gate = new Invalidation(store),

@@ -12,7 +12,7 @@ const fields = {
   clientId: "22222222-2222-4222-8222-222222222222",
   preferredMode: "application",
 };
-it("persists metadata and DPAPI ciphertext without exposing the secret", async () => {
+it.skipIf(process.platform !== "win32")("persists metadata and DPAPI ciphertext without exposing the secret", async () => {
   const root = await mkdtemp(join(tmpdir(), "azure-cost-storage-"));
   const store = new ConfigStore(root),
     vault = new SecretStore(root);
@@ -41,7 +41,7 @@ it("persists metadata and DPAPI ciphertext without exposing the secret", async (
   });
   expect((await service.list())[0].credentialVersion).toBe(1);
 });
-it("serializes concurrent metadata mutations and preserves corrupt data", async () => {
+it.skipIf(process.platform !== "win32")("serializes concurrent metadata mutations and preserves corrupt data", async () => {
   const root = await mkdtemp(join(tmpdir(), "azure-cost-config-"));
   const store = new ConfigStore(root);
   await Promise.all([

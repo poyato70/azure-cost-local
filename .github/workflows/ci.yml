@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality-linux:
+    name: Quality / Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+      - name: Unit and MCP protocol tests
+        run: npx vitest run --exclude=tests/storage/config-store.test.ts --exclude=tests/connections/access-service.test.ts --reporter=default --reporter=junit --outputFile=test-results/ci/vitest.junit.xml
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high
+      - name: Upload sanitized failure evidence
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: linux-failure-evidence
+          path: |
+            test-results/ci/*.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  windows-scripts:
+    name: PowerShell / Windows
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build production app
+        run: npm run build
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $errors = @()
+          $files = @('service.ps1', 'start.ps1', 'stop.ps1', 'status.ps1', 'install.ps1', 'update.ps1') + (Get-ChildItem scripts -Filter '*.ps1' | ForEach-Object { $_.FullName })
+          foreach ($file in $files) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors) { $errors += $parseErrors }
+          }
+          if ($errors.Count) { $errors | Format-List; exit 1 }
+      - name: Windows-specific tests (serial)
+        env:
+          TESSERACT_TEST_POWERSHELL: pwsh
+        run: npx vitest run tests/server/service-scripts.test.ts tests/storage/config-store.test.ts tests/connections/access-service.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-tests.junit.xml
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+      - name: MCP browser journey and accessibility scan
+        env:
+          CI: "true"
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: test-results/ci/playwright.junit.xml
+        run: npx playwright test --config=playwright.m10.config.ts --reporter=list,junit
+      - name: Upload sanitized failure evidence
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: windows-failure-evidence
+          path: |
+            test-results/ci/*.xml
+            test-results/m10-qa-run/playwright-output/**
+            !test-results/m10-qa-run/*.log
+          if-no-files-found: ignore
+          retention-days: 7

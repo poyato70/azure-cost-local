@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   mkdtemp,
   mkdir,
+  realpath,
   readFile,
   rm,
   writeFile,
@@ -13,7 +14,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { it, expect } from "vitest";
 
 const windows = process.platform === "win32";
-const shell = "powershell.exe";
+const shell = process.env.TESSERACT_TEST_POWERSHELL ?? "powershell.exe";
 
 async function fixture(rootName: string, healthy = true) {
   const root = await mkdtemp(join(tmpdir(), rootName));
@@ -36,7 +37,9 @@ async function fixture(rootName: string, healthy = true) {
   );
   const appData = join(root, "appdata");
   await mkdir(appData, { recursive: true });
-  const canonicalRoot = resolve(root).replace(/[\\/]+$/, "").toLowerCase();
+  const canonicalRoot = resolve(await realpath(root))
+    .replace(/[\\/]+$/, "")
+    .toLowerCase();
   const hash = createHash("sha256").update(canonicalRoot).digest("hex");
   return {
     root,
@@ -70,6 +73,7 @@ async function stopFixture(root: string, appData: string, port: number) {
 it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop only this checkout", async () => {
   const f = await fixture("tesseract-service-lifecycle-");
   const port = 14431;
+  let serviceStopped = false;
   try {
     await mkdir(dirname(f.metadata), { recursive: true });
     await writeFile(
@@ -92,15 +96,16 @@ it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop o
     expect(started.status, started.stdout + started.stderr).toBe(0);
     expect(started.stdout).toContain("iniciado");
     const metadata = JSON.parse((await readFile(f.metadata, "utf8")).replace(/^\uFEFF/, ""));
-    expect(metadata.projectRoot).toBe(f.root);
+    expect(metadata.projectRoot).toBe(await realpath(f.root));
     expect(metadata.port).toBe(port);
     expect(metadata.stdoutLog).toContain("service.out.log");
     expect(runScript(f.root, f.appData, "status.ps1", ["-Port", String(port)]).status).toBe(0);
     const stopped = runScript(f.root, f.appData, "scripts/stop.ps1", ["-Port", String(port)]);
     expect(stopped.status, stopped.stdout + stopped.stderr).toBe(0);
+    serviceStopped = true;
     await expect(readFile(f.metadata)).rejects.toThrow();
   } finally {
-    await stopFixture(f.root, f.appData, port);
+    if (!serviceStopped) await stopFixture(f.root, f.appData, port);
     await rm(f.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 }, 30000);

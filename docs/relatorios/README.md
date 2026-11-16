@@ -11,6 +11,7 @@ Este índice reúne o histórico versionado das missões do repositório. Os rel
 | 09 | Redesign visual e mapa operacional | 2026-11-15 | QA responsivo aprovado; teste Windows tratado; PR #4 integrada à `main` | [missao-09.md](missao-09.md) | [PR #4](https://github.com/poyato70/azure-cost-local/pull/4) |
 | 10 | Validação MCP ponta a ponta e auditoria funcional do Mapa de Conexões | 2026-11-15 | Integrada à `main` via PR #5 | [missao-10.md](missao-10.md) | [PR #5](https://github.com/poyato70/azure-cost-local/pull/5) |
 | 11 | GitHub Actions, CI, segurança e qualidade contínua | 2026-11-16 | Integrada à `main`; proteção ativa | [missao-11.md](missao-11.md) | [PR #6](https://github.com/poyato70/azure-cost-local/pull/6) |
+| 12 | Orquestração MCP e visualização de operações no Mapa de Conexões | 2026-11-16 | Implementação em validação; publicação pendente | [missao-12.md](missao-12.md) | — |
 
 ## Criar relatório de nova missão
 

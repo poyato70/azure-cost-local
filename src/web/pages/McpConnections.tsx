@@ -15,6 +15,7 @@ import type {
 import { manageRequest } from "../api.js";
 import { applyPricingDefaults } from "../components/pricing-defaults.js";
 import { ConnectionsMap } from "../components/ConnectionsMap.js";
+import { Play, CheckCircle2 } from "lucide-react";
 import type { DiagnosticEvent } from "../../server/diagnostics/service.js";
 const defaults = {
   kubernetes: { endpoint: "", transport: "http" },
@@ -122,6 +123,92 @@ export function McpConnections({
     [advanced, setAdvanced] = useState(false),
     [execution, setExecution] = useState<{ kind: string; message: string }>(),
     [matrix, setMatrix] = useState<any[]>([]);
+  const [flowA, setFlowA] = useState("");
+  const [flowB, setFlowB] = useState("");
+  const [toolA, setToolA] = useState("m12_synthetic_cost");
+  const [toolB, setToolB] = useState("m12_summarize_cost");
+  const [flowArgs, setFlowArgs] = useState('{"scope":"TEST_ONLY"}');
+  const [flow, setFlow] = useState<any>();
+  const [flowBusy, setFlowBusy] = useState(false);
+  const [confirmA, setConfirmA] = useState(false);
+  useEffect(() => {
+    const id = sessionStorage.getItem("tesseract-mcp-flow");
+    if (id)
+      void manageRequest(`/mcp-orchestrations/${id}`, "GET")
+        .then(setFlow)
+        .catch(() => sessionStorage.removeItem("tesseract-mcp-flow"));
+  }, []);
+  useEffect(() => {
+    const candidates = profiles.filter((p) => p.id !== "default");
+    if (!flowA && candidates[0]) setFlowA(candidates[0].id);
+    if (!flowB && candidates[1]) setFlowB(candidates[1].id);
+  }, [profiles, flowA, flowB]);
+  async function startFlow() {
+    if (
+      flowBusy ||
+      !flowA ||
+      !flowB ||
+      flowA === flowB ||
+      (flow?.state !== "indeterminate" && !confirmA)
+    )
+      return;
+    setFlowBusy(true);
+    try {
+      if (flow?.state === "indeterminate" && flow.id) {
+        const current = await manageRequest(
+          `/mcp-orchestrations/${flow.id}`,
+          "GET",
+        );
+        setFlow(current);
+        onRefreshActivity?.();
+        return;
+      }
+      const idempotencyKey =
+        sessionStorage.getItem("tesseract-mcp-flow-key") || crypto.randomUUID();
+      sessionStorage.setItem("tesseract-mcp-flow-key", idempotencyKey);
+      const next = await manageRequest("/mcp-orchestrations", "POST", {
+        serverA: flowA,
+        toolA,
+        argsA: JSON.parse(flowArgs),
+        serverB: flowB,
+        toolB,
+        idempotencyKey,
+        confirmedA: true,
+      });
+      setFlow(next);
+      sessionStorage.setItem("tesseract-mcp-flow", next.id);
+      onRefreshActivity?.();
+      if (
+        next.state !== "awaiting_b_confirmation" &&
+        next.state !== "indeterminate"
+      )
+        sessionStorage.removeItem("tesseract-mcp-flow-key");
+    } catch {
+      setFlow({
+        state: "indeterminate",
+        error:
+          "A resposta da solicitação não foi confirmada. O identificador idempotente foi mantido; consultar novamente não repetirá chamadas já registradas.",
+      });
+    } finally {
+      setFlowBusy(false);
+    }
+  }
+  async function confirmFlow() {
+    if (flowBusy || flow?.state !== "awaiting_b_confirmation") return;
+    setFlowBusy(true);
+    try {
+      const next = await manageRequest(
+        `/mcp-orchestrations/${flow.id}/confirm`,
+        "POST",
+        {},
+      );
+      setFlow(next);
+      sessionStorage.removeItem("tesseract-mcp-flow-key");
+      onRefreshActivity?.();
+    } finally {
+      setFlowBusy(false);
+    }
+  }
   useEffect(() => {
     if (mode === "analysis" && initialConnectionId)
       setInspected(initialConnectionId);
@@ -330,6 +417,174 @@ export function McpConnections({
         }}
         onNavigate={(tab) => onNavigate?.(tab)}
       />
+      {mode === "integration" && (
+        <section
+          className="config-card mcp-orchestration"
+          aria-labelledby="mcp-orchestration-title"
+        >
+          <h3 id="mcp-orchestration-title">Fluxo MCP sequencial</h3>
+          <p>
+            A tool A transfere somente amount, currency e period para a
+            consolidação B. A autorização e o schema vigente são verificados
+            pelo registry em cada chamada.
+          </p>
+          <div
+            className="mcp-flow-path"
+            aria-label="Caminho sequencial A para B"
+          >
+            <div
+              className={`mcp-flow-node${flow?.stage === "A" && flow.state === "running_a" ? " is-active" : ""}`}
+            >
+              <strong>A · Consulta</strong>
+              <span>
+                {profiles.find((p) => p.id === flowA)?.name || "Servidor MCP A"}{" "}
+                / {toolA}
+              </span>
+              <small>
+                {flow?.events?.filter((e: any) => e.stage === "A").at(-1)
+                  ?.state || "Aguardando"}
+              </small>
+            </div>
+            <span
+              className={`mcp-flow-edge${flow?.state === "running_b" ? " is-pulsing" : ""}`}
+              aria-hidden="true"
+            >
+              →
+            </span>
+            <div
+              className={`mcp-flow-node${flow?.stage === "B" && flow.state === "running_b" ? " is-active" : ""}`}
+            >
+              <strong>B · Consolidação</strong>
+              <span>
+                {profiles.find((p) => p.id === flowB)?.name || "Servidor MCP B"}{" "}
+                / {toolB}
+              </span>
+              <small>
+                {flow?.events?.filter((e: any) => e.stage === "B").at(-1)
+                  ?.state || "Aguardando"}
+              </small>
+            </div>
+          </div>
+          <div className="form-grid">
+            <label>
+              Servidor A
+              <select value={flowA} onChange={(e) => setFlowA(e.target.value)}>
+                <option value="">Selecione</option>
+                {profiles
+                  .filter((p) => p.id !== "default")
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Tool A
+              <input value={toolA} onChange={(e) => setToolA(e.target.value)} />
+            </label>
+            <label>
+              Argumentos A (JSON)
+              <input
+                value={flowArgs}
+                onChange={(e) => setFlowArgs(e.target.value)}
+              />
+            </label>
+            <label>
+              Servidor B
+              <select value={flowB} onChange={(e) => setFlowB(e.target.value)}>
+                <option value="">Selecione</option>
+                {profiles
+                  .filter((p) => p.id !== "default")
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Tool B
+              <input value={toolB} onChange={(e) => setToolB(e.target.value)} />
+            </label>
+          </div>
+          <label className="mcp-flow-confirm">
+            <input
+              type="checkbox"
+              checked={confirmA}
+              onChange={(e) => setConfirmA(e.target.checked)}
+            />
+            Confirmo a execução da tool A autorizada
+          </label>
+          <button
+            className="button-primary"
+            type="button"
+            disabled={
+              flowBusy ||
+              !flowA ||
+              !flowB ||
+              flowA === flowB ||
+              (flow?.state !== "indeterminate" && !confirmA)
+            }
+            aria-busy={flowBusy}
+            onClick={() => void startFlow()}
+          >
+            <Play size={15} />
+            {flowBusy
+              ? "Executando…"
+              : flow?.state === "indeterminate"
+                ? "Consultar estado da execução"
+                : "Executar A → B"}
+          </button>
+          {flow && (
+            <div
+              className={`map-action-feedback ${flow.state === "succeeded" ? "is-success" : flow.state === "failed" || flow.state === "indeterminate" ? "is-error" : "is-pending"}`}
+              role={flow.state === "failed" ? "alert" : "status"}
+            >
+              <strong>
+                Execução {flow.id || ""} · Etapa {flow.stage || "—"} ·{" "}
+                {flow.state}
+              </strong>
+              {flow.state === "awaiting_b_confirmation" && (
+                <>
+                  <p>
+                    Servidor:{" "}
+                    {profiles.find((p) => p.id === flow.serverB.id)?.name} ·
+                    Tool: {flow.serverB.tool} · argumentos mapeados:{" "}
+                    {JSON.stringify({
+                      amount: flow.resultA?.structuredContent?.amount,
+                      currency: flow.resultA?.structuredContent?.currency,
+                      period: flow.resultA?.structuredContent?.period,
+                    })}
+                  </p>
+                  <button
+                    className="button-primary"
+                    type="button"
+                    disabled={flowBusy}
+                    onClick={() => void confirmFlow()}
+                  >
+                    <CheckCircle2 size={15} />
+                    Confirmar chamada B
+                  </button>
+                </>
+              )}
+              {flow.error && <p>{flow.error}</p>}
+              {flow.resultA && (
+                <details>
+                  <summary>Resultado A preservado</summary>
+                  <pre>{JSON.stringify(flow.resultA, null, 2)}</pre>
+                </details>
+              )}
+              {flow.resultB && (
+                <details open>
+                  <summary>Resultado B</summary>
+                  <pre>{JSON.stringify(flow.resultB, null, 2)}</pre>
+                </details>
+              )}
+            </div>
+          )}
+        </section>
+      )}
       {mode === "integration" &&
         profiles.filter((profile) => profile.id !== "default").length === 0 && (
           <section className="config-card" role="status">

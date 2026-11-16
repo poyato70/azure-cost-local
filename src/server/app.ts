@@ -33,6 +33,7 @@ import { Invalidation } from "./connections/invalidation.js";
 import { ApplicationProvider } from "./auth/application-provider.js";
 import { IdentityProvider } from "./auth/identity-provider.js";
 import { McpRegistry } from "./mcp/registry.js";
+import { McpOrchestration } from "./mcp/orchestration.js";
 import { AgentService } from "./agents/service.js";
 import { LocalAgentRuntime } from "./agents/runtime.js";
 import { KnowledgeService } from "./knowledge/service.js";
@@ -62,6 +63,7 @@ export async function buildApp(deps: AppDeps = {}) {
       identity,
     ),
     mcps = new McpRegistry(saved, vault, accesses, gate, identities),
+    orchestration = new McpOrchestration(mcps),
     agents = new AgentService(saved, vault, gate);
   const http = deps.http || new ArmHttp((ctx) => identities.getToken(ctx)),
     inventory = new Inventory(http),
@@ -245,6 +247,7 @@ export async function buildApp(deps: AppDeps = {}) {
     accesses,
     identity: identities,
     mcps,
+    orchestration,
     agents,
     vault,
     session,

@@ -4,6 +4,24 @@ Workspace local para conectar, inspecionar e executar servidores MCP, com capaci
 
 ## Instalação e operação (Windows / PowerShell)
 
+### CI e verificações locais
+
+O workflow em `.github/workflows/ci.yml` roda em pull requests para `main`, pushes em `main` e execução manual. A validação principal usa Node.js 24, `npm ci`, typecheck, build, suíte Vitest, `npm audit --audit-level=high` e a jornada MCP Streamable HTTP real com Playwright/Chromium e axe-core; o job Windows analisa a sintaxe PowerShell e executa serialmente os testes de scripts de serviço. Nenhum segredo ou credencial externa é necessário. Artefatos de falha são restritos a XML JUnit e traces/screenshots Playwright, com retenção de sete dias.
+
+Para reproduzir a jornada MCP e os testes locais:
+
+```powershell
+npm ci
+npm run typecheck
+npm run build
+npx vitest run
+npx playwright install chromium
+npx playwright test --config=playwright.m10.config.ts
+npm audit --audit-level=high
+```
+
+O Playwright usa Edge quando executado localmente no modo padrão e o Chromium empacotado quando `CI=true`. A fixture MCP é controlada e usa somente dados temporários. O scanner axe cobre os estados vazio e de resultado no fluxo MCP; a verificação automatizada não equivale a conformidade WCAG.
+
 Requisitos: Node.js LTS com npm e Git para atualização automática. O app escuta somente em `127.0.0.1`; a porta padrão é 4317.
 
 ```powershell

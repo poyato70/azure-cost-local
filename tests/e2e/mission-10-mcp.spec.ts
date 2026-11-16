@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, open, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
+import AxeBuilder from "@axe-core/playwright";
 
 const appPort = 14517;
 const fixtureScript = join(
@@ -146,6 +147,10 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
     page.getByRole("heading", { name: "Mapa de conexões" }),
   ).toBeVisible();
   await expect(page.getByText("Nenhuma operação registrada")).toBeVisible();
+  const emptyStateA11y = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(emptyStateA11y.violations).toEqual([]);
 
   await page.getByRole("button", { name: "Nova conexão" }).click();
   await page.getByLabel("Serviço", { exact: true }).selectOption("custom");
@@ -249,6 +254,10 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
   await expect(
     page.getByRole("region", { name: "Resultado da tool" }),
   ).toContainText('"count": 7');
+  const resultStateA11y = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(resultStateA11y.violations).toEqual([]);
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 768, height: 1024 },

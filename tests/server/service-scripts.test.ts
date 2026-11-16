@@ -70,6 +70,7 @@ async function stopFixture(root: string, appData: string, port: number) {
 it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop only this checkout", async () => {
   const f = await fixture("tesseract-service-lifecycle-");
   const port = 14431;
+  let serviceStopped = false;
   try {
     await mkdir(dirname(f.metadata), { recursive: true });
     await writeFile(
@@ -98,9 +99,10 @@ it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop o
     expect(runScript(f.root, f.appData, "status.ps1", ["-Port", String(port)]).status).toBe(0);
     const stopped = runScript(f.root, f.appData, "scripts/stop.ps1", ["-Port", String(port)]);
     expect(stopped.status, stopped.stdout + stopped.stderr).toBe(0);
+    serviceStopped = true;
     await expect(readFile(f.metadata)).rejects.toThrow();
   } finally {
-    await stopFixture(f.root, f.appData, port);
+    if (!serviceStopped) await stopFixture(f.root, f.appData, port);
     await rm(f.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 }, 30000);

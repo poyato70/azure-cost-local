@@ -477,6 +477,11 @@ tr:hover td {
 a {
   color: var(--primary-text);
 }
+a[href$="#mcp-tools"] {
+  color: var(--secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 .chat-message,
 .chat-bubble,
 .conversation article {

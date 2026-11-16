@@ -29,6 +29,12 @@
   color: var(--text);
 }
 
+:root a[href$="#mcp-tools"] {
+  color: var(--map-cyan);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 :root[data-theme="light"] {
   color-scheme: light;
   --surface: #fff;

@@ -11,7 +11,7 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:14517",
     headless: true,
-    channel: "msedge",
+    ...(process.env.CI ? {} : { channel: "msedge" }),
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

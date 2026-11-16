@@ -1,5 +1,6 @@
 import { scopePath, type Scope } from "../../shared/contracts.js";
 import { AppError } from "../errors.js";
+import { isBoundedAzureResourceGraphCall } from "../finops/azure-arm-mcp-adapter.js";
 export function validArmScope(value: string) {
   return (
     /^\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\/resourceGroups\/[\p{L}\p{N}_(). -]{1,90})?$/iu.test(
@@ -17,6 +18,15 @@ export function authorizeArmScope(
       "Cadastre o escopo ARM completo da subscription ou RG.",
       403,
     );
+  if (typeof args.query === "string") {
+    if (!isBoundedAzureResourceGraphCall(scope, args))
+      throw new AppError(
+        "forbidden",
+        "A consulta Azure Resource Graph não corresponde à projeção fixa e ao escopo cadastrado.",
+        403,
+      );
+    return;
+  }
   let found = false;
   const walk = (value: unknown, depth: number) => {
     if (depth > 8)

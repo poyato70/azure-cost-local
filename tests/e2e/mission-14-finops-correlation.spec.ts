@@ -242,6 +242,30 @@ test("runs the two real synthetic MCP sources and inspects the persisted FinOps 
       ),
     ).toHaveLength(1);
     expect(pair.counts).toEqual({ costs: 2, inventory: 1 });
+    await page.getByLabel("Fonte de dados").selectOption("azure-arm-mcp");
+    await expect(page.getByText(/Integração Azure em preparação/)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Consultar custos e inventário Azure" }),
+    ).toBeDisabled();
+    await expect(page.getByText("USD 15.3")).toHaveCount(0);
+    const azureAxe = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(azureAxe.violations).toEqual([]);
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 768, height: 1024 },
+      { width: 1280, height: 720 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const width = await page.evaluate(() => ({
+        inner: innerWidth,
+        scroll: document.documentElement.scrollWidth,
+      }));
+      expect(width.scroll).toBeLessThanOrEqual(width.inner + 1);
+    }
+    await page.keyboard.press("Tab");
+    await expect(page.locator(":focus")).toBeVisible();
   } finally {
     await pair.close();
   }

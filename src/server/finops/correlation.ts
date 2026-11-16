@@ -12,10 +12,11 @@ export type FinOpsCostRow = {
   provider: string;
   scope: string;
   resourceId?: string | null;
+  originalResourceId?: string;
   period: FinOpsPeriod;
   currency: string;
   amount: string;
-  classification: "usage" | "credit" | "shared";
+  classification: "usage" | "credit" | "shared" | "unclassified";
   evidenceRef: string;
 };
 export type FinOpsInventoryRow = {
@@ -49,6 +50,7 @@ type ClassifiedCost = {
   provider: string;
   scope: string;
   resourceId?: string | null;
+  originalResourceId?: string;
   costLineIds: string[];
   evidenceRefs: string[];
   currency: string;
@@ -67,6 +69,7 @@ export type CorrelationResult = {
     scope: string;
     resourceId: string;
     normalizedResourceId: string;
+    originalResourceIds?: string[];
     inventoryIds: string[];
     resources: Array<
       Pick<
@@ -168,10 +171,11 @@ const costSchema = z
     provider: identifier,
     scope: identifier,
     resourceId: identifier.nullable().optional(),
+    originalResourceId: identifier.optional(),
     period: periodSchema,
     currency: z.string().regex(/^[A-Z]{3}$/),
     amount: amountSchema,
-    classification: z.enum(["usage", "credit", "shared"]),
+    classification: z.enum(["usage", "credit", "shared", "unclassified"]),
     evidenceRef: z.string().min(1).max(300),
   })
   .strict();
@@ -229,6 +233,7 @@ const costFingerprint = (row: FinOpsCostRow) =>
     row.scope,
     row.lineId,
     row.resourceId ?? null,
+    row.originalResourceId ?? null,
     row.period.from,
     row.period.toExclusive,
     row.currency,
@@ -267,6 +272,7 @@ function classificationRecord(
     provider: row.provider,
     scope: row.scope,
     ...(row.resourceId ? { resourceId: row.resourceId } : {}),
+    ...(row.originalResourceId ? { originalResourceId: row.originalResourceId } : {}),
     costLineIds: [row.lineId],
     evidenceRefs: [row.evidenceRef],
     currency: row.currency,
@@ -438,6 +444,7 @@ export function correlateFinOps(
       scope: row.scope,
       resourceId: row.resourceId,
       normalizedResourceId: row.resourceId,
+      ...(row.originalResourceId ? { originalResourceIds: [row.originalResourceId] } : {}),
       inventoryIds: [match.inventoryId],
       resources: [
         {
@@ -465,6 +472,11 @@ export function correlateFinOps(
           : ("exact-provider-scope-resource-id" as const),
     };
     existing.costLineIds.push(row.lineId);
+    if (row.originalResourceId) {
+      existing.originalResourceIds ||= [];
+      if (!existing.originalResourceIds.includes(row.originalResourceId))
+        existing.originalResourceIds.push(row.originalResourceId);
+    }
     if (!existing.evidenceRefs.includes(row.evidenceRef))
       existing.evidenceRefs.push(row.evidenceRef);
     if (!existing.evidenceRefs.includes(match.evidenceRef))

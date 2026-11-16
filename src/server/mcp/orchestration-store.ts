@@ -6,7 +6,18 @@ import { resolvePersistentDirectory, resolveTesseractDataDirectory } from "../st
 
 export type StoredFlow = {
   kind?: "finops-correlation";
-  finopsRequest?: { scope: string; period: { from: string; toExclusive: string } };
+  finopsRequest?: {
+    scope: string;
+    period: { from: string; toExclusive: string };
+    sourceMode?: "synthetic" | "azure-arm-mcp";
+    metric?: "ActualCost" | "AmortizedCost";
+  };
+  collection?: {
+    sourceMode: "synthetic" | "azure-arm-mcp";
+    metric?: "ActualCost" | "AmortizedCost";
+    costs?: { status: "complete" | "partial" | "invalid"; reasons: string[]; rejectedRows: number };
+    inventory?: { status: "complete" | "partial" | "invalid"; reasons: string[]; rejectedRows: number };
+  };
   correlation?: unknown;
   id: string;
   ownerId: string;
@@ -138,7 +149,12 @@ export class OrchestrationStore {
             (f.finopsRequest !== undefined &&
               (!isRecord(f.finopsRequest) || typeof f.finopsRequest.scope !== "string" ||
                 !isRecord(f.finopsRequest.period) || typeof f.finopsRequest.period.from !== "string" ||
-                typeof f.finopsRequest.period.toExclusive !== "string")) ||
+                typeof f.finopsRequest.period.toExclusive !== "string" ||
+                (f.finopsRequest.sourceMode !== undefined && !["synthetic", "azure-arm-mcp"].includes(f.finopsRequest.sourceMode)) ||
+                (f.finopsRequest.metric !== undefined && !["ActualCost", "AmortizedCost"].includes(f.finopsRequest.metric)))) ||
+            (f.collection !== undefined && (!isRecord(f.collection) ||
+              !["synthetic", "azure-arm-mcp"].includes(f.collection.sourceMode) ||
+              (f.collection.metric !== undefined && !["ActualCost", "AmortizedCost"].includes(f.collection.metric)))) ||
             typeof f.createdAt !== "string" ||
             typeof f.updatedAt !== "string" ||
             (f.processId !== undefined && !Number.isInteger(f.processId)) ||

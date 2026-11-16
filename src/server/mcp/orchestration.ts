@@ -7,6 +7,13 @@ import { OrchestrationStore, type StoredFlow } from "./orchestration-store.js";
 import { sanitizeEvidence } from "../multicloud/sanitize.js";
 import { resolveTesseractDataDirectory } from "../storage/data-directory.js";
 import { correlateFinOps, finOpsPeriodSchema, hasFinOpsCostOutsideScope, projectFinOpsCostRows, type FinOpsPeriod } from "../finops/correlation.js";
+import {
+  adaptAzureArmCostResult,
+  adaptAzureArmInventoryResult,
+  buildAzureCostQueryArguments,
+  buildAzureInventoryArguments,
+  type AzureCostMetric,
+} from "../finops/azure-arm-mcp-adapter.js";
 
 export type McpFlow = Omit<
   StoredFlow,
@@ -24,6 +31,8 @@ export type FinOpsCorrelationRequest = {
   scope: string;
   period: FinOpsPeriod;
   confirmedA: true;
+  sourceMode?: "synthetic" | "azure-arm-mcp";
+  metric?: AzureCostMetric;
 };
 const outputObject = (result: any) => {
   const value = result?.result?.structuredContent ?? result?.structuredContent;
@@ -224,16 +233,35 @@ export class McpOrchestration {
   }
   async startFinOpsCorrelation(ctx: RequestContext, input: FinOpsCorrelationRequest) {
     const period = finOpsPeriodSchema.safeParse(input.period);
+    const sourceMode = input.sourceMode || "synthetic";
+    const metric = input.metric || "ActualCost";
     if (!period.success || !input.scope.trim() || input.scope.length > 512)
       throw new AppError("invalid_request", "Informe um escopo e intervalo de datas válido.");
+    if (sourceMode === "azure-arm-mcp") {
+      if (input.serverA !== input.serverB || input.toolA !== "query_costs" || input.toolB !== "execute_query")
+        throw new AppError("forbidden", "Azure real requer a mesma conexão ARM MCP, query_costs e execute_query.", 403);
+      const profile = await this.mcps.get(input.serverA);
+      if (profile.preset !== "arm" || profile.resourceContext.scope !== input.scope)
+        throw new AppError("forbidden", "O escopo precisa coincidir com o ARM MCP cadastrado.", 403);
+      const discovered = await this.mcps.tools(ctx, input.serverA);
+      const costTool = discovered.find((tool: any) => tool.name === "query_costs");
+      const inventoryTool = discovered.find((tool: any) => tool.name === "execute_query");
+      if (!costTool?.reviewable || !costTool.approved || !inventoryTool?.reviewable || !inventoryTool.approved)
+        throw new AppError("forbidden", "Aprove individualmente os schemas atuais query_costs e execute_query no Registry.", 403);
+      buildAzureCostQueryArguments({ scope: input.scope, period: period.data, metric }, costTool.inputSchema);
+      buildAzureInventoryArguments(input.scope, inventoryTool.inputSchema);
+    } else if (sourceMode !== "synthetic" || input.serverA === input.serverB) {
+      throw new AppError("invalid_request", "O fluxo sintético requer servidores MCP A e B distintos.");
+    }
     const ownerId = ctx.userId ? `user:${ctx.userId}` : `session:${ctx.sessionId}`;
     const fingerprint = createHash("sha256").update(JSON.stringify({
       serverA: input.serverA, toolA: input.toolA, serverB: input.serverB,
-      toolB: input.toolB, scope: input.scope, period: period.data,
+      toolB: input.toolB, scope: input.scope, period: period.data, sourceMode, metric,
     })).digest("hex");
     const flow: McpFlow = {
       id: randomUUID(), kind: "finops-correlation", ownerId,
-      finopsRequest: { scope: input.scope, period: period.data },
+      finopsRequest: { scope: input.scope, period: period.data, sourceMode, ...(sourceMode === "azure-arm-mcp" ? { metric } : {}) },
+      collection: { sourceMode, ...(sourceMode === "azure-arm-mcp" ? { metric } : {}) },
       idempotencyKey: input.idempotencyKey, fingerprint, processId: process.pid,
       sessionId: ctx.sessionId, requestId: ctx.requestId || randomUUID(),
       state: "running_a", stage: "A",
@@ -254,19 +282,30 @@ export class McpOrchestration {
     if (existing) return existing;
     let issued = false;
     try {
-      const args = { scope: input.scope, from: input.period.from, toExclusive: input.period.toExclusive };
-      this.event(ctx, flow, "A", "enviada", "Consulta sintética de custos enviada sem retry.");
+      const costTool = sourceMode === "azure-arm-mcp"
+        ? (await this.mcps.tools(ctx, input.serverA)).find((tool: any) => tool.name === input.toolA)
+        : undefined;
+      const args = sourceMode === "azure-arm-mcp"
+        ? buildAzureCostQueryArguments({ scope: input.scope, period: period.data, metric }, costTool?.inputSchema)
+        : { scope: input.scope, from: input.period.from, toExclusive: input.period.toExclusive };
+      this.event(ctx, flow, "A", "enviada", sourceMode === "azure-arm-mcp"
+        ? `Consulta ARM MCP somente leitura enviada; métrica ${metric}; sem retry.`
+        : "Consulta sintética de custos enviada sem retry.");
       await this.persist(flow);
       issued = true;
       const a = await this.mcps.call(ctx, input.serverA, input.toolA, args, undefined, input.confirmedA);
       const aData = outputObject(a);
-      if (!Array.isArray(aData.rows))
-        throw new AppError("invalid_request", "A tool A não retornou uma lista de linhas de custos; B não foi chamado.");
-      if (hasFinOpsCostOutsideScope(aData.rows, input.scope))
+      const adaptedCosts = sourceMode === "azure-arm-mcp"
+        ? adaptAzureArmCostResult({ payload: aData, scope: input.scope, period: period.data, metric, serverId: input.serverA })
+        : { rows: aData.rows as unknown[], status: "complete" as const, reasons: [] as string[], rejectedRows: 0 };
+      if (!Array.isArray(adaptedCosts.rows))
+        throw new AppError("invalid_request", "A tool A não retornou linhas compatíveis; B não foi chamado.");
+      if (hasFinOpsCostOutsideScope(adaptedCosts.rows, input.scope))
         throw new AppError("invalid_request", "A tool A retornou custos fora do escopo solicitado; B não foi chamado.");
-      if (aData.rows.length > 250)
+      if (adaptedCosts.rows.length > 250)
         throw new AppError("invalid_request", "A consulta excede o limite de 250 linhas de custos; B não foi chamado.");
-      const persistedA = { structuredContent: { rows: projectFinOpsCostRows(aData.rows) } };
+      flow.collection!.costs = { status: adaptedCosts.status, reasons: adaptedCosts.reasons, rejectedRows: adaptedCosts.rejectedRows };
+      const persistedA = { structuredContent: { rows: projectFinOpsCostRows(adaptedCosts.rows) } };
       if (JSON.stringify(persistedA).length > 16384)
         throw new AppError("invalid_request", "Resultado de custos excede o limite seguro de persistência (16 KiB); B não foi chamado.");
       flow.resultA = persistedA;
@@ -276,7 +315,9 @@ export class McpOrchestration {
       flow.bConfigurationVersion = profileB.configurationVersion;
       const toolB = (await this.mcps.tools(ctx, input.serverB)).find((t: any) => t.name === input.toolB);
       if (!toolB) throw new AppError("unsupported", "Ferramenta de inventário B não encontrada.");
-      this.event(ctx, flow, "A", "concluída", "Linhas de custo estruturadas preservadas para correlação local.");
+      this.event(ctx, flow, "A", "concluída", sourceMode === "azure-arm-mcp"
+        ? `Linhas de custo adaptadas; coleta ${adaptedCosts.status}; métrica ${metric}.`
+        : "Linhas de custo estruturadas preservadas para correlação local.");
       if (toolB._meta?.["tesseract/approval"] === "each-call") {
         flow.state = "awaiting_b_confirmation";
         flow.sessionId = ctx.sessionId;
@@ -409,15 +450,24 @@ export class McpOrchestration {
     await this.persist(flow);
     try {
       const request = flow.finopsRequest!;
-      const b = await this.mcps.call(ctx, flow.serverB.id, flow.serverB.tool, {
-        scope: request.scope, from: request.period.from, toExclusive: request.period.toExclusive,
-      }, undefined, confirmed);
+      const sourceMode = request.sourceMode || "synthetic";
+      const inventoryTool = sourceMode === "azure-arm-mcp"
+        ? (await this.mcps.tools(ctx, flow.serverB.id)).find((tool: any) => tool.name === flow.serverB.tool)
+        : undefined;
+      const args = sourceMode === "azure-arm-mcp"
+        ? buildAzureInventoryArguments(request.scope, inventoryTool?.inputSchema)
+        : { scope: request.scope, from: request.period.from, toExclusive: request.period.toExclusive };
+      const b = await this.mcps.call(ctx, flow.serverB.id, flow.serverB.tool, args, undefined, confirmed);
       const aData = outputObject({ result: flow.resultA });
       const bData = outputObject(b);
-      if (!Array.isArray(aData.rows) || !Array.isArray(bData.rows))
+      if (!Array.isArray(aData.rows) || (sourceMode === "synthetic" && !Array.isArray(bData.rows)))
         throw new AppError("invalid_request", "A ou B não retornou linhas estruturadas compatíveis.");
+      const adaptedInventory = sourceMode === "azure-arm-mcp"
+        ? adaptAzureArmInventoryResult({ payload: bData, scope: request.scope, serverId: flow.serverB.id })
+        : { rows: bData.rows as unknown[], status: "complete" as const, reasons: [] as string[], rejectedRows: 0 };
+      flow.collection!.inventory = { status: adaptedInventory.status, reasons: adaptedInventory.reasons, rejectedRows: adaptedInventory.rejectedRows };
       flow.resultB = { summary: "Inventário consultado; resposta original omitida após projeção das linhas permitidas." };
-      flow.correlation = correlateFinOps({
+      const correlation = correlateFinOps({
         correlationId: flow.id,
         requestedScope: request.scope,
         requestedPeriod: request.period,
@@ -426,8 +476,26 @@ export class McpOrchestration {
           inventory: { serverId: flow.serverB.id, tool: flow.serverB.tool, executionId: `${flow.requestId}:B` },
         },
         costRows: aData.rows,
-        inventoryRows: bData.rows,
+        inventoryRows: adaptedInventory.rows,
       });
+      flow.correlation = correlation;
+      if (sourceMode === "azure-arm-mcp" || flow.collection?.costs?.status !== "complete" || adaptedInventory.status !== "complete")
+        flow.correlation = {
+          ...correlation,
+          ...(flow.collection?.costs?.status !== "complete" || adaptedInventory.status !== "complete"
+            ? { status: "insufficient_data" }
+            : {}),
+          dataQuality: {
+            completeness: flow.collection?.costs?.status === "complete" && adaptedInventory.status === "complete" ? "complete" : "partial",
+            sourceTotalReconciliation: "not_available",
+            costClassification: "A ferramenta não expôs uma classificação financeira por linha; nenhum crédito foi inferido.",
+            note: flow.collection?.costs?.status === "complete" && adaptedInventory.status === "complete"
+              ? "Correlação calculada a partir das linhas recebidas; a resposta MCP não fornece um total independente da fonte para reconciliação financeira."
+              : "Os resultados são parciais ou contêm linhas inválidas; totais e associações não representam uma reconciliação completa.",
+            costs: flow.collection?.costs,
+            inventory: flow.collection?.inventory,
+          },
+        };
       if (JSON.stringify(flow.correlation).length > 131072)
         throw new AppError("invalid_request", "Correlação excede o limite de retenção seguro (128 KiB).");
       flow.resultA = { summary: "Linhas de custo projetadas para correlação; detalhes derivados preservados na correlação." };

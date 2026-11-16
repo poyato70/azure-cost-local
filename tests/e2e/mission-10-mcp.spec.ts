@@ -96,7 +96,7 @@ test.beforeAll(async () => {
     env: {
       ...process.env,
       PORT: String(appPort),
-      LOCALAPPDATA: localApp,
+      LOCALAPPDATA: join(tempRoot, "platform-local-app-data"),
       TESSERACT_TEST_RUNTIME: "1",
       TESSERACT_TEST_DATA_DIR: localApp,
       TESSERACT_TEST_PROTECTED_ROOTS: JSON.stringify([
@@ -149,7 +149,7 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
   });
   const geometry: Record<string, unknown>[] = [];
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto("/");
+  await page.goto(`http://127.0.0.1:${appPort}/`);
   const bootstrapResponse = await page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/bootstrap") && response.ok(),

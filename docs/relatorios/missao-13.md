@@ -319,3 +319,9 @@ Os testes e builds são locais; não acessaram tenant corporativo, credenciais, 
 **Apto para revisão de publicação e abertura de PR, condicionado à revisão final do diff e à aprovação remota.** O bloqueio de ACL foi remediado no host e as validações locais foram repetidas; a recuperação do backup não é critério técnico para publicação e não é declarada. Durabilidade física, sincronização de diretório, execução exactly-once externa, reautorização após reinício e corrida TOCTOU continuam como limitações documentadas, sem evidência de risco crítico não contido no escopo exercitado. CI Linux/Windows ainda não foi executada e nenhum commit, push, PR ou merge foi feito até este registro.
 
 Tempo decorrido medido desde 12:29:35 até a captura de 13:09:58 (-03:00): **40 min 23 s**. O progresso permanece **5/7 (71%)** até a PR e CI remota serem concluídas; não se estima tempo restante.
+
+## Publicação controlada — PR aberta e CI em execução (2026-11-16, 13:13:02 -03:00)
+
+Commit 17cff1267226f8b309ae67b5b7b42e8e47798640 foi publicado na branch codex/missao-13-persistencia; Pull Request [#10](https://github.com/poyato70/azure-cost-local/pull/10) está aberta contra main. Na consulta de 13:13:02 (-03:00), os checks obrigatórios Quality / Linux e PowerShell / Windows estavam IN_PROGRESS, associados ao commit acima. Nenhum merge foi feito. O resultado remoto ainda não pode ser declarado aprovado; a integração permanece condicionada à conclusão bem-sucedida de ambos os checks.
+
+O progresso permanece **6/7 etapas (86%) concluídas**: estado reconciliado, correções/revisão técnica, validações locais e PR publicada; CI e integração ainda pendentes. Tempo decorrido desde 12:29:35 até 13:13:02 (-03:00): 43 min 27 s.

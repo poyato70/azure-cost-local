@@ -34,18 +34,18 @@ jobs:
       - name: Production build
         run: npm run build
       - name: Unit and MCP protocol tests
-        run: npx vitest run --reporter=default --reporter=junit --outputFile=test-results/ci/vitest.junit.xml
+        run: npx vitest run --exclude=tests/storage/config-store.test.ts --exclude=tests/connections/access-service.test.ts --reporter=default --reporter=junit --outputFile=test-results/ci/vitest.junit.xml
       - name: Dependency vulnerability gate
         run: npm audit --audit-level=high
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: MCP browser journey and accessibility scan
         env:
-          CI: 'true'
+          CI: "true"
         run: npx playwright test --config=playwright.m10.config.ts --reporter=list,junit --output=test-results/ci/playwright.junit.xml
       - name: Upload sanitized failure evidence
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: linux-failure-evidence
           path: |
@@ -81,11 +81,13 @@ jobs:
             if ($parseErrors) { $errors += $parseErrors }
           }
           if ($errors.Count) { $errors | Format-List; exit 1 }
-      - name: Windows service script tests (serial)
-        run: npx vitest run tests/server/service-scripts.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-service.junit.xml
+      - name: Windows-specific tests (serial)
+        env:
+          TESSERACT_TEST_POWERSHELL: pwsh
+        run: npx vitest run tests/server/service-scripts.test.ts tests/storage/config-store.test.ts tests/connections/access-service.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-tests.junit.xml
       - name: Upload sanitized failure evidence
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: windows-failure-evidence
           path: test-results/ci/*.xml

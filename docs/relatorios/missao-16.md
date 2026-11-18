@@ -409,3 +409,9 @@ A consulta será somente leitura, em `ActualCost`; o resultado de comparação d
 - Não foram executados novos testes após o commit: esta atualização apenas reconcilia relatório e índice com resultados CI já observados. `git diff --check` passou para esta atualização documental.
 - A validação do bundle na instância operacional e a confirmação da consulta real para todo o intervalo de outubro permanecem pendentes conforme a seção acima; nenhum restart nem nova chamada Azure foi feito.
 - **Decisão desta atualização:** bloqueado para merge pela falha do gate Linux. PR #16 draft aberta; CI Windows aprovada; CI Linux falhou por advisory transitivo sem correção compatível identificada.
+
+### Reexecução da CI após atualização documental
+
+- No commit `f7747135c632f492bcfabb9aaeb60a6f92becad1`, a execução `44313750484` terminou em 2026-11-18: `PowerShell / Windows` aprovado, inclusive testes seriais, Playwright MCP e acessibilidade; `Quality / Linux` falhou novamente somente no gate de vulnerabilidades. Typecheck, build e testes unitários/MCP no Linux passaram.
+- A PR #16 continua aberta em draft; os checks obrigatórios permanecem incompletos por causa do Linux. Nenhum merge foi feito.
+- Tempo observado desde o início da validação desta rodada (09:51:31 -03:00) até esta atualização (10:30 -03:00): aproximadamente 38 minutos e 30 segundos. Inclui validação local, leitura/atualização documental e acompanhamento CI; não inclui trabalho anterior da missão.

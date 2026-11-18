@@ -4,7 +4,7 @@ Este índice reúne o histórico versionado das missões do repositório. Os rel
 
 | Missão | Título | Data | Status registrado | Relatório | Pull Request |
 |---|---|---|---|---|---|
-| 16 | Estabilização da consulta FinOps real e usabilidade operacional | 2026-11-18 | UX local validada; PR #16 draft; Windows aprovado e Linux bloqueado por auditoria de dependência; sem merge | [missao-16.md](missao-16.md) | [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) |
+| 16 | Estabilização da consulta FinOps real e usabilidade operacional | 2026-11-18 | UX local validada; PR #16 draft; CI Windows aprovado, Linux bloqueado por auditoria de dependência; sem merge | [missao-16.md](missao-16.md) | [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) |
 | 15 | Integração FinOps real, contratos de dados e confiabilidade financeira | 2026-11-16 | Integrada à `main` via PR #14 e CI Linux/Windows aprovada; validação real Azure pendente | [missao-15.md](missao-15.md) | [PR #14](https://github.com/poyato70/azure-cost-local/pull/14) |
 | 14 | Correlação FinOps entre servidores MCP com proveniência verificável | 2026-11-16 | Integrada à `main` via PR #12; CI Linux/Windows aprovada | [missao-14.md](missao-14.md) | [PR #12](https://github.com/poyato70/azure-cost-local/pull/12) |
 | 13 | Persistência, recuperação e rastreabilidade da orquestração MCP | 2026-11-16 | Integrada à `main` após CI Linux/Windows aprovada; backup original perdido e não recuperado | [missao-13.md](missao-13.md) | [PR #10](https://github.com/poyato70/azure-cost-local/pull/10) |

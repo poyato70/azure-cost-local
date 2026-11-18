@@ -398,4 +398,14 @@ A consulta será somente leitura, em `ActualCost`; o resultado de comparação d
 **UX e validação local: aprovadas. Ativação na instância operacional e publicação: pendentes.** Antes de reiniciar `4317`, o operador deve abrir Diagnóstico e copiar/exportar os eventos relevantes, verificar no Mapa de Conexões que não há execução pendente que exija ação, e autorizar o reinício controlado; o startup executa `McpOrchestration.init()` e pode reclassificar estados recuperados. Depois do reinício, confirmar CSP/bundle, validar visualmente a consulta completa de outubro uma vez e verificar total/moeda/linhas/paginação sem registrar valores corporativos no relatório versionável. Até essas verificações, não integrar à `main`.
 
 - Resultados acima observados em 2026-11-18; tempo decorrido da sessão de implementação será informado na resposta final com base no relógio desta execução.
-- Commit/PR/merge: ainda não realizados.
+- Commit/PR/merge naquele ponto de registro: ainda não realizados.
+
+## Publicação e CI — atualização observada em 2026-11-18
+
+- A implementação foi registrada no commit `016a905451321d3e1a9a8332a86560e8206b7987` (`feat(finops): stabilize API cost query UX`) na branch `codex/missao-16-finops-ux`.
+- PR [#16](https://github.com/poyato70/azure-cost-local/pull/16) foi aberta como draft. A execução CI `44312846911` terminou: `PowerShell / Windows` **aprovado**; `Quality / Linux` **falhou** no gate `npm audit --audit-level=high`, após typecheck, build e testes Linux passarem.
+- O log do job Linux apontou cinco avisos de alta severidade transitivos na cadeia de desenvolvimento que inclui `picomatch` (`vitest → vite → tinyglobby → fdir`). O advisory [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) não lista versão corrigida; o pacote atualmente publicado consultado foi `picomatch` 4.0.7, também dentro do intervalo afetado descrito pelo advisory. A auditoria local também falha no mesmo gate. Não foi aplicado `npm audit fix --force`, não houve downgrade/alteração arbitrária de dependências e nenhum alerta foi suprimido.
+- A falha de segurança impede aprovação dos checks obrigatórios. A PR permanece aberta em draft e **não foi mesclada**. Não se afirma que a CI esteja aprovada nem que a missão esteja pronta para integração. Reavaliar quando houver versão corrigida compatível ou correção upstream segura, mantendo o lockfile e as políticas do projeto íntegros.
+- Não foram executados novos testes após o commit: esta atualização apenas reconcilia relatório e índice com resultados CI já observados. `git diff --check` passou para esta atualização documental.
+- A validação do bundle na instância operacional e a confirmação da consulta real para todo o intervalo de outubro permanecem pendentes conforme a seção acima; nenhum restart nem nova chamada Azure foi feito.
+- **Decisão desta atualização:** bloqueado para merge pela falha do gate Linux. PR #16 draft aberta; CI Windows aprovada; CI Linux falhou por advisory transitivo sem correção compatível identificada.

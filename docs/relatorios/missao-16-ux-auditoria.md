@@ -2,13 +2,13 @@
 
 ## Identificação
 
-- **Estado atual:** UX-01 a UX-04 concluídas; revisão UX-05 aprovada em validação local e preparando publicação. 58 caminhos revisados, incluindo 44 capturas.
+- **Estado atual:** UX-01 a UX-04 concluídas; UX-05 publicada para revisão em PR #17. 58 caminhos revisados, incluindo 44 capturas; CI remota iniciada e aguardando conclusão.
 - **Data:** 2026-11-18.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/tesseract-2-ux`.
 - **Worktree:** `D:\DEV\FinOps\Tesseract-2-ux-base`.
 - **Commit-base:** `facd3dfd794b1b9a2750f53280e763447ebe6ecd` (`main` buscada diretamente do remoto).
-- **Pull Request/merge:** Ainda não criados nesta etapa; checks remotos aguardam publicação da branch.
+- **Pull Request:** [#17 — UX-01 a UX-04: fundação neumórfica e Inspector MCP](https://github.com/poyato70/azure-cost-local/pull/17), aberta contra `main`; merge não realizado e depende de aprovação humana.
 
 ## Objetivo, escopo e restrições
 
@@ -331,7 +331,7 @@ Arquivos de evidência incluídos:
 **Data:** 2026-11-18
 **Branch/worktree:** `codex/tesseract-2-ux` · `D:\DEV\FinOps\Tesseract-2-ux-base`
 **Base remota confirmada:** `origin/main` = `facd3dfd794b1b9a2750f53280e763447ebe6ecd`, igual ao commit-base.
-**Estado:** validação local aprovada com limitações identificadas; commit UX-01/02 criado e commit UX-03/04 em finalização. Push e PR pendentes.
+**Estado:** validação local aprovada com limitações identificadas; dois commits publicados na branch UX e PR #17 aberta. CI remota ainda pendente.
 
 ### Revisão do diff e escopo
 
@@ -363,7 +363,7 @@ Arquivos de evidência incluídos:
 - Capturas visuais de referência permanecem em `docs/relatorios/evidencias/ux-01/` a `ux-04/`. Não há capturas de Azure/Copilot reais. Zoom nativo de 200% e Axe em cada viewport pequeno não foram verificados nesta rodada; a cobertura responsiva inclui larguras 390, 640/768 e 1280 CSS px.
 - Os dois fluxos E2E legados precisam de atualização coordenada com a navegação atual do Inspector. Não os alterei para não misturar comportamento funcional M16 na publicação UX.
 - Commit UX-01/02: `b1e34de1cb453574e144456bab043251c440af74` (`feat(ux): add neumorphic lab and map pilot`). O commit UX-03/04 está sendo finalizado.
-- Após o segundo commit, a branch estará pronta para push e PR. Ainda não houve push nem PR; merge continua sujeito à aprovação explícita humana.
+- Commit UX-03/04: `a9e7f124ad998b534c39260bd91f4ec2452daef5` (`feat(ux): add MCP capability export and portability review`). Branch publicada; PR #17 aberta contra `main`. Workflow CI run `44313881088` consta como `queued` na consulta inicial, sem conclusão disponível; não declarar checks aprovados até consulta posterior. Merge não realizado e sujeito à aprovação humana.
 
 ### Parecer e publicação
 

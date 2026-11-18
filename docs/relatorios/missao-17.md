@@ -103,7 +103,7 @@ Preparar o Tesseract 2.1 para avaliação Windows corporativa, com pré-flight s
 - Commit M17 `6b6f83ed07f6be0d864376db8d2594180e16972f` foi enviado à branch `codex/missao-17-corporate-release`.
 - A [PR #18](https://github.com/poyato70/azure-cost-local/pull/18) foi aberta em draft, base `codex/missao-16-finops-ux`, head M17. O workflow `CI` seleciona PRs com base `main`, então a execução #44371113566 foi disparada por `workflow_dispatch` no commit acima; Linux e Windows passaram. A CI executada é evidência do commit M17, porém não aparece como check de PR enquanto a base for M16.
 - Nenhum merge, tag ou GitHub Release foi feito. A PR draft prepara revisão técnica e não aprova a versão estável.
-- A integração sequencial da PR #16 e o rebase/preparação da 2.1 sobre a `main` atual continuam necessários. Ainda faltam CI remota atual aprovada, validação de instalação em estação corporativa e decisão humana sobre a limitação de proxy dos conectores `fetchBound`.
+- A integração sequencial da PR #16 e o rebase/preparação da 2.1 sobre a `main` atual continuam necessários. Ainda faltam checks associados à PR #18 após retarget/rebase para `main`, validação de instalação em estação corporativa e decisão humana sobre a limitação de proxy dos conectores `fetchBound`.
 
 ## Parecer e pendências
 
@@ -111,4 +111,8 @@ Preparar o Tesseract 2.1 para avaliação Windows corporativa, com pré-flight s
 
 Próximos passos necessários: validação humana do bundle operacional/consulta Azure e aprovação para integrar a PR #16; decidir como tratar proxy para `fetchBound` mantendo segurança SSRF; repetir pré-flight/instalação em estação corporativa autorizada; após merge M16, rebasear M17 sobre `main`, confirmar checks de PR Linux/Windows e revisão, e somente então considerar merge, tag e release.
 
-As integrações condicionais com Linear, Notion e e-mail não foram executadas porque a missão não alcançou sucesso integral/publicação. Nenhuma comunicação externa foi enviada.
+## Registros solicitados após push
+
+- Linear: criada a issue [ARG-24 — Tesseract 2.1 RC e gates corporativos](https://linear.app/arg-2/issue/ARG-24/tesseract-21-rc-conclusao-m17-e-gates-de-avaliacao-corporativa), em `In Progress`, no projeto Tesseract. O workspace correspondente à conexão ativa foi usado; a outra conexão Linear disponível exigia reautenticação.
+- Notion: criada e relida a página privada draft [Tesseract 2.1 — visão técnico-executiva](https://app.notion.com/p/41caeac1fa1d8190a6f0c7c437b36395?pvs=204), com diagrama de papéis/fluxo e limites de avaliação.
+- E-mail enviado para `poyato@bb.com.br`, com status do push, PRs e resultados Linear/Notion, seguido da cópia integral do texto da página do Notion. A mensagem enviada foi relida para confirmar corpo e destinatário.

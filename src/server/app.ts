@@ -8,6 +8,7 @@ import { registerHubRoutes } from "./hubs/routes.js";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { z } from "zod";
+import { APP_VERSION } from "../shared/version.js";
 import { timingSafeEqual } from "node:crypto";
 import { readConfig, type Config } from "./config.js";
 import { SessionStore, type Session } from "./auth/session-store.js";
@@ -285,7 +286,7 @@ export async function buildApp(deps: AppDeps = {}) {
     diagnostics.clear(session(req).id);
     return { ok: true };
   });
-  app.get("/api/health", async () => ({ ok: true, app: "Tesseract 2.0" }));
+  app.get("/api/health", async () => ({ ok: true, app: "Tesseract 2.0", version: APP_VERSION }));
   app.get("/api/bootstrap", async (req, reply) => {
     let s = store.get(req.cookies.sid);
     if (!s) {

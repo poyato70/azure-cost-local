@@ -11,6 +11,23 @@ it("isolates sessions and bounds records without exposing token-shaped credentia
   });
   expect(JSON.stringify(d.list("a"))).not.toContain("synthetic-token");
   expect(JSON.stringify(d.list("a"))).not.toContain("=secret");
+  d.record("a", {
+    source: "HTTP",
+    operation: "request",
+    status: "error",
+    detail:
+      'Authorization: Bearer hidden Cookie: session=hidden; client_secret="very-secret" refresh_token=refresh-value https://user:pass@example.test/path',
+  });
+  const redacted = JSON.stringify(d.list("a"));
+  for (const secret of [
+    "hidden",
+    "session=",
+    "very-secret",
+    "refresh-value",
+    "user:pass@",
+  ])
+    expect(redacted).not.toContain(secret);
+  expect(redacted).toContain("[oculto]");
   expect(d.list("b")).toEqual([]);
   for (let i = 0; i < 200; i++)
     d.record("a", {

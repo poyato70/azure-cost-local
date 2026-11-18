@@ -4,6 +4,11 @@ import type {
   DateRange,
   CostQuery,
 } from "../../shared/contracts.js";
+import {
+  inclusiveEndDate,
+  periodWithInclusiveEnd,
+  periodWithStart,
+} from "../date-range.js";
 export function ScopeFilters({
   subscriptions,
   subscription,
@@ -130,17 +135,17 @@ export function ScopeFilters({
           aria-label="Data inicial"
           type="date"
           value={period.from}
-          onChange={(e) => setPeriod({ ...period, from: e.target.value })}
+          onChange={(e) => setPeriod(periodWithStart(period, e.target.value))}
         />
       </label>
       <label>
-        Até (exclusivo)
+        Até (incluindo o dia)
         <input
-          aria-label="Data final exclusiva"
+          aria-label="Data final inclusiva"
           type="date"
-          value={period.toExclusive}
+          value={inclusiveEndDate(period)}
           onChange={(e) =>
-            setPeriod({ ...period, toExclusive: e.target.value })
+            setPeriod(periodWithInclusiveEnd(period, e.target.value))
           }
         />
       </label>

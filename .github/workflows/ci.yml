@@ -67,7 +67,7 @@ jobs:
         shell: pwsh
         run: |
           $errors = @()
-          $files = @('service.ps1', 'start.ps1', 'stop.ps1', 'status.ps1', 'install.ps1', 'update.ps1') + (Get-ChildItem scripts -Filter '*.ps1' | ForEach-Object { $_.FullName })
+          $files = @('service.ps1', 'start.ps1', 'stop.ps1', 'status.ps1', 'install.ps1', 'update.ps1', 'preflight.ps1') + (Get-ChildItem scripts -File | Where-Object { $_.Extension -in @('.ps1', '.psm1') } | ForEach-Object { $_.FullName })
           foreach ($file in $files) {
             $tokens = $null
             $parseErrors = $null
@@ -78,7 +78,7 @@ jobs:
       - name: Windows-specific tests (serial)
         env:
           TESSERACT_TEST_POWERSHELL: pwsh
-        run: npx vitest run tests/server/service-scripts.test.ts tests/storage/config-store.test.ts tests/connections/access-service.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-tests.junit.xml
+        run: npx vitest run tests/server/service-scripts.test.ts tests/server/preflight-core.test.ts tests/storage/config-store.test.ts tests/connections/access-service.test.ts --pool=forks --maxWorkers=1 --reporter=default --reporter=junit --outputFile=test-results/ci/windows-tests.junit.xml
       - name: Install Playwright Chromium
         run: npx playwright install chromium
       - name: MCP M10/M12/M14 browser journeys and accessibility scans

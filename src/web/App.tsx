@@ -16,6 +16,7 @@ import { Forecast } from "./pages/Forecast.js";
 import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { APP_VERSION } from "../shared/version.js";
 import type {
   Scope,
   DateRange,
@@ -505,7 +506,7 @@ export function App() {
 
         <div className="sidebar-bottom">
           <div className="local-light" /> Serviço no notebook
-          <span className="version">MVP · 0.5.2</span>
+          <span className="version">Tesseract {APP_VERSION}</span>
         </div>
       </aside>
       <main>
@@ -828,7 +829,14 @@ export function App() {
               ))}
             {tab === "api-lab" &&
               (source === "api" ? (
-                <ApiLab query={query} />
+                <ApiLab
+                  query={query}
+                  setGroupBy={setGroupBy}
+                  setGranularity={setGranularity}
+                  subscriptionLabel={
+                    subs.find((item) => item.id === sub)?.name || ""
+                  }
+                />
               ) : (
                 <p>Escolha APIs Azure antes de testar nesta página.</p>
               ))}
@@ -845,7 +853,9 @@ export function App() {
             )}
             {tab === "diagnostics" && <DiagnosticPanel />}
             {tab === "new_features_ux" && <GlobalObservability />}
-            {tab === "finops-correlation" && <FinOpsCorrelation profiles={mcpProfiles} />}
+            {tab === "finops-correlation" && (
+              <FinOpsCorrelation profiles={mcpProfiles} />
+            )}
             {tab === "hubs" && (
               <Hubs
                 key={boot?.activeAccessId}

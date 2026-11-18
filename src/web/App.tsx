@@ -807,7 +807,14 @@ export function App() {
               ))}
             {tab === "api-lab" &&
               (source === "api" ? (
-                <ApiLab query={query} />
+                <ApiLab
+                  query={query}
+                  setGroupBy={setGroupBy}
+                  setGranularity={setGranularity}
+                  subscriptionLabel={
+                    subs.find((item) => item.id === sub)?.name || ""
+                  }
+                />
               ) : (
                 <p>Escolha APIs Azure antes de testar nesta página.</p>
               ))}
@@ -823,7 +830,9 @@ export function App() {
               </section>
             )}
             {tab === "diagnostics" && <DiagnosticPanel />}
-            {tab === "finops-correlation" && <FinOpsCorrelation profiles={mcpProfiles} />}
+            {tab === "finops-correlation" && (
+              <FinOpsCorrelation profiles={mcpProfiles} />
+            )}
             {tab === "hubs" && (
               <Hubs
                 key={boot?.activeAccessId}

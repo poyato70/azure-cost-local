@@ -16,6 +16,7 @@ import { manageRequest, ManageRequestError } from "../api.js";
 import { applyPricingDefaults } from "../components/pricing-defaults.js";
 import { ConnectionsMap } from "../components/ConnectionsMap.js";
 import { Play, CheckCircle2 } from "lucide-react";
+import { NeoSearch } from "../components/ui/neo.js";
 import type { DiagnosticEvent } from "../../server/diagnostics/service.js";
 const defaults = {
   kubernetes: { endpoint: "", transport: "http" },
@@ -123,6 +124,7 @@ export function McpConnections({
     [advanced, setAdvanced] = useState(false),
     [execution, setExecution] = useState<{ kind: string; message: string }>(),
     [matrix, setMatrix] = useState<any[]>([]);
+  const [toolSearch, setToolSearch] = useState("");
   const [flowA, setFlowA] = useState("");
   const [flowB, setFlowB] = useState("");
   const [toolA, setToolA] = useState("m12_synthetic_cost");
@@ -1153,39 +1155,60 @@ export function McpConnections({
               na hora da consulta.
             </p>
           )}
-          {tools.map((t) => (
-            <label className="tool-row" key={t.name}>
-              <input
-                type="checkbox"
-                disabled={!t.reviewable}
-                checked={chosen.includes(t.name)}
-                onChange={(e) =>
-                  setChosen((x) =>
-                    e.target.checked
-                      ? [...x, t.name]
-                      : x.filter((n) => n !== t.name),
-                  )
-                }
-              />
-              <span>
-                <strong>{t.name}</strong>
-                <small>
-                  {t.reviewable
-                    ? "Leitura disponível para aprovação."
-                    : ["custom", "kubernetes"].includes(
-                          profiles.find((p) => p.id === inspected)?.preset,
-                        )
-                      ? "Indisponível para aprovação pela política de leitura desta conexão. A operação precisa ser declarada como leitura pelo servidor e passar pelas regras do Tesseract."
-                      : "Indisponível para aprovação. Esta operação não está na lista de leituras permitidas para o tipo de conexão."}
-                  <details>
-                    <summary>Descrição original e schema</summary>
-                    <p>{t.description}</p>
-                    <pre>{JSON.stringify(t.inputSchema, null, 2)}</pre>
-                  </details>
-                </small>
-              </span>
-            </label>
-          ))}
+          {tools.length > 0 && (
+            <NeoSearch
+              label="Buscar tools descobertas"
+              placeholder="Filtrar tools por nome ou descrição…"
+              value={toolSearch}
+              onChange={setToolSearch}
+              className="mcp-tool-search"
+            />
+          )}
+          {tools
+            .filter((tool) =>
+              `${tool.name} ${tool.description || ""}`
+                .toLowerCase()
+                .includes(toolSearch.toLowerCase()),
+            )
+            .map((t) => (
+              <label className="tool-row" key={t.name}>
+                <input
+                  type="checkbox"
+                  disabled={!t.reviewable}
+                  checked={chosen.includes(t.name)}
+                  onChange={(e) =>
+                    setChosen((x) =>
+                      e.target.checked
+                        ? [...x, t.name]
+                        : x.filter((n) => n !== t.name),
+                    )
+                  }
+                />
+                <span>
+                  <strong>{t.name}</strong>
+                  <small>
+                    {t.reviewable
+                      ? "Leitura disponível para aprovação."
+                      : ["custom", "kubernetes"].includes(
+                            profiles.find((p) => p.id === inspected)?.preset,
+                          )
+                        ? "Indisponível para aprovação pela política de leitura desta conexão. A operação precisa ser declarada como leitura pelo servidor e passar pelas regras do Tesseract."
+                        : "Indisponível para aprovação. Esta operação não está na lista de leituras permitidas para o tipo de conexão."}
+                    <details>
+                      <summary>Descrição original e schema</summary>
+                      <p>{t.description}</p>
+                      <pre>{JSON.stringify(t.inputSchema, null, 2)}</pre>
+                    </details>
+                  </small>
+                </span>
+              </label>
+            ))}
+          {tools.length > 0 &&
+            !tools.some((tool) =>
+              `${tool.name} ${tool.description || ""}`
+                .toLowerCase()
+                .includes(toolSearch.toLowerCase()),
+            ) && <p role="status">Nenhuma tool corresponde a esta busca.</p>}
           {selectionDirty && (
             <p role="alert" className="notice">
               Há alterações na seleção. Clique em Salvar tools permitidas para

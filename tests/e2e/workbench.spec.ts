@@ -73,7 +73,7 @@ test("welcome closes with Escape, tree exposes MCP tasks and help", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Análise", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Laboratório de capacidades MCP" }),
+    page.getByRole("heading", { name: "Inspector de capacidades MCP" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Descoberta", exact: true }).click();
   await expect(

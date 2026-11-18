@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import AxeBuilder from "@axe-core/playwright";
-import { createUniqueTestOutputDir, protectedTestPaths, safeRemoveTestDirectory } from "../../scripts/test-path-safety.js";
+import {
+  createUniqueTestOutputDir,
+  protectedTestPaths,
+  safeRemoveTestDirectory,
+} from "../../scripts/test-path-safety.js";
 
 const appPort = 14517;
 const fixtureScript = join(
@@ -151,8 +155,7 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto(`http://127.0.0.1:${appPort}/`);
   const bootstrapResponse = await page.waitForResponse(
-    (response) =>
-      response.url().endsWith("/api/bootstrap") && response.ok(),
+    (response) => response.url().endsWith("/api/bootstrap") && response.ok(),
   );
   const bootstrap = await bootstrapResponse.json();
   await page.evaluate((csrf: string) => {
@@ -179,7 +182,7 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
     .getByRole("textbox", { name: "Endpoint MCP" })
     .fill(`http://127.0.0.1:${fixturePort}/mcp`);
   await page
-    .locator('#mcp-profile-form select')
+    .locator("#mcp-profile-form select")
     .filter({ has: page.locator('option[value="none"]') })
     .selectOption("none");
   await page
@@ -187,9 +190,13 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
     .check();
   await page.getByRole("button", { name: "Salvar MCP" }).click();
   await expect(
-    page.getByText("Conexão salva. Teste a autenticação e revise as ferramentas."),
+    page.getByText(
+      "Conexão salva. Teste a autenticação e revise as ferramentas.",
+    ),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Fixture Missão 10" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Fixture Missão 10" }),
+  ).toBeVisible();
 
   const mapProvider = page.getByRole("group", { name: "Selecionar provedor" });
   await expect(
@@ -223,19 +230,29 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
     .getByRole("button", { name: "Analisar tools", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Laboratório de capacidades MCP" }),
+    page.getByRole("heading", { name: "Inspector de capacidades MCP" }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Listar capacidades, prompts e resources" })
-    .click();
+  await page.getByRole("button", { name: "Descobrir capacidades MCP" }).click();
   await expect(
     page.getByText(/tesseract-mission-10-fixture/).first(),
   ).toBeVisible();
-  await page.getByText("Prompts e recursos").click();
-  await expect(page.getByText("m10-json-resource", { exact: true })).toBeVisible();
-  await expect(page.getByText("m10_required_prompt", { exact: true })).toBeVisible();
+  const capabilityGroup = page.getByRole("group", {
+    name: "Tipo de capacidade",
+  });
+  await capabilityGroup.getByRole("button", { name: "Resources" }).click();
+  await page.getByRole("button", { name: /m10-json-resource/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "m10-json-resource" }),
+  ).toBeVisible();
+  await capabilityGroup.getByRole("button", { name: "Prompts" }).click();
+  await page.getByRole("button", { name: /m10_required_prompt/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "m10_required_prompt" }),
+  ).toBeVisible();
+  await capabilityGroup.getByRole("button", { name: "Resources" }).click();
+  await page.getByRole("button", { name: /m10-json-resource/ }).click();
   await page
-    .getByRole("button", { name: "Ler resource listado" })
+    .getByRole("button", { name: "Ler resource", exact: true })
     .first()
     .click();
   await expect(
@@ -340,8 +357,12 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
   await expect(
     page.getByRole("status").filter({ hasText: "Tools permitidas salvas" }),
   ).toBeVisible();
-  await page.getByLabel("Tools", { exact: true }).selectOption("m10_controlled_error");
-  await page.getByLabel("requiredText", { exact: true }).fill("provocar erro controlado");
+  await page
+    .getByLabel("Tools", { exact: true })
+    .selectOption("m10_controlled_error");
+  await page
+    .getByLabel("requiredText", { exact: true })
+    .fill("provocar erro controlado");
   const perCallApproval = page.getByLabel(
     "Confirmo esta execução (obrigatório em cada chamada)",
     { exact: true },
@@ -372,7 +393,9 @@ test("connects to controlled MCP, reviews, authorizes, executes and verifies act
   await expect(page.locator(".map-event-list")).toContainText(
     "m10_controlled_error",
   );
-  await expect(page.locator(".map-event-list")).toContainText("mcp_tool_failed");
+  await expect(page.locator(".map-event-list")).toContainText(
+    "mcp_tool_failed",
+  );
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.screenshot({
     path: join(evidenceRoot, "mission10-activity-error.png"),

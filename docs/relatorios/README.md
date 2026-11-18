@@ -3,6 +3,7 @@
 Este índice reúne o histórico versionado das missões do repositório. Os relatórios descrevem o estado e as evidências disponíveis em cada época; reconstruções são identificadas como tal.
 
 | Missão | Título | Data | Status registrado | Relatório | Pull Request |
+| 18 | Reconciliação da fundação UX sobre Tesseract 2.1 | 2026-11-18 | UX-01–04 reconciliadas; PR #17 aberta; CI Linux/Windows aprovada; merge humano pendente | [missao-18.md](missao-18.md) | [PR #17](https://github.com/poyato70/azure-cost-local/pull/17) |
 | 17 | Release 2.1, instalação corporativa e avaliação de segurança | 2026-11-18 | Candidato RC em validação local; release estável bloqueada pelo gate de dependências | [missao-17.md](missao-17.md) | — |
 |---|---|---|---|---|---|
 | 16 | Estabilização da consulta FinOps real e usabilidade operacional | 2026-11-18 | UX local validada; PR #16 draft; CI Windows aprovado, Linux bloqueado por auditoria de dependência; sem merge | [missao-16.md](missao-16.md) | [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) |

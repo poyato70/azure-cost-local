@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "./fixtures.js";
 
-const evidence = join(process.cwd(), "test-results", "ux-06-07", "reconciled-84d5fe9");
+const evidence = join(process.cwd(), "test-results", "ux-06-07", "reconciled-84d5fe9-final");
 const mockReadOnlyApi = async (page: import("@playwright/test").Page) => {
   const methods: string[] = [];
   await page.route("**/api/**", async (route) => {
@@ -21,6 +21,7 @@ const mockReadOnlyApi = async (page: import("@playwright/test").Page) => {
 };
 
 test("UX-07 displays a read-only, keyboard-operable observability map and responsive themes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const methods = await mockReadOnlyApi(page);
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -73,6 +74,13 @@ test("UX-07 displays a read-only, keyboard-operable observability map and respon
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const mobileGeometry = await page.evaluate(() => {
+    const map = document.querySelector(".obs-map")!.getBoundingClientRect();
+    const nodes = [...document.querySelectorAll(".obs-node")].map((node) => node.getBoundingClientRect());
+    const legend = document.querySelector(".obs-legend")!.getBoundingClientRect();
+    return { nodesInsideMap: nodes.every((node) => node.top >= map.top - 1 && node.bottom <= map.bottom + 1), legendAfterMap: legend.top >= map.bottom - 1, mapHeight: map.height };
+  });
+  expect(mobileGeometry.nodesInsideMap && mobileGeometry.legendAfterMap, JSON.stringify(mobileGeometry)).toBe(true);
   writeFileSync(join(evidence, "observability-light-390.png"), await page.screenshot({ fullPage: true }));
   expect(pageErrors).toEqual([]);
 });
@@ -151,7 +159,7 @@ test("isolated live preview reports real empty states without fixtures", async (
   expect(graphFits).toBe(true);
   await expect(page.getByText("Nenhum fluxo registrado nesta sessão.")).toBeVisible();
   await expect(page.getByText("Nenhum diagnóstico registrado nesta sessão.")).toBeVisible();
-  await expect(page.getByText(/0 configuração\(ões\) nesta sessão/)).toBeVisible();
+  await expect(page.getByText(/0 configuração\(ões\) listada\(s\) nesta sessão/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations.map(({ id, impact, nodes }) => ({ id, impact, targets: nodes.map((node) => node.target) }))).toEqual([]);

@@ -30,7 +30,7 @@ async function fixture(rootName: string, healthy = true) {
       await readFile(join(process.cwd(), "scripts", name)),
     );
   const response = healthy
-    ? `res.end(JSON.stringify({ok:true,app:"Tesseract 2.0"}));`
+    ? `res.end(JSON.stringify({ok:true,app:"Tesseract 2.0",proxy:process.env.NODE_USE_ENV_PROXY ?? null}));`
     : `res.end(JSON.stringify({ok:true,app:"fixture"}));`;
   await writeFile(
     join(root, "dist", "server", "main.js"),
@@ -56,13 +56,15 @@ function runScript(
   args: string[] = [],
   timeout = 20000,
 ) {
+  const childEnv: NodeJS.ProcessEnv = { ...process.env, LOCALAPPDATA: appData };
+  delete childEnv.NODE_USE_ENV_PROXY;
   return spawnSync(
     shell,
     ["-NoProfile", "-NonInteractive", "-File", join(root, script), ...args],
     {
       encoding: "utf8",
       timeout,
-      env: { ...process.env, LOCALAPPDATA: appData },
+      env: childEnv,
     },
   );
 }
@@ -100,6 +102,8 @@ it.skipIf(!windows)("service scripts detect stale PID, start, report, and stop o
     expect(metadata.projectRoot).toBe(await realpath(f.root));
     expect(metadata.port).toBe(port);
     expect(metadata.stdoutLog).toContain("service.out.log");
+    const proxyHealth = await fetch(`http://127.0.0.1:${port}/api/health`).then((r) => r.json());
+    expect(proxyHealth).toMatchObject({ proxy: "1" });
     expect(runScript(f.root, f.appData, "status.ps1", ["-Port", String(port)]).status).toBe(0);
     const stopped = runScript(f.root, f.appData, "scripts/stop.ps1", ["-Port", String(port)]);
     expect(stopped.status, stopped.stdout + stopped.stderr).toBe(0);

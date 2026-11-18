@@ -3,6 +3,7 @@
 Este índice reúne o histórico versionado das missões do repositório. Os relatórios descrevem o estado e as evidências disponíveis em cada época; reconstruções são identificadas como tal.
 
 | Missão | Título | Data | Status registrado | Relatório | Pull Request |
+| 17 | Release 2.1, instalação corporativa e avaliação de segurança | 2026-11-18 | Candidato RC em validação local; release estável bloqueada pelo gate de dependências | [missao-17.md](missao-17.md) | — |
 |---|---|---|---|---|---|
 | 16 | Estabilização da consulta FinOps real e usabilidade operacional | 2026-11-18 | UX local validada; PR #16 draft; CI Windows aprovado, Linux bloqueado por auditoria de dependência; sem merge | [missao-16.md](missao-16.md) | [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) |
 | 15 | Integração FinOps real, contratos de dados e confiabilidade financeira | 2026-11-16 | Integrada à `main` via PR #14 e CI Linux/Windows aprovada; validação real Azure pendente | [missao-15.md](missao-15.md) | [PR #14](https://github.com/poyato70/azure-cost-local/pull/14) |

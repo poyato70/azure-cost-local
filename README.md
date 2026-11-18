@@ -1,45 +1,64 @@
-# Tesseract 2.0 — MCP Workspace
+# Tesseract 2.1 — candidato de avaliação (RC)
 
-Workspace local para conectar, inspecionar e executar servidores MCP, com capacidades FinOps multicloud, Azure, agentes e conhecimento mantidos no produto existente. Esta consolidação preserva os recursos do `azure-cost-local` 0.5.2 enquanto atualiza a instalação e a operação das Missões 04 e 05.
+> Estado: candidato RC em revisão, ainda sem aprovação, tag ou GitHub Release. O advisory transitivo `GHSA-fc5q-39xc-vjpf` foi retirado pelo GitHub em 18/11/2026 e a auditoria local atual não reporta vulnerabilidades; CI remota, instalação corporativa e validação de proxy ainda são necessárias antes de uma release estável.
 
-## Instalação e operação (Windows / PowerShell)
+## Instalação do Tesseract 2.1 no Windows
 
-### CI e verificações locais
+### Pré-requisitos
 
-O workflow em `.github/workflows/ci.yml` roda em pull requests para `main`, pushes em `main` e execução manual. O job Linux usa Node.js 24, `npm ci`, typecheck, build, testes Vitest compatíveis, `npm audit --audit-level=high` e protocolo MCP SDK. O job Windows roda os testes DPAPI e scripts de serviço, compila o app e valida a jornada MCP real com Playwright/Chromium e axe-core; essa jornada precisa do cofre Windows real. Nenhum segredo ou credencial externa é necessário. Artefatos de falha são restritos a XML JUnit e traces/screenshots Playwright, com retenção de sete dias.
+- Windows 64 bits e PowerShell autorizado pela política local.
+- Node.js 22.21 ou superior na linha 22, ou 24.6 ou superior na linha 24, com npm 9+.
+- Git para clonar e para usar `update.ps1`.
+- Acesso ao registry npm já aprovado/configurado pela organização. Proxy e certificados devem ser provisionados pela infraestrutura; os scripts não os alteram.
+- Espaço para dependências, build e perfil local. Nenhuma permissão administrativa é requerida quando essas condições e políticas já permitem a instalação.
 
-Para reproduzir a jornada MCP e os testes locais:
+A faixa de Node inclui suporte do runtime às variáveis de proxy padrão usado pelo serviço. Não use Node fora das versões LTS aprovadas pela empresa.
 
-```powershell
-npm ci
-npm run typecheck
-npm run build
-npx vitest run
-npx playwright install chromium
-npx playwright test --config=playwright.m10.config.ts
-npm audit --audit-level=high
-```
-
-O Playwright usa Edge quando executado localmente no modo padrão e o Chromium empacotado quando `CI=true`. A fixture MCP é controlada e usa somente dados temporários. O scanner axe cobre os estados vazio e de resultado no fluxo MCP; a verificação automatizada não equivale a conformidade WCAG.
-
-Requisitos: Node.js LTS com npm e Git para atualização automática. O app escuta somente em `127.0.0.1`; a porta padrão é 4317.
+### Clone, diagnóstico e instalação
 
 ```powershell
 git clone https://github.com/poyato70/azure-cost-local.git
-cd azure-cost-local
-.\install.ps1
+Set-Location azure-cost-local
+.\preflight.ps1 -Port 4317 -ExportReport
+.\install.ps1 -Port 4317
+```
+
+`preflight.ps1` verifica versões, execução básica de Node, políticas PowerShell, TLS, registry npm, conectividade sem autenticação, capacidade de escrita no checkout, espaço, porta e presença (sem leitura de conteúdo) do diretório de dados. O suporte de proxy do Node cobre clientes baseados no `fetch`/HTTP global; alguns conectores HTTP/MCP usam transporte próprio com DNS fixado para proteção SSRF e não são roteados pelo proxy nesta edição. Valide cada caminho na rede corporativa antes da implantação. O relatório sanitizado pode ser encaminhado à infraestrutura. O preflight comum faz requisições `HEAD` sem credenciais ao registry npm configurado, endpoints públicos de login/ARM Azure e MCP Registry opcional. Para diagnóstico local sem testar endpoints Azure: `.\preflight.ps1 -Port 4317 -SkipAzureEndpointChecks`. Isso não é um modo de instalação aprovado.
+
+`install.ps1` executa o preflight, verifica se há serviço deste checkout ativo, instala exatamente o lockfile via `npm ci`, compila e confirma artefatos e carregamento do componente nativo. O instalador não instala servidores MCP, não solicita credenciais e não modifica proxy, TLS, ExecutionPolicy nem permissões. `-SkipAzureEndpointChecks` pode ser passado somente em avaliação isolada que exige ausência de requisições Azure, por exemplo `.\install.ps1 -Port 4317 -SkipAzureEndpointChecks`.
+
+Se scripts estiverem bloqueados por política corporativa, ou a instalação de um componente nativo for impedida, pare e encaminhe o diagnóstico à equipe responsável. Não aplique `ExecutionPolicy Bypass`, não desative validação TLS e não instale certificados sem aprovação corporativa.
+
+### Iniciar, verificar e parar
+
+```powershell
 .\start.ps1 -Port 4317 -StartupTimeoutSeconds 60
-.\status.ps1
+.\status.ps1 -Port 4317
 .\stop.ps1 -Port 4317
 ```
 
-`install.ps1` verifica arquitetura, Node.js/npm, registry configurado, conectividade, TLS estrito e gravação, depois usa `npm ci` e compila. Mantém as configurações npm e políticas corporativas; avisos sobre proxy, certificados ou registry pedem validação do suporte. `start.ps1` aceita `-Port` e `-StartupTimeoutSeconds`, detecta portas ocupadas e PID obsoleto, inicia o Node sem depender do terminal, verifica `/api/health` e mostra o PID. Em timeout de health, preserva um processo ainda ativo e informa os logs. `status.ps1` informa processo, porta e saúde; `stop.ps1` só encerra o processo cuja linha de comando corresponde ao entrypoint deste checkout. Metadados/PID ficam isolados por checkout em `%LOCALAPPDATA%\AzureCostLocal\instances\<id>\service.json`; logs ficam no mesmo diretório, em `logs\service.out.log` e `service.err.log`.
+Abra <http://127.0.0.1:4317>. O servidor vincula somente ao loopback. Use a mesma porta nos três comandos. Se a porta estiver ocupada, escolha outra entre 1024 e 65535. O start compila por padrão; `-SkipBuild` usa artefatos previamente compilados. O serviço não exige MCP externo cadastrado para iniciar.
 
-Avisos de pacote obsoleto ou de vulnerabilidade do `npm audit` não significam, por si só, que a instalação falhou; revise a severidade e o relatório do npm. O build valida ferramentas como esbuild, e o instalador verifica o carregamento de `koffi`. Se a política do npm bloquear scripts e um binário necessário não estiver disponível, a validação falha com orientação para o administrador; o Tesseract não aprova scripts nem altera a política.
+PID/metadados e logs ficam em `%LOCALAPPDATA%\AzureCostLocal\instances\<identificador-do-checkout>\`. Logs rotacionam a partir de 5 MiB. Não compartilhe logs ou respostas que contenham dados corporativos sem revisão.
 
-`update.ps1` aceita somente branch `main` limpa e atualização fast-forward; instala e compila numa worktree temporária antes de atualizar o checkout. Se usar outra porta, forneça o mesmo `-Port` em start, status e stop. Os caminhos `scripts/start.ps1` e `scripts/stop.ps1` continuam como wrappers de compatibilidade para os scripts na raiz.
+### Atualização
 
-Alternativa manual: `npm ci`, `npm run build`, `npm start`. `PORT` pode ser configurada no ambiente; seu padrão é `4317`. `AZURE_TENANT_ID` e `AZURE_CLIENT_ID` são opcionais para iniciar o workspace e habilitar conectores Azure. Consulte [.env.example](.env.example).
+`update.ps1` requer clone Git na branch `main` sem alterações locais. Ele recusa atualizar se encontrar um processo Node que esteja usando o entrypoint deste checkout, busca `origin/main`, aceita apenas fast-forward, valida instalação/build numa worktree temporária, atualiza, reinstala o lockfile e recompila. Não migra nem exporta segredos, sessões ou dados operacionais. Faça backup conforme os procedimentos corporativos antes da atualização; atualização entre versões e reversão operacional ainda devem ser aprovadas no ambiente de avaliação.
+
+### Configuração Azure e MCPs
+
+A inicialização não requer acesso Azure. Para consultar Azure, cadastre ou selecione uma identidade pela interface autenticada e conceda somente as permissões de leitura exigidas pela operação e pelo escopo. A autenticação delegada e Service Principal têm requisitos diferentes. Um perfil cadastrado não prova autorização. Credenciais protegidas pelo DPAPI CurrentUser pertencem ao usuário/estação e não são portáveis por cópia para outro computador ou conta.
+
+MCPs são opcionais, configurados separadamente e iniciados sob demanda conforme transporte/política. Não são baixados automaticamente. Avalie cada endpoint, executável, schema e operação com a segurança corporativa antes de cadastrar ou executar.
+
+### Logs e troubleshooting
+
+- Falha de pré-flight: exporte o `tesseract-preflight-*.txt` e encaminhe à infraestrutura. O texto não contém endpoint completo, caminho pessoal, token ou certificado.
+- Falha de build/start: consulte `service.err.log` e `service.out.log` no diretório acima; sanitize antes de compartilhar.
+- Porta ocupada: use outra porta ou peça à equipe para identificar o processo; Tesseract não encerra processo alheio.
+- Registry/proxy/TLS: confirme com a equipe os valores oficiais de proxy, `NO_PROXY`, CA corporativa e registry. O pré-flight não envia Authorization ao destino e não deve ser usado para validar autenticação corporativa.
+- Processo ativo sem health: `status.ps1` preserva o processo. Revise logs antes de parar.
+- Para recuperação, pare o serviço normalmente e siga o procedimento aprovado pela organização para preservar `%LOCALAPPDATA%\AzureCostLocal`; não apague histórico ou backup para tentar resolver falha.
 
 ## MCP Inspector
 

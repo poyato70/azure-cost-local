@@ -63,9 +63,7 @@ test("analysis isolates configuration actions and shares discovered tools with t
     page.getByRole("button", { name: "Editar", exact: true }),
   ).toHaveCount(0);
   await page.getByLabel("Conexão para análise").selectOption(id);
-  await page
-    .getByRole("button", { name: "Listar capacidades, prompts e resources" })
-    .click();
+  await page.getByRole("button", { name: "Descobrir capacidades MCP" }).click();
   await started;
   await expect(
     page.getByRole("button", { name: "Conectar e listar tools" }),
@@ -74,7 +72,10 @@ test("analysis isolates configuration actions and shares discovered tools with t
   await expect(
     page.getByRole("heading", { name: /Tools descobertas \(1\)/ }),
   ).toBeVisible();
-  await page.getByText("Prompts e recursos", { exact: true }).click();
+  await page
+    .getByRole("group", { name: "Tipo de capacidade" })
+    .getByRole("button", { name: "Prompts" })
+    .click();
   await expect(
     page.getByText("Não anunciado pelo servidor").first(),
   ).toBeVisible();

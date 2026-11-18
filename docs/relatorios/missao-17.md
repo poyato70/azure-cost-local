@@ -116,3 +116,10 @@ Próximos passos necessários: validação humana do bundle operacional e aprova
 - Linear: criada a issue [ARG-24 — Tesseract 2.1 RC e gates corporativos](https://linear.app/arg-2/issue/ARG-24/tesseract-21-rc-conclusao-m17-e-gates-de-avaliacao-corporativa), em `In Progress`, no projeto Tesseract. O workspace correspondente à conexão ativa foi usado; a outra conexão Linear disponível exigia reautenticação.
 - Notion: criada e relida a página privada draft [Tesseract 2.1 — visão técnico-executiva](https://app.notion.com/p/41caeac1fa1d8190a6f0c7c437b36395?pvs=204), com diagrama de papéis/fluxo e limites de avaliação.
 - E-mail enviado para `poyato@bb.com.br`, com status do push, PRs e resultados Linear/Notion, seguido da cópia integral do texto da página do Notion. A mensagem enviada foi relida para confirmar corpo e destinatário.
+
+
+## Atualização de integração — 18/11/2026
+
+- A PR #16 foi integrada à `main` no commit `0fa1c7b0f4b72bce261ad339312be6f3b8dbcd63`, após os checks `Quality / Linux` e `PowerShell / Windows` aprovados no HEAD `00c598f1143df3327896e58802415e9f4478b250`.
+- A PR #18 foi redirecionada para `main` e permanece em draft. A execução CI previamente aprovada da M17 refere-se ao commit `6b6f83ed07f6be0d864376db8d2594180e16972f`, não ao HEAD posterior da PR. A integração depende de checks atuais e revisão.
+- A limitação de compatibilidade proxy-only nos conectores `fetchBound`, a instalação em estação corporativa e a aprovação institucional permanecem pendentes; nenhuma dessas lacunas foi validada por este registro documental.

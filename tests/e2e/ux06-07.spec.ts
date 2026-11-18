@@ -1,0 +1,125 @@
+import AxeBuilder from "@axe-core/playwright";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { expect, test } from "./fixtures.js";
+
+const evidence = join(process.cwd(), "test-results", "ux-06-07");
+const mockReadOnlyApi = async (page: import("@playwright/test").Page) => {
+  const methods: string[] = [];
+  await page.route("**/api/**", async (route) => {
+    methods.push(route.request().method());
+    const path = new URL(route.request().url()).pathname;
+    let json: unknown = [];
+    if (path === "/api/bootstrap") json = { authenticated: false, configured: false, csrf: "fixture", period: { from: "2026-10-01", toExclusive: "2026-11-01", timeZone: "America/Sao_Paulo" } };
+    if (path === "/api/mcp-connections") json = [{ id: "fixture-connection", name: "[FIXTURE SINTÉTICA] MCP local", preset: "custom", transport: "http", status: "conectado", connected: true }];
+    if (path === "/api/diagnostics") json = [{ time: "2026-11-18T12:00:00.000Z", source: "Fixture", operation: "health-check", status: "sucesso", detail: "Registro sintético sem credenciais" }];
+    if (path === "/api/mcp-orchestrations") json = [{ id: "fixture-flow", state: "succeeded", stage: "B", collection: { sourceMode: "synthetic" }, serverA: { id: "fixture-a", tool: "fixture_costs" }, serverB: { id: "fixture-b", tool: "fixture_summary" }, updatedAt: "2026-11-18T12:00:00.000Z" }];
+    if (path === "/api/health") json = { ok: true, app: "Tesseract 2.0 · Fixture local" };
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(json) });
+  });
+  return methods;
+};
+
+test("UX-07 displays a read-only, keyboard-operable observability map and responsive themes", async ({ page }) => {
+  const methods = await mockReadOnlyApi(page);
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/new_features_ux");
+  await expect(page.getByRole("heading", { name: "Observabilidade global" })).toBeVisible();
+  await page.getByRole("button", { name: /Conexões MCP: Verificado/ }).click();
+  await expect(page.getByText("[FIXTURE SINTÉTICA] MCP local")).toBeVisible();
+  await expect(page.getByText(/Esta tela consulta endpoints existentes com GET/)).toBeVisible();
+  const graphFits = await page.evaluate(() => {
+    const map = document.querySelector(".obs-map")!.getBoundingClientRect();
+    const lastNode = document.querySelector('.obs-node[aria-label^="Diagnósticos"]')!.getBoundingClientRect();
+    const world = document.querySelector(".obs-map-world")!;
+    return { fits: lastNode.right <= map.right + 1 && lastNode.left >= map.left - 1, map: [map.left, map.right, map.width], node: [lastNode.left, lastNode.right, lastNode.width], transform: getComputedStyle(world).transform, label: document.querySelector(".obs-map-tools span")?.textContent };
+  });
+  console.log("MAP_GEOMETRY", JSON.stringify(graphFits));
+  mkdirSync(evidence, { recursive: true });
+  writeFileSync(join(evidence, "map-geometry.json"), JSON.stringify(graphFits, null, 2));
+  expect(graphFits.fits).toBe(true);
+  await page.getByRole("button", { name: "Aproximar mapa" }).click();
+  await expect(page.getByText(/^\d+%$/)).toBeVisible();
+  await page.getByRole("button", { name: "Afastar mapa" }).click();
+  const node = page.getByRole("button", { name: /Fluxos registrados: Verificado/ });
+  await node.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#obs-inspector-title")).toHaveText("Fluxos registrados");
+  await expect(page.getByText("fixture_costs → fixture_summary")).toBeVisible();
+  await expect(page.getByText("Fixture sintética")).toBeVisible();
+  await page.keyboard.press("Tab");
+  expect(methods.every((method) => method === "GET")).toBe(true);
+  const axe = await new AxeBuilder({ page }).analyze();
+  expect(axe.violations, JSON.stringify(axe.violations.map(({ id, impact, description, nodes }) => ({ id, impact, description, targets: nodes.map((node) => node.target) })), null, 2)).toEqual([]);
+  mkdirSync(evidence, { recursive: true });
+  await page.waitForTimeout(1000);
+  writeFileSync(join(evidence, "observability-dark-1280.png"), await page.screenshot({ fullPage: true }));
+  await page.getByRole("button", { name: "Ativar tema claro" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  const lightAxe = await new AxeBuilder({ page }).include(".observability").analyze();
+  expect(lightAxe.violations, JSON.stringify(lightAxe.violations.map(({ id, impact, nodes }) => ({ id, impact, failures: nodes.map((node) => node.any.map((check) => check.message)) })), null, 2)).toEqual([]);
+  writeFileSync(join(evidence, "observability-light-1280.png"), await page.screenshot({ fullPage: true }));
+  await page.setViewportSize({ width: 768, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  writeFileSync(join(evidence, "observability-light-768.png"), await page.screenshot({ fullPage: true }));
+  await page.setViewportSize({ width: 640, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  writeFileSync(join(evidence, "observability-light-390.png"), await page.screenshot({ fullPage: true }));
+  expect(pageErrors).toEqual([]);
+});
+
+test("UX-06 lazy-loads on Ctrl+click, keeps regular navigation and closes on Escape", async ({ page }) => {
+  await mockReadOnlyApi(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.locator(".opening-overlay")).toHaveCount(0);
+  await page.getByRole("link", { name: /TESSERACT — início/ }).click({ modifiers: ["Control"] });
+  await expect(page.getByRole("dialog", { name: "TESSERACT 2" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fechar animação" })).toBeFocused();
+  mkdirSync(evidence, { recursive: true });
+  writeFileSync(join(evidence, "opening-dark-1280.png"), await page.screenshot());
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".opening-overlay")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /TESSERACT — início/ })).toBeFocused();
+  await page.getByRole("link", { name: /TESSERACT — início/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator(".opening-overlay")).toHaveCount(0);
+  await page.getByRole("button", { name: "Ativar tema claro" }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("link", { name: /TESSERACT — início/ }).click({ modifiers: ["Control"] });
+  await expect(page.locator(".opening-canvas")).toBeVisible();
+  const openingAxe = await new AxeBuilder({ page }).include(".opening-overlay").analyze();
+  expect(openingAxe.violations).toEqual([]);
+  await page.getByRole("button", { name: "Fechar animação" }).click();
+  await expect(page.locator(".opening-overlay")).toHaveCount(0);
+});
+
+test("isolated live preview reports real empty states without fixtures", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/new_features_ux");
+  await expect(page.getByRole("heading", { name: "Observabilidade global" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /API local: Verificado/ })).toBeVisible();
+  const graphFits = await page.evaluate(() => {
+    const map = document.querySelector(".obs-map")!.getBoundingClientRect();
+    const lastNode = document.querySelector('.obs-node[aria-label^="Diagnósticos"]')!.getBoundingClientRect();
+    return lastNode.right <= map.right + 1 && lastNode.left >= map.left - 1;
+  });
+  expect(graphFits).toBe(true);
+  await expect(page.getByText("Nenhum fluxo registrado nesta sessão.")).toBeVisible();
+  await expect(page.getByText("Nenhum diagnóstico registrado nesta sessão.")).toBeVisible();
+  await expect(page.getByText(/0 configuração\(ões\) nesta sessão/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const axe = await new AxeBuilder({ page }).analyze();
+  expect(axe.violations.map(({ id, impact, nodes }) => ({ id, impact, targets: nodes.map((node) => node.target) }))).toEqual([]);
+  mkdirSync(evidence, { recursive: true });
+  writeFileSync(join(evidence, "observability-live-empty-dark-1280.png"), await page.screenshot({ fullPage: true }));
+  await page.getByRole("button", { name: "Ativar tema claro" }).click();
+  writeFileSync(join(evidence, "observability-live-empty-light-1280.png"), await page.screenshot({ fullPage: true }));
+  expect(errors).toEqual([]);
+});

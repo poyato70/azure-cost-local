@@ -66,6 +66,7 @@ export function Navigation({
       Icon: Activity,
       items: [
         ["diagnostics", "Diagnóstico"],
+        ["new_features_ux", "Observabilidade (experimento)"],
         ["help", "Guia e referências"],
       ],
     },

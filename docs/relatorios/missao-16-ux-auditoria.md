@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- **Estado atual:** UX-01 a UX-04 concluídas; UX-05 publicada para revisão em PR #17. 58 caminhos revisados, incluindo 44 capturas; CI remota iniciada e aguardando conclusão.
+- **Estado atual:** UX-01 a UX-04 publicadas para revisão em PR #17. A CI inicial identificou um gate de vulnerabilidades preexistente e seletores E2E desatualizados; os seletores foram alinhados e os fluxos focados passaram localmente. Nova CI pendente.
 - **Data:** 2026-11-18.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/tesseract-2-ux`.
@@ -331,12 +331,12 @@ Arquivos de evidência incluídos:
 **Data:** 2026-11-18
 **Branch/worktree:** `codex/tesseract-2-ux` · `D:\DEV\FinOps\Tesseract-2-ux-base`
 **Base remota confirmada:** `origin/main` = `facd3dfd794b1b9a2750f53280e763447ebe6ecd`, igual ao commit-base.
-**Estado:** validação local aprovada com limitações identificadas; dois commits publicados na branch UX e PR #17 aberta. CI remota ainda pendente.
+**Estado:** validação local aprovada com limitações identificadas; PR #17 aberta. Após os achados da primeira CI, seletores E2E foram atualizados sem alterar asserções funcionais; o gate `npm audit` permanece como bloqueio de dependências preexistente. Nova CI pendente.
 
 ### Revisão do diff e escopo
 
 - Reconfirmada a identidade GitHub `poyato70/azure-cost-local`, branch default `main` e permissão de escrita antes de configurar `origin`. `git fetch origin main` confirmou que a main não avançou. A branch de UX não inclui alterações da worktree funcional M16; nenhuma alteração foi feita na worktree M16 ou no stash M13.
-- O inventário final contém **58 caminhos**: nove arquivos de aplicação/estilo, quatro testes, este relatório e 44 PNGs. As 44 capturas foram abertas visualmente por grupos, identificadas como cenários sintéticos, sem credenciais/dados corporativos aparentes, com hashes únicos e cobertura de variação de tema, viewport, estado e comparação antes/depois. Todas são mantidas porque representam estados distintos; nenhuma foi removida por deduplicação.
+- O inventário atualizado contém **63 caminhos**: nove arquivos de aplicação/estilo, nove testes, este relatório e 44 PNGs. As 44 capturas foram abertas visualmente por grupos, identificadas como cenários sintéticos, sem credenciais/dados corporativos aparentes, com hashes únicos e cobertura de variação de tema, viewport, estado e comparação antes/depois. Todas são mantidas porque representam estados distintos; nenhuma foi removida por deduplicação.
 - O scan textual de alta confiança encontrou somente placeholders de ambiente (`${AZURE_CLIENT_SECRET}`) e strings/JWT de fixture deliberadamente falsas nos testes de sanitização. Não encontrou credenciais reais. A revisão confirmou que os arquivos alterados estão limitados ao shell/estilos/laboratório/Mapa/Inspector/exportações UX e testes/documentação; não há alterações de autenticação, API/contrato MCP, autorização, persistência ou regras de negócio.
 - O teste E2E `tests/e2e/ux02-tool-search.spec.ts` foi acrescentado para cobrir a filtragem local de tools descobertas. Com catálogo sintético interceptado, verificou busca por nome/descrição e estado vazio, sem chamadas adicionais, aprovação ou execução.
 
@@ -347,14 +347,14 @@ Arquivos de evidência incluídos:
 
 ### Validação na cópia isolada correspondente
 
-- O código e o lockfile foram validados em `D:\DEV\FinOps\_tmp-ux04-validation-20261118`. Os arquivos exportador, teste unitário do exportador e novo E2E foram copiados por caminhos explícitos e conferidos por SHA-256 com a branch UX. A comparação encontrou seis capturas UX-04 desatualizadas nessa cópia; apenas essas imagens foram transferidas da branch e seus hashes foram conferidos. A comparação final dos 58 caminhos está registrada após a transferência. O lockfile permanece igual (`FF96CDD3139A2A69D90DCFE9251D5B5AC97F2545C4BF67282BDD1F3083DB2F2B`); não foram atualizadas dependências.
+- O código e o lockfile foram validados em `D:\DEV\FinOps\_tmp-ux04-validation-20261118`. Os arquivos exportador, testes e novas capturas foram transferidos por caminhos explícitos e conferidos por SHA-256. A comparação dos 58 caminhos foi concluída; depois, cinco E2E com seletores antigos também foram transferidos e conferidos, totalizando 63 caminhos correspondentes. O lockfile permanece igual (`FF96CDD3139A2A69D90DCFE9251D5B5AC97F2545C4BF67282BDD1F3083DB2F2B`); não foram atualizadas dependências.
 - `npm run typecheck`: passou após as correções finais, incluindo o novo E2E.
 - `npm run build`: passou; `/`, `/_not-found` e `/design/neumorphic` foram geradas estaticamente.
 - Vitest focado de exportação/interoperabilidade: **2 arquivos, 7 testes aprovados**.
 - Vitest completo serial final: **64 arquivos, 197 testes aprovados**. Uma execução anterior teve 1 falha intermitente no teste de concorrência entre processos `orchestration-store` (`storage_unavailable`/lock no seu diretório temporário); a reprodução isolada passou e a execução completa serial final passou. O teste e o código de armazenamento não foram alterados. O diretório de fixture restante `C:\Users\poyat\AppData\Local\Temp\tesseract-m13-process-race-pYvvv8` foi preservado; não havia arquivo `.lock` remanescente.
 - Playwright final em Edge headless e armazenamento isolado: **3/3** (`ux02-tool-search` e os dois fluxos `ux03-inspector`). Axe não reportou violações nos estados Inspector/export cobertos. Os POSTs foram interceptados; a exploração usou fixture de `/catalog`, sem `/call`, `/approve-tools`, `/test`, `/connect`, `/auth` ou servidor MCP real.
 - Uma verificação isolada do laboratório `/design/neumorphic` passou: **1 E2E**, Axe com zero violações nos dois temas no estado estável e hover do controle de tema, widths 1280/768/390 sem overflow, busca, toggle, seleção segmentada, estados disabled/loading, foco e `prefers-reduced-motion`. Duas capturas dark/light foram geradas e inspecionadas na árvore temporária; as capturas versionadas UX-01 foram visualmente conferidas e cobrem a mesma tela sem o indicador de desenvolvimento do servidor Next.
-- E2E regressivos adicionais: `mcp-clarity` **2 passaram** e busca de assinaturas em `mcp-usability` **1 passou**. Dois testes legados (`mcp-laboratory` e o primeiro fluxo de `mcp-usability`) expiraram esperando o botão antigo “Listar capacidades, prompts e resources”, inexistente no DOM atual que oferece “Descobrir capacidades MCP”. Os arquivos desses testes e a ação UI correspondente não foram modificados pela UX; a falha ocorre antes de alcançar o catálogo e é registrada como incompatibilidade preexistente do teste, não como teste aprovado.
+- E2E adicionais para navegação e MCP: após a CI inicial confirmar seletores antigos no M10, os seletores de heading/descoberta/segmentos foram alinhados à interface UX-03, preservando as asserções funcionais. **1/1** jornada M10 (descoberta, leitura de resource, aprovação, execução fixture e resultado) passou; **7/7** casos dos arquivos `command-center`, `workbench`, `mcp-laboratory` e `mcp-usability` passaram com dados/interceptações sintéticas. Não são integrações Azure reais.
 - A configuração Playwright UX-04 tentou iniciar na porta 4317, já ocupada por um serviço de outra worktree. O processo não foi interrompido; o E2E final usou a porta isolada 4343.
 - `git diff --check`: passou após as mudanças finais e antes de versionar.
 
@@ -362,12 +362,13 @@ Arquivos de evidência incluídos:
 
 - Capturas visuais de referência permanecem em `docs/relatorios/evidencias/ux-01/` a `ux-04/`. Não há capturas de Azure/Copilot reais. Zoom nativo de 200% e Axe em cada viewport pequeno não foram verificados nesta rodada; a cobertura responsiva inclui larguras 390, 640/768 e 1280 CSS px.
 - Os dois fluxos E2E legados precisam de atualização coordenada com a navegação atual do Inspector. Não os alterei para não misturar comportamento funcional M16 na publicação UX.
-- Commit UX-01/02: `b1e34de1cb453574e144456bab043251c440af74` (`feat(ux): add neumorphic lab and map pilot`). O commit UX-03/04 está sendo finalizado.
-- Commit UX-03/04: `a9e7f124ad998b534c39260bd91f4ec2452daef5` (`feat(ux): add MCP capability export and portability review`). Branch publicada; PR #17 aberta contra `main`. Workflow CI run `44313881088` consta como `queued` na consulta inicial, sem conclusão disponível; não declarar checks aprovados até consulta posterior. Merge não realizado e sujeito à aprovação humana.
+- Commit UX-01/02: `b1e34de1cb453574e144456bab043251c440af74` (`feat(ux): add neumorphic lab and map pilot`).
+- Commit UX-03/04: `a9e7f124ad998b534c39260bd91f4ec2452daef5` (`feat(ux): add MCP capability export and portability review`). Branch publicada; PR #17 aberta contra `main`.
+- CI run `44313959736` no SHA `08cb5f7` falhou em dois gates: Linux `npm audit --audit-level=high` encontrou 5 vulnerabilidades altas em dependências transitivas (`picomatch`, `fdir`, `tinyglobby`, `vite`, `vitest`) sem mudanças nos lockfiles desta frente; Windows M10 falhou em seletor antigo do heading, já corrigido e reproduzido como **1/1 aprovado** localmente junto dos outros **7/7 E2E focados**. Linux typecheck/build/unitários passaram (61 arquivos, 190 testes aprovados; 1 arquivo e 4 testes ignorados); Windows install/build/parse PowerShell/testes Windows passaram e M12/M14 E2E passaram. A execução CI após as correções está pendente. Nenhum gate foi enfraquecido ou removido; não alterei dependências sem justificativa e validação compatível. Merge não realizado e sujeito à aprovação humana.
 
 ### Parecer e publicação
 
 - As configurações agora distinguem formato oficialmente documentado, teste sintático e interoperabilidade com fixture. AI Shell não aparece como suporte operacional atual; manifesto é explicitamente proprietário; credenciais não são exportadas.
 - O laboratório e o Inspector permanecem separados de aprovação/execução; o E2E não acionou operações MCP. Nenhuma autenticação, contrato MCP, regra de negócio, armazenamento operacional, lockfile, outra worktree ou stash foi alterada.
-- `main` remoto confirmado e HEAD-base seguem iguais. A branch está pronta para revisão do diff cumulativo UX-01 a UX-04, mas ainda não publicada; a verificação não equivale a importação real do Copilot nem a teste de credenciais/servidores externos.
+- `main` remoto confirmado e HEAD-base seguem iguais. A branch está publicada na PR #17 para revisão do diff cumulativo UX-01 a UX-04. A verificação não equivale a importação real do Copilot nem a teste de credenciais/servidores externos.
 - Nenhum commit, PR ou merge criado. Aguardando revisão/decisão humana antes de publicar.

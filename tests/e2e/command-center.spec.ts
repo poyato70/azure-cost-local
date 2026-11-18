@@ -13,7 +13,7 @@ test("native dark theme toggles persistently and breadcrumbs expose MCP hierarch
     page.getByRole("navigation", { name: "Caminho de navegação" }),
   ).toContainText("Conexões/MCPs/Análise");
   await expect(
-    page.getByRole("heading", { name: "Laboratório de capacidades MCP" }),
+    page.getByRole("heading", { name: "Inspector de capacidades MCP" }),
   ).toBeVisible();
 });
 test("Next static shell keeps the separate Microsoft callback page functional", async ({

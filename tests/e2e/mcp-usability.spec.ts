@@ -89,9 +89,7 @@ test("discovers tools, renders a nested schema and displays the executed result"
   await page
     .getByRole("button", { name: "Analisar tools", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "Listar capacidades, prompts e resources" })
-    .click();
+  await page.getByRole("button", { name: "Descobrir capacidades MCP" }).click();
   await expect(
     page.getByRole("heading", { name: /Tools descobertas \(1\)/ }),
   ).toBeVisible();

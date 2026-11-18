@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { Check, Copy, Download } from "lucide-react";
 import type { DiagnosticEvent } from "../../server/diagnostics/service.js";
+import { sanitizeDiagnosticText } from "../../shared/diagnostic-sanitizer.js";
 import { manageRequest } from "../api.js";
 export function DiagnosticPanel() {
   const [rows, setRows] = useState<DiagnosticEvent[]>([]),
@@ -8,6 +10,7 @@ export function DiagnosticPanel() {
     [status, setStatus] = useState(""),
     [from, setFrom] = useState(""),
     [to, setTo] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
   async function load() {
     try {
       setRows(await manageRequest("/diagnostics"));
@@ -35,6 +38,39 @@ export function DiagnosticPanel() {
       }),
     [rows, search, status, from, to],
   );
+  const logText = useMemo(
+    () =>
+      [
+        "Tesseract — log de diagnóstico",
+        `Exportado em: ${new Date().toISOString()}`,
+        `Eventos visíveis: ${filtered.length} de ${rows.length}`,
+        "",
+        ...filtered.map((r) => {
+          const time = new Date(r.time).toISOString();
+          const request = r.requestId
+            ? ` #${r.requestId}${r.attempt ? `:${r.attempt}` : ""}`
+            : "";
+          return sanitizeDiagnosticText(
+            `${time} [${r.status}] ${r.source}/${r.operation}${request}${r.detail ? ` — ${r.detail}` : ""}`,
+          );
+        }),
+        "",
+      ].join("\n"),
+    [filtered, rows.length],
+  );
+  function exportLog() {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const filename = `tesseract-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.log`;
+    const url = URL.createObjectURL(
+      new Blob([logText], { type: "text/plain;charset=utf-8" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   return (
     <>
       <h2>Diagnóstico</h2>
@@ -107,6 +143,44 @@ export function DiagnosticPanel() {
         >
           Limpar filtros
         </button>
+      </div>
+      <div className="diagnostic-export-toolbar" aria-label="Ações do log">
+        <button
+          type="button"
+          className="copy-action"
+          disabled={!filtered.length}
+          aria-label="Copiar eventos visíveis do diagnóstico"
+          onClick={() => {
+            void navigator.clipboard
+              .writeText(logText)
+              .then(() =>
+                setCopyMessage(
+                  "Eventos visíveis copiados para a área de transferência.",
+                ),
+              )
+              .catch(() => setCopyMessage("Não foi possível copiar o log."));
+          }}
+        >
+          {copyMessage.startsWith("Eventos visíveis copiados") ? (
+            <Check size={16} aria-hidden="true" />
+          ) : (
+            <Copy size={16} aria-hidden="true" />
+          )}
+          Copiar visíveis
+        </button>
+        <button
+          type="button"
+          className="copy-action"
+          disabled={!filtered.length}
+          aria-label="Exportar eventos visíveis para arquivo de log"
+          onClick={exportLog}
+        >
+          <Download size={16} aria-hidden="true" />
+          Exportar visíveis
+        </button>
+        <span className="copy-feedback" role="status">
+          {copyMessage}
+        </span>
       </div>
       {error && <p role="alert">{error}</p>}
       <p className="fine">

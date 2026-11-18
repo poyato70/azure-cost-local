@@ -1,3 +1,5 @@
+import { sanitizeDiagnosticText } from "../../shared/diagnostic-sanitizer.js";
+
 export type DiagnosticEvent = {
   time: string;
   requestId?: string;
@@ -11,15 +13,7 @@ export class Diagnostics {
   private sessions = new Map<string, DiagnosticEvent[]>();
   record(id: string, event: Omit<DiagnosticEvent, "time">) {
     if (!id) return;
-    const clean = (s: string) =>
-      s
-        .replace(/Bearer\s+\S+/gi, "Bearer [oculto]")
-        .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, "[token oculto]")
-        .replace(
-          /(client_secret|password|refresh_token|access_token|code|state)=([^\s&]+)/gi,
-          "$1=[oculto]",
-        )
-        .slice(0, 1500);
+    const clean = sanitizeDiagnosticText;
     const rows = this.sessions.get(id) || [];
     rows.push({
       time: new Date().toISOString(),

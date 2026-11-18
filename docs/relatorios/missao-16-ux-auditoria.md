@@ -331,7 +331,7 @@ Arquivos de evidência incluídos:
 **Data:** 2026-11-18
 **Branch/worktree:** `codex/tesseract-2-ux` · `D:\DEV\FinOps\Tesseract-2-ux-base`
 **Base remota confirmada:** `origin/main` = `facd3dfd794b1b9a2750f53280e763447ebe6ecd`, igual ao commit-base.
-**Estado:** validação local aprovada com limitações identificadas; PR #17 aberta. Após os achados da primeira CI, seletores E2E foram atualizados sem alterar asserções funcionais. CI run `44316254676` no commit `894ad014df9db806bbf66b6cf19e59746a648c99`: Windows aprovado; Linux reprovado somente por vulnerabilidades altas preexistentes no lockfile. Uma atualização documental deste relatório será enviada separadamente; nenhum código de produto muda após esse run.
+**Estado:** validação local aprovada com limitações identificadas; PR #17 aberta. CI run `44316949731` no head documental `b6802c0`: Windows aprovado; Linux reprovado somente pelo gate de vulnerabilidades altas. Esse run contém o mesmo código de produto do commit `894ad01`; a mudança posterior é documental.
 
 ### Revisão do diff e escopo
 
@@ -364,7 +364,8 @@ Arquivos de evidência incluídos:
 - Os dois fluxos E2E legados precisam de atualização coordenada com a navegação atual do Inspector. Não os alterei para não misturar comportamento funcional M16 na publicação UX.
 - Commit UX-01/02: `b1e34de1cb453574e144456bab043251c440af74` (`feat(ux): add neumorphic lab and map pilot`).
 - Commit UX-03/04: `a9e7f124ad998b534c39260bd91f4ec2452daef5` (`feat(ux): add MCP capability export and portability review`). Branch publicada; PR #17 aberta contra `main`.
-- CI inicial `44313959736` no SHA `08cb5f7` falhou no Linux `npm audit --audit-level=high` com 5 vulnerabilidades altas transitivas (`picomatch`, `fdir`, `tinyglobby`, `vite`, `vitest`) e no Windows M10 por seletores antigos do heading. Nenhum lockfile foi alterado pela frente UX. Após atualizar seletores, CI `44316254676` no SHA `894ad01` passou integralmente no job Windows (incluindo M10/M12/M14 E2E); Linux passou typecheck, build e unit/protocol (61 arquivos, 190 testes aprovados; 1 arquivo e 4 testes ignorados), mas falhou novamente apenas no mesmo gate de auditoria. A validação local dos fluxos corrigidos passou **8/8**. Nenhum gate foi enfraquecido ou removido e nenhuma dependência foi alterada. Merge não realizado e sujeito à aprovação humana.
+- CI inicial `44313959736` no SHA `08cb5f7` falhou no Linux `npm audit --audit-level=high` com 5 vulnerabilidades altas transitivas (`picomatch`, `fdir`, `tinyglobby`, `vite`, `vitest`) e no Windows M10 por seletores antigos do heading. Nenhum lockfile foi alterado pela frente UX. Após atualizar seletores, CI `44316254676` no SHA `894ad01` passou integralmente no job Windows (incluindo M10/M12/M14 E2E); Linux passou typecheck, build e unit/protocol (61 arquivos, 190 testes aprovados; 1 arquivo e 4 testes ignorados), mas falhou no gate de auditoria. Run `44316949731` no head documental `b6802c0` repetiu os mesmos resultados.
+- O advisory [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) classifica picomatch `<=4.0.7` como vulnerável e lista **nenhuma versão corrigida**. A árvore de validação tem `picomatch@4.0.7`; consulta ao registry npm retornou 404 para `picomatch@4.0.8`. `npm audit --json` oferece apenas correções `--force` com downgrades major de Vite/Vitest. Sem correção compatível disponível, preservar o lockfile e registrar o gate como bloqueio externo a esta frente, sem enfraquecer o pipeline. A validação local dos fluxos corrigidos passou **8/8**. Merge não realizado e sujeito à aprovação humana.
 
 ### Parecer e publicação
 

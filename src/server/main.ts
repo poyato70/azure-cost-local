@@ -13,13 +13,18 @@ if (existsSync(root + "index.html")) {
   const framePolicy = existsSync(root + "tesseract-4d.html")
     ? staticPolicy(readFileSync(root + "tesseract-4d.html", "utf8"), true)
     : shellPolicy;
+  const openingPolicy = existsSync(root + "tesseract-abertura.html")
+    ? staticPolicy(readFileSync(root + "tesseract-abertura.html", "utf8"), true)
+    : shellPolicy;
   app.addHook("onSend", async (req, reply, payload) => {
     if (!req.url.startsWith("/api/"))
       reply.header(
         "Content-Security-Policy",
         req.url.split("?")[0] === "/tesseract-4d.html"
           ? framePolicy
-          : shellPolicy,
+          : req.url.split("?")[0] === "/tesseract-abertura.html"
+            ? openingPolicy
+            : shellPolicy,
       );
     return payload;
   });

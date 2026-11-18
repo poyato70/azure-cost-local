@@ -1,6 +1,9 @@
 import { defineConfig } from "@playwright/test";
 import { createUniqueTestOutputDir } from "./scripts/test-path-safety.js";
-const testPort = process.env.TESSERACT_E2E_PORT || "4317";
+const testPort =
+  process.env.TESSERACT_PREVIEW_PORT ||
+  process.env.TESSERACT_E2E_PORT ||
+  "4317";
 export default defineConfig({
   testDir: "tests/e2e",
   testIgnore: [

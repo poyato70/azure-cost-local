@@ -18,6 +18,7 @@ const paths: Record<string, string[]> = {
   "api-lab": ["Conexões", "APIs", "Capacidades"],
   hubs: ["Conexões", "FinOps hub"],
   diagnostics: ["Operação", "Diagnóstico"],
+  new_features_ux: ["Operação", "Observabilidade (experimento)"],
   help: ["Ajuda", "Guia e referências"],
 };
 export function pageTitle(tab: string) {

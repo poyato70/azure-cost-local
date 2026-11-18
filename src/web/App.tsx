@@ -15,7 +15,7 @@ import { Multicloud } from "./pages/Multicloud.js";
 import { Forecast } from "./pages/Forecast.js";
 import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { APP_VERSION } from "../shared/version.js";
 import type {
   Scope,
@@ -38,6 +38,11 @@ import { McpConnections } from "./pages/McpConnections.js";
 import { Agents } from "./pages/Agents.js";
 import { FinOpsCorrelation } from "./pages/FinOpsCorrelation.js";
 import type { DiagnosticEvent } from "../server/diagnostics/service.js";
+import { GlobalObservability } from "./pages/GlobalObservability.js";
+const LazyTesseractOpening = lazy(async () => {
+  const module = await import("./pages/TesseractOpening.js");
+  return { default: module.TesseractOpening };
+});
 const tabs: { id: string; label: string; group?: string }[] = [
   { id: "multicloud", label: "Visão multicloud", group: "EXPLORAR" },
   { id: "costs", label: "Custos" },
@@ -52,6 +57,9 @@ const tabs: { id: string; label: string; group?: string }[] = [
   { id: "diagnostics", label: "Diagnóstico", group: "OPERAÇÃO" },
 ];
 export function App() {
+  const [openingOpen, setOpeningOpen] = useState(false);
+  const closeOpening = useCallback(() => setOpeningOpen(false), []);
+  const openOpening = useCallback(() => setOpeningOpen(true), []);
   const [insight, setInsight] = useState<{
     text: string;
     source: string;
@@ -119,7 +127,7 @@ export function App() {
   );
   const [boot, setBoot] = useState<Bootstrap>(),
     [error, setError] = useState(""),
-    [tab, setTab] = useState("home"),
+    [tab, setTab] = useState(() => window.location.pathname === "/new_features_ux" ? "new_features_ux" : "home"),
     [subs, setSubs] = useState<Subscription[]>([]),
     [sub, setSub] = useState(""),
     [groups, setGroups] = useState<string[]>([]),
@@ -137,6 +145,16 @@ export function App() {
     [granularity, setGranularity] = useState<CostQuery["granularity"]>("Daily");
   const setInfo = (message: string) =>
     setPageInfo(message ? { tab, message } : undefined);
+  const navigateTab = (next: string) => {
+    const path = next === "new_features_ux" ? "/new_features_ux" : "/";
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    setTab(next);
+  };
+  useEffect(() => {
+    const onPopState = () => setTab(window.location.pathname === "/new_features_ux" ? "new_features_ux" : "home");
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   useEffect(() => {
     setPageInfo(undefined);
   }, [tab]);
@@ -481,9 +499,9 @@ export function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Brand />
+        <Brand onEasterEgg={openOpening} />
         <div className="sidebar-section">WORKSPACE LOCAL</div>
-        <Navigation tab={tab} onSelect={setTab} />
+        <Navigation tab={tab} onSelect={navigateTab} />
         <Welcome />
 
         <div className="sidebar-bottom">
@@ -493,7 +511,7 @@ export function App() {
       </aside>
       <main>
         <header className="topbar">
-          <Breadcrumbs tab={tab} onHome={() => setTab("home")} />
+        <Breadcrumbs tab={tab} onHome={() => navigateTab("home")} />
           <div className="topbar-right">
             <ThemeControl />
             <span className="badge">Somente leitura</span>
@@ -549,6 +567,7 @@ export function App() {
               "discovery",
               "agent-lab",
               "multicloud",
+              "new_features_ux",
             ].includes(tab) && (
               <section className="setup">
                 <div className="setup-copy">
@@ -624,6 +643,7 @@ export function App() {
               "discovery",
               "agent-lab",
               "multicloud",
+              "new_features_ux",
             ].includes(tab) && (
               <section className="connection-toolbar">
                 <label>
@@ -735,6 +755,7 @@ export function App() {
             "discovery",
             "agent-lab",
             "multicloud",
+            "new_features_ux",
           ].includes(tab) && (
             <ScopeFilters
               subscriptions={subs}
@@ -831,6 +852,7 @@ export function App() {
               </section>
             )}
             {tab === "diagnostics" && <DiagnosticPanel />}
+            {tab === "new_features_ux" && <GlobalObservability />}
             {tab === "finops-correlation" && (
               <FinOpsCorrelation profiles={mcpProfiles} />
             )}
@@ -1031,6 +1053,7 @@ export function App() {
           </footer>
         </div>
       </main>
+      {openingOpen && <Suspense fallback={<div className="opening-loading" role="status">Preparando animação…</div>}><LazyTesseractOpening onClose={closeOpening} /></Suspense>}
     </div>
   );
 }

@@ -308,13 +308,14 @@ As capturas são renderizações reais do build da aplicação, com perfis/tools
 - Capturas: [Inspector dark desktop 1280](evidencias/ux-04/inspector-dark-desktop-1280.png), [Copilot config dark desktop 1280](evidencias/ux-04/vscode-copilot-dark-desktop-1280.png), [PowerShell informativo dark desktop 1280](evidencias/ux-04/powershell-informative-dark-desktop-1280.png), [manifesto dark desktop 1280](evidencias/ux-04/export-dark-desktop-1280.png), [manifesto light desktop 1280](evidencias/ux-04/export-light-desktop-1280.png), [manifesto light tablet 768](evidencias/ux-04/export-light-tablet-768.png) e [manifesto light mobile 390](evidencias/ux-04/export-light-mobile-390.png).
 - Capturas contêm perfis e capacidades MCP sintéticos. A saída Copilot visualizada inclui referências genéricas de ambiente, não valores de credenciais.
 
-### Inventário de arquivos da publicação proposta
+### Inventário de arquivos publicados
 
-O diff da branch contra HEAD inclui o conjunto cumulativo UX-01 a UX-04; todas as mudanças estão locais e sem stage. Inventário por grupo:
+O diff cumulativo UX-01 a UX-04 contra a base `facd3dfd794b1b9a2750f53280e763447ebe6ecd` contém **63 caminhos**: nove arquivos de aplicação/estilo, nove testes, este relatório e 44 capturas. Os commits estão publicados na branch `codex/tesseract-2-ux`; a worktree está limpa. Inventário por grupo:
 
 - Shell/rotas/styles: `app/layout.tsx`, `app/design/neumorphic/page.tsx`, `src/web/main.tsx`, `src/web/styles-neumorphic.css`.
 - Componentes e páginas: `src/web/components/ui/neo.tsx`, `src/web/components/mcp-export.ts`, `src/web/pages/NeumorphicLab.tsx`, `src/web/pages/McpConnections.tsx`, `src/web/pages/McpLab.tsx`.
-- Testes: `tests/e2e/ux02-tool-search.spec.ts` (adicionado na UX-05 para cobrir a busca local), `tests/e2e/ux03-inspector.spec.ts`, `tests/mcp/mcp-export.test.ts`, `tests/mcp/mcp-export-interoperability.test.ts`.
+- Testes E2E: `tests/e2e/command-center.spec.ts`, `tests/e2e/mcp-laboratory.spec.ts`, `tests/e2e/mcp-usability.spec.ts`, `tests/e2e/mission-10-mcp.spec.ts`, `tests/e2e/ux02-tool-search.spec.ts`, `tests/e2e/ux03-inspector.spec.ts`, `tests/e2e/workbench.spec.ts`.
+- Testes unitários: `tests/mcp/mcp-export.test.ts`, `tests/mcp/mcp-export-interoperability.test.ts`.
 - Relatório: `docs/relatorios/missao-16-ux-auditoria.md`.
 - Evidências: 44 PNGs sob `docs/relatorios/evidencias/ux-01/`, `ux-02/`, `ux-03/` e `ux-04/` (7 novas capturas UX-04). A busca de duplicidade por SHA-256 encontrou zero grupos repetidos.
 

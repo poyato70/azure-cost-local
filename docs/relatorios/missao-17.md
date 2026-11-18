@@ -99,7 +99,7 @@ Preparar o Tesseract 2.1 para avaliação Windows corporativa, com pré-flight s
 
 ## PR, CI e publicação
 
-- A [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) continua draft. Após a retirada do advisory, a tentativa 2 do run #44314448772 passou em Linux e Windows. Sua revisão e validações de bundle operacional/consulta Azure continuam pendentes.
+- A [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) continua draft. Após a retirada do advisory, a tentativa 2 do run #44314448772 passou em Linux e Windows. O usuário apresentou capturas de uma consulta manual de Azure Cost Management com status `complete` e linhas de dados para o período selecionado; esta missão não repetiu a chamada nem copiou valores financeiros. Revisão humana e validação do bundle operacional continuam pendentes.
 - Commit M17 `6b6f83ed07f6be0d864376db8d2594180e16972f` foi enviado à branch `codex/missao-17-corporate-release`.
 - A [PR #18](https://github.com/poyato70/azure-cost-local/pull/18) foi aberta em draft, base `codex/missao-16-finops-ux`, head M17. O workflow `CI` seleciona PRs com base `main`, então a execução #44371113566 foi disparada por `workflow_dispatch` no commit acima; Linux e Windows passaram. A CI executada é evidência do commit M17, porém não aparece como check de PR enquanto a base for M16.
 - Nenhum merge, tag ou GitHub Release foi feito. A PR draft prepara revisão técnica e não aprova a versão estável.
@@ -107,9 +107,9 @@ Preparar o Tesseract 2.1 para avaliação Windows corporativa, com pré-flight s
 
 ## Parecer e pendências
 
-**O bloqueio de auditoria foi resolvido por retirada oficial do advisory**, sem mudança de dependências, e CI Linux/Windows passou nos commits M16 e M17. A preparação para release estável segue bloqueada: PRs #16 e #18 permanecem draft; preflight não alcançou registry por DNS; proxy-only não cobre o transporte Undici que protege endpoints contra SSRF; instalação e rede corporativa não foram comprovadas em estação gerenciada; bundle operacional/consulta real de outubro ainda aguardam validação/revisão na PR #16.
+**O bloqueio de auditoria foi resolvido por retirada oficial do advisory**, sem mudança de dependências, e CI Linux/Windows passou nos commits M16 e M17. O usuário informou sucesso no teste manual da consulta Azure e apresentou capturas da resposta. A preparação para release estável segue bloqueada: PRs #16 e #18 permanecem draft; preflight não alcançou registry por DNS; proxy-only não cobre o transporte Undici que protege endpoints contra SSRF; instalação e rede corporativa não foram comprovadas em estação gerenciada; o bundle operacional e a revisão humana ainda estão pendentes.
 
-Próximos passos necessários: validação humana do bundle operacional/consulta Azure e aprovação para integrar a PR #16; decidir como tratar proxy para `fetchBound` mantendo segurança SSRF; repetir pré-flight/instalação em estação corporativa autorizada; após merge M16, rebasear M17 sobre `main`, confirmar checks de PR Linux/Windows e revisão, e somente então considerar merge, tag e release.
+Próximos passos necessários: validação humana do bundle operacional e aprovação para integrar a PR #16; decidir como tratar proxy para `fetchBound` mantendo segurança SSRF; repetir pré-flight/instalação em estação corporativa autorizada; após merge M16, rebasear M17 sobre `main`, confirmar checks de PR Linux/Windows e revisão, e somente então considerar merge, tag e release.
 
 ## Registros solicitados após push
 

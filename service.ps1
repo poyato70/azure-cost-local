@@ -195,10 +195,15 @@ switch ($Action) {
         Rotate-Log $StdoutLog
         Rotate-Log $StderrLog
         $previousPort = $env:PORT
+        $previousProxySupport = $env:NODE_USE_ENV_PROXY
         try {
             $env:PORT = [string]$Port
+            if (-not $env:NODE_USE_ENV_PROXY) { $env:NODE_USE_ENV_PROXY = '1' }
             $process = Start-Process -FilePath $node -ArgumentList @('"' + $EntryPoint + '"') -WorkingDirectory $ProjectRoot -RedirectStandardOutput $StdoutLog -RedirectStandardError $StderrLog -WindowStyle Hidden -PassThru
-        } finally { $env:PORT = $previousPort }
+        } finally {
+            $env:PORT = $previousPort
+            $env:NODE_USE_ENV_PROXY = $previousProxySupport
+        }
         Write-ServiceMetadata -ProcessId $process.Id -TargetPort $Port
         $deadline = (Get-Date).AddSeconds($StartupTimeoutSeconds)
         do {

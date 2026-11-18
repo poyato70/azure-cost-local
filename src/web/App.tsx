@@ -16,6 +16,7 @@ import { Forecast } from "./pages/Forecast.js";
 import { DiagnosticPanel } from "./pages/Diagnostics.js";
 import { Hubs } from "./pages/Hubs.js";
 import { useEffect, useMemo, useState, useRef } from "react";
+import { APP_VERSION } from "../shared/version.js";
 import type {
   Scope,
   DateRange,
@@ -487,7 +488,7 @@ export function App() {
 
         <div className="sidebar-bottom">
           <div className="local-light" /> Serviço no notebook
-          <span className="version">MVP · 0.5.2</span>
+          <span className="version">Tesseract {APP_VERSION}</span>
         </div>
       </aside>
       <main>

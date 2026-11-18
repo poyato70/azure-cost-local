@@ -2,7 +2,7 @@
 
 ## Identificação
 
-- **Estado atual:** UX-01 a UX-04 publicadas para revisão em PR #17. A CI inicial identificou um gate de vulnerabilidades preexistente e seletores E2E desatualizados; os seletores foram alinhados e os fluxos focados passaram localmente. Nova CI pendente.
+- **Estado atual:** UX-01 a UX-04 publicadas para revisão em PR #17. Após atualizar seletores E2E, CI no commit de código `894ad01` passou no Windows e no Linux passou typecheck/build/testes, mas permanece bloqueada pelo gate de auditoria de dependências.
 - **Data:** 2026-11-18.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/tesseract-2-ux`.
@@ -331,7 +331,7 @@ Arquivos de evidência incluídos:
 **Data:** 2026-11-18
 **Branch/worktree:** `codex/tesseract-2-ux` · `D:\DEV\FinOps\Tesseract-2-ux-base`
 **Base remota confirmada:** `origin/main` = `facd3dfd794b1b9a2750f53280e763447ebe6ecd`, igual ao commit-base.
-**Estado:** validação local aprovada com limitações identificadas; PR #17 aberta. Após os achados da primeira CI, seletores E2E foram atualizados sem alterar asserções funcionais; o gate `npm audit` permanece como bloqueio de dependências preexistente. Nova CI pendente.
+**Estado:** validação local aprovada com limitações identificadas; PR #17 aberta. Após os achados da primeira CI, seletores E2E foram atualizados sem alterar asserções funcionais. CI run `44316254676` no commit `894ad014df9db806bbf66b6cf19e59746a648c99`: Windows aprovado; Linux reprovado somente por vulnerabilidades altas preexistentes no lockfile. Uma atualização documental deste relatório será enviada separadamente; nenhum código de produto muda após esse run.
 
 ### Revisão do diff e escopo
 
@@ -364,7 +364,7 @@ Arquivos de evidência incluídos:
 - Os dois fluxos E2E legados precisam de atualização coordenada com a navegação atual do Inspector. Não os alterei para não misturar comportamento funcional M16 na publicação UX.
 - Commit UX-01/02: `b1e34de1cb453574e144456bab043251c440af74` (`feat(ux): add neumorphic lab and map pilot`).
 - Commit UX-03/04: `a9e7f124ad998b534c39260bd91f4ec2452daef5` (`feat(ux): add MCP capability export and portability review`). Branch publicada; PR #17 aberta contra `main`.
-- CI run `44313959736` no SHA `08cb5f7` falhou em dois gates: Linux `npm audit --audit-level=high` encontrou 5 vulnerabilidades altas em dependências transitivas (`picomatch`, `fdir`, `tinyglobby`, `vite`, `vitest`) sem mudanças nos lockfiles desta frente; Windows M10 falhou em seletor antigo do heading, já corrigido e reproduzido como **1/1 aprovado** localmente junto dos outros **7/7 E2E focados**. Linux typecheck/build/unitários passaram (61 arquivos, 190 testes aprovados; 1 arquivo e 4 testes ignorados); Windows install/build/parse PowerShell/testes Windows passaram e M12/M14 E2E passaram. A execução CI após as correções está pendente. Nenhum gate foi enfraquecido ou removido; não alterei dependências sem justificativa e validação compatível. Merge não realizado e sujeito à aprovação humana.
+- CI inicial `44313959736` no SHA `08cb5f7` falhou no Linux `npm audit --audit-level=high` com 5 vulnerabilidades altas transitivas (`picomatch`, `fdir`, `tinyglobby`, `vite`, `vitest`) e no Windows M10 por seletores antigos do heading. Nenhum lockfile foi alterado pela frente UX. Após atualizar seletores, CI `44316254676` no SHA `894ad01` passou integralmente no job Windows (incluindo M10/M12/M14 E2E); Linux passou typecheck, build e unit/protocol (61 arquivos, 190 testes aprovados; 1 arquivo e 4 testes ignorados), mas falhou novamente apenas no mesmo gate de auditoria. A validação local dos fluxos corrigidos passou **8/8**. Nenhum gate foi enfraquecido ou removido e nenhuma dependência foi alterada. Merge não realizado e sujeito à aprovação humana.
 
 ### Parecer e publicação
 

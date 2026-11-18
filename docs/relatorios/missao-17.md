@@ -25,13 +25,13 @@ Preparar o Tesseract 2.1 para avaliação Windows corporativa, com pré-flight s
 
 | Etapa | Estado | Evidência |
 |---|---|---|
-| 1. Confirmar estado, PR #16 e grafo de dependências | Concluída | Worktrees/HEAD confirmados; PR #16 ainda draft; advisory primário consultado e retirada confirmada |
+| 1. Confirmar estado, PR #16 e grafo de dependências | Concluída | Worktrees/HEAD confirmados; PR #16 draft; advisory primário retirado e auditoria atual sem alertas |
 | 2. Preflight, instalação, versão e scripts de manutenção | Concluída localmente | Pré-flight, instalação e atualização revisados; testes PowerShell/unitários aprovados; sem alterar configuração corporativa |
-| 3. Documentação e validação local | Concluída parcialmente | Typecheck, build, Vitest serial, Playwright, SBOM, diff-check e auditoria local atuais aprovados; preflight de rede bloqueado por DNS; instalação limpa em estação corporativa não demonstrada |
-| 4. PR, CI, tag e release 2.1.0 | Em andamento, sem promoção | Auditoria atual passou após retirada do advisory; PR #16 não integrada; CI remota atual e instalação corporativa ainda precisam ser observadas |
+| 3. Documentação e validação local | Concluída parcialmente | Typecheck, build, Vitest serial, Playwright, SBOM, diff-check e auditoria local aprovados; preflight de rede bloqueado por DNS; instalação limpa em estação corporativa não demonstrada |
+| 4. PR, CI, tag e release 2.1.0 | Parcial | Commit e branch publicados; PR #18 draft empilhada sobre PR #16; CI Linux/Windows aprovada; sem merge/tag/release por gates corporativos e revisão pendentes |
 
-- **Progresso do plano:** 2 de 4 etapas concluídas (50%); etapa 3 parcial; etapa 4 em andamento sem promoção.
-- **Tempo decorrido:** a medição anterior era 4 h 50 min (10:34–15:24, -03:00). Esta continuação começou após esse marco; tempo adicional será registrado ao concluir, sem previsão restante.
+- **Progresso do plano:** 2 de 4 etapas concluídas integralmente (50%); etapas 3 e 4 parciais. A preparação de PR/CI foi concluída, mas não a avaliação corporativa nem a promoção.
+- **Tempo decorrido:** medição anterior da missão: 4 h 50 min (10:34–15:24, -03:00). Nesta continuação, o acompanhamento da CI mediu 3 min 10 s, de 18:34:07 a 18:37:17 UTC. Não há estimativa de tempo restante.
 
 ## Implementação local
 
@@ -93,19 +93,22 @@ Preparar o Tesseract 2.1 para avaliação Windows corporativa, com pré-flight s
 | `npm audit --omit=dev --audit-level=high` (18/11/2026) | Aprovado | Exit 0; zero vulnerabilidades reportadas |
 | `npm sbom --sbom-format=cyclonedx` | Aprovado | SBOM gerado em `test-results/mission-17/`; fora do Git |
 | Pré-flight com `-SkipAzureEndpointChecks` | Bloqueado parcialmente | DNS registry npm bloqueado, MCP Registry opcional em aviso; Azure não acessado |
-| `git diff --check` | Aprovado | Sem whitespace error após revisão final |
+| `git diff --check` | Aprovado | Sem whitespace error antes do commit M17 e após a atualização de evidências |
+| CI M17 no commit `6b6f83e` — workflow dispatch #44371113566 | Aprovado | Linux e Windows; build, typecheck, unit/protocol, audit, testes PowerShell, jornadas Playwright e accessibility concluíram com sucesso. PR #18 tem base M16 e o workflow não dispara automaticamente para essa base, por isso foi executado manualmente na branch M17 |
+| CI PR #16, tentativa 2 do run #44314448772 | Aprovado | Linux e Windows concluídos com sucesso após retirada do advisory; PR continua draft e aguarda validações/revisão já registradas |
 
 ## PR, CI e publicação
 
-- A [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) continua draft. A última execução remota registrada anteriormente tinha Quality/Linux bloqueado pelo advisory e Windows aprovado. O advisory foi retirado depois; essa execução remota é histórica e ainda precisa ser revalidada na CI.
-- Branch M17 deriva da cabeça da PR #16 e ainda não está na `main`. A CI remota para M17 não foi executada.
-- Até este marco não havia commit, push ou PR M17. Nenhum merge, tag ou GitHub Release foi feito. A publicação de uma PR draft da M17 é preparação para revisão e não aprova a versão.
+- A [PR #16](https://github.com/poyato70/azure-cost-local/pull/16) continua draft. Após a retirada do advisory, a tentativa 2 do run #44314448772 passou em Linux e Windows. Sua revisão e validações de bundle operacional/consulta Azure continuam pendentes.
+- Commit M17 `6b6f83ed07f6be0d864376db8d2594180e16972f` foi enviado à branch `codex/missao-17-corporate-release`.
+- A [PR #18](https://github.com/poyato70/azure-cost-local/pull/18) foi aberta em draft, base `codex/missao-16-finops-ux`, head M17. O workflow `CI` seleciona PRs com base `main`, então a execução #44371113566 foi disparada por `workflow_dispatch` no commit acima; Linux e Windows passaram. A CI executada é evidência do commit M17, porém não aparece como check de PR enquanto a base for M16.
+- Nenhum merge, tag ou GitHub Release foi feito. A PR draft prepara revisão técnica e não aprova a versão estável.
 - A integração sequencial da PR #16 e o rebase/preparação da 2.1 sobre a `main` atual continuam necessários. Ainda faltam CI remota atual aprovada, validação de instalação em estação corporativa e decisão humana sobre a limitação de proxy dos conectores `fetchBound`.
 
 ## Parecer e pendências
 
-**A auditoria local deixou de bloquear após a retirada oficial do advisory**, sem mudança de dependências. A preparação para release estável continua bloqueada: PR #16 permanece draft e não integrada; o preflight não alcançou registry por DNS; proxy-only não cobre o transporte Undici que protege endpoints contra SSRF; instalação e rede corporativa não foram comprovadas em estação gerenciada; CI remota atual ainda não foi observada.
+**O bloqueio de auditoria foi resolvido por retirada oficial do advisory**, sem mudança de dependências, e CI Linux/Windows passou nos commits M16 e M17. A preparação para release estável segue bloqueada: PRs #16 e #18 permanecem draft; preflight não alcançou registry por DNS; proxy-only não cobre o transporte Undici que protege endpoints contra SSRF; instalação e rede corporativa não foram comprovadas em estação gerenciada; bundle operacional/consulta real de outubro ainda aguardam validação/revisão na PR #16.
 
-Próximos passos necessários: atualizar/revalidar a CI da PR #16 e obter aprovação humana para sua integração; redesenhar ou delimitar proxy para `fetchBound` preservando segurança SSRF; repetir instalação/preflight numa estação corporativa autorizada; então rebasear M17 sobre `main`, validar CI Linux/Windows e somente depois considerar merge, tag e release.
+Próximos passos necessários: validação humana do bundle operacional/consulta Azure e aprovação para integrar a PR #16; decidir como tratar proxy para `fetchBound` mantendo segurança SSRF; repetir pré-flight/instalação em estação corporativa autorizada; após merge M16, rebasear M17 sobre `main`, confirmar checks de PR Linux/Windows e revisão, e somente então considerar merge, tag e release.
 
 As integrações condicionais com Linear, Notion e e-mail não foram executadas porque a missão não alcançou sucesso integral/publicação. Nenhuma comunicação externa foi enviada.

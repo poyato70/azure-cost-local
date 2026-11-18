@@ -1,5 +1,43 @@
 # Missão 17 — UX-06 abertura Tesseract e UX-07 observabilidade read-only
 
+> **Atualização de reconciliação 2.1.1 — 2026-11-18:** O registro histórico abaixo descreve o estado anterior à conclusão/publicação da 2.1 e não representa o estado atual. A PR #19 foi integrada; `origin/main` foi confirmado em `84d5fe9bb262b49cdc0cfce4112f9a49627742fb`. A branch local foi reconciliada com essa base e os conflitos de `App.tsx`, `playwright.config.ts` e do nome do relatório M17 foram resolvidos. Typecheck, build, 204 testes unitários, E2E UX (3/3) e a suíte E2E completa final (47/47, 2 workers) passaram. Uma falha intermitente da primeira rodada integral (Multicloud) foi reproduzida na base e passou em isolamento e nas rodadas completas seguintes. O teste mobile também verifica que todos os nós cabem antes da legenda. Um preview isolado está ativo em `http://127.0.0.1:43832/new_features_ux`; push/PR/CI da 2.1.1 ainda pendentes.
+
+## Reconciliação sobre 2.1
+
+- **Base publicada:** `84d5fe9bb262b49cdc0cfce4112f9a49627742fb` (merge da PR #19).
+- **Branch:** `codex/tesseract-2.1.1-ux`; **worktree de desenvolvimento:** `D:\DEV\FinOps\Tesseract-2-ux-next`.
+- **Checkpoint pré-reconciliação:** `e39cceac4b768bb211c9870cb1b5fd72bb0ceccb` preservou a implementação local UX-06/07 antes da integração da main.
+- **Reconciliação/refinamentos iniciais:** `2fdf71e936e6b2f1799acfb76a6ec6a0737231c3`, merge da base publicada com a implementação preservada.
+- **Refinamento final validado:** `3a0b22d` (geometria/legibilidade do mapa, correção mobile, contraste e acessibilidade da abertura).
+- Conflitos foram resolvidos mantendo as alterações da 2.1 (incluindo funcionalidades da Missão 16) e as rotas UX. O relatório de release `missao-17.md` foi preservado; este relatório UX ocupa `missao-17-ux-06-07.md` e o índice usa `17-UX`.
+- A checagem `npm ci` foi feita numa worktree de validação separada, com sucesso (371 pacotes; 0 vulnerabilidades reportadas pela instalação). Nenhuma política npm ou dependência foi alterada por UX.
+- Não foram modificadas autenticação, APIs/contratos MCP, persistência operacional ou worktrees/stashes de outras frentes. O dashboard permanece composto por leituras GET existentes e interações locais.
+- A geometria do grafo foi compactada para três colunas: na captura desktop de 1280 px, todos os nós cabem a 64% de escala e o inspector permanece lateral, contra 46% antes do refinamento.
+
+## Validação atual da reconciliação
+
+| Verificação | Resultado observado | Evidência/limite |
+|---|---|---|
+| `npm run typecheck` | Passou | Worktree isolada em `D:\DEV\FinOps\Tesseract-2-ux-validation-20261118`. |
+| `npm run build` | Passou | Next build e TypeScript do servidor concluídos. |
+| `npm test -- --reporter=dot` | Passou: 68 arquivos, 204 testes | Sem alterações dos contratos MCP/autenticação/persistência. |
+| E2E UX-06/07 | Passou: 3/3 | Axe sem violações no dashboard dos dois temas e no diálogo; GET-only, redaction, teclado, reduced motion, empty state, screenshot e geometria conferidos. |
+| E2E completo | Rodada final: 47/47 passou, 2 workers. | Primeira rodada (1 worker) teve falha isolada de scrollWidth em Multicloud; o caso passou isoladamente na branch e main 84d5fe9, e nas rodadas completas seguintes. |
+| `git diff --check` | Passou | Executado no código e repetido após consolidar os commits documentais. |
+| Capturas finais | Geradas e inspecionadas | `test-results/ux-06-07/reconciled-84d5fe9-final/` na worktree isolada e copiada para a worktree UX; contém dark/light 1280, tablet 768, mobile 390 (sem sobreposição), abertura e estados vazios live. Fixtures sintéticas estão identificadas. |
+
+### Limitações conhecidas
+
+- Os estados de MCP refletem configuração/lista da sessão, não comprovam servidor MCP operacional. `GET /api/health` evidencia apenas a resposta do endpoint local.
+- Não foram executadas operações MCP ou consultas Azure pelo dashboard; fluxos com fixture são sintéticos.
+- Axe foi executado no escopo UX e no diálogo de abertura; não substitui auditoria manual WCAG integral das páginas preexistentes.
+- O preview antigo em `127.0.0.1:43821` pertence à execução anterior e foi preservado. O preview candidato final roda na worktree de validação `D:\DEV\FinOps\Tesseract-2-ux-validation-20261118`, porta `43832`, PID `18728`, com runtime de teste e dados em `%TEMP%\tesseract-2.1.1-ux-preview-final-20261118`; `/api/health` respondeu `ok=true`. Não contém conexões MCP operacionais ou credenciais configuradas.
+- Publicação remota, PR e CI da 2.1.1 ainda pendentes.
+
+---
+
+## Registro histórico antes da reconciliação
+
 ## Identificação
 
 - **Estado atual:** Implementação isolada e validação visual/técnica concluídas; reconciliação/publicação aguardam conclusão da versão 2.1, conforme instrução.

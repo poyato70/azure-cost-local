@@ -104,7 +104,11 @@ export function Navigation({
                             ? "active"
                             : ""
                         }
-                        onClick={() => onSelect("mcps")}
+                        aria-current={tab === "mcps" ? "page" : undefined}
+                        onClick={() => {
+                          onSelect("mcps");
+                          setMobile(false);
+                        }}
                       >
                         MCPs
                       </button>

@@ -15,6 +15,7 @@ Arquivo alterado: `src/web/components/Navigation.tsx`. Agora a entrada pai fecha
 
 ## Evidência e limites
 - Inspeção estática do componente e alteração versionada em commit `d2954939ed682c166ef542afa60983b3a52ee4cf`.
+- Teste de regressão E2E adicionado em `tests/e2e/ux-v2-mobile-navigation.spec.ts`, commit `ef33ecdb808ad4c30d4aa180dfa16aff490d07e3`; **teste ainda não executado**.
 - Não foram executados nesta sessão build, typecheck, Vitest, Playwright, Axe, capturas nem testes manuais. Não declarar esta correção aprovada antes de observar a CI e um teste em navegador.
 - Nenhuma consulta real Azure/MCP foi executada.
 

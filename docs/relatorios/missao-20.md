@@ -2,13 +2,13 @@
 
 ## Identificação
 
-- **Estado atual:** PR #21 aberta; checks Linux e Windows em execução.
+- **Estado atual:** PR #21 aberta; CI aprovada no head de código `86deca8`; atualização deste relatório dispara nova verificação para o head documental.
 - **Início:** 2026-11-19 09:47:05 -03:00.
-- **Conclusão local:** 2026-11-19 10:02 -03:00 (validação local; CI remota ainda em andamento).
+- **Conclusão da validação observada:** 2026-11-19 10:06 -03:00.
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-20-ux07-stale-status`.
 - **Commit inicial:** `775de8b64e6c2c36391362efb7de357179b7ab8d`.
-- **Commit(s) corretivo(s):** `e22a6983cefc9a86f7cf66bb49da5c719b6d5c59` (modelo e unitários); `48ffcafaf946102f50c2ea9fabfb74093ecc1a02` (integração UX e E2E); `32f92eb57dde25c74feff313f6b36cf8e84c0a96` (relatório inicial).
+- **Commit(s) corretivo(s):** `e22a6983cefc9a86f7cf66bb49da5c719b6d5c59` (modelo e unitários); `48ffcafaf946102f50c2ea9fabfb74093ecc1a02` (integração UX e E2E); `32f92eb57dde25c74feff313f6b36cf8e84c0a96` e `86deca8daa1a61c91da3c3a92bd0a7f14b3cfac7` (relatório e publicação/PR).
 - **Pull Request:** [#21](https://github.com/poyato70/azure-cost-local/pull/21) — aberta.
 - **Commit de integração:** Não aplicável nesta missão; merge não autorizado.
 
@@ -25,11 +25,11 @@
 | 1. Inspeção e contexto | Aprovado | `origin/main` confirmado em `775de8b64e6c2c36391362efb7de357179b7ab8d`; branch e worktree corretas; checkout base com alterações M16 preservado. |
 | 2. Implementação e regressões | Aprovado | Helper separa resultado/idade; matriz unitária e E2E permanente reproduzem as transições; leitura permanece GET-only. |
 | 3. Validação e revisão | Aprovado localmente | Typecheck, build, 212 unitários, 4 E2E UX, Axe claro/escuro e `git diff --check` aprovados. |
-| 4. Publicação/CI | Em andamento | Commits locais prontos; publicar branch, abrir PR e confirmar checks Linux/Windows. |
+| 4. Publicação/CI | Aprovado para o head `86deca8` | Branch publicada; PR #21 aberta; Linux e Windows passaram. Relatório está sendo atualizado, gerando novo head somente documental e nova execução de CI. |
 
-- **Progresso:** 3/4 etapas (75%; etapas concluídas; publicação e CI pendentes).
-- **Tempo decorrido observado:** 15 min 17 s até 10:02 -03:00; a CI permanece em andamento após essa medição.
-- **Dependências/bloqueios:** Nenhum bloqueio local. Checks remotos Linux e Windows em andamento.
+- **Progresso:** 4/4 etapas (100%; CI aprovada no head de código `86deca8`; nova execução para este registro documental pendente).
+- **Tempo decorrido observado:** 18 min 58 s até 10:06 -03:00.
+- **Dependências/bloqueios:** Nenhum bloqueio local. A nova execução da CI para o head documental ainda não concluiu.
 
 ## Implementação
 
@@ -53,6 +53,8 @@
 | Axe em tema claro/escuro | E2E com HTTP 503 sintético | Aprovado após correção de contraste | Axe não reportou violações nos escopos testados. A primeira execução identificou contraste 1,31:1 no aviso do tema escuro; cores por tema corrigidas e o E2E passou. |
 | Captura `negative-stale-1280.png` | Playwright, desktop 1280 px, fixture | Aprovado | Renderização do status negativo envelhecido após correção; captura está em `test-results/mission-20/` e não é commitada. |
 | `git diff --check` | Worktree isolada | Aprovado | Nenhum whitespace inválido. |
+| GitHub Actions Linux | PR #21, SHA `86deca8daa1a61c91da3c3a92bd0a7f14b3cfac7`, run `44529596013` | Aprovado | Typecheck, build, unit/protocol tests e gate de vulnerabilidade aprovados; duração observada 56 s. |
+| GitHub Actions Windows | PR #21, SHA `86deca8daa1a61c91da3c3a92bd0a7f14b3cfac7`, run `44529596013` | Aprovado | Build, parsing PowerShell, testes específicos, Chromium e jornadas MCP/acessibilidade aprovados; duração observada 2 min 55 s. |
 
 ## Problemas e riscos
 
@@ -63,11 +65,11 @@
 
 ## Publicação
 
-- **Branch/commit publicado:** `codex/missao-20-ux07-stale-status` em `32f92eb57dde25c74feff313f6b36cf8e84c0a96` (no momento da abertura da PR; atualização documental pendente).
-- **Pull Request/CI:** [PR #21](https://github.com/poyato70/azure-cost-local/pull/21), aberta contra `main`; workflow CI em execução para o SHA da PR.
+- **Branch/commit publicado:** `codex/missao-20-ux07-stale-status`; head `86deca8daa1a61c91da3c3a92bd0a7f14b3cfac7` no momento dos checks aprovados. Este commit contém código e o relatório/índice inicial; a atualização final do relatório é somente documental.
+- **Pull Request/CI:** [PR #21](https://github.com/poyato70/azure-cost-local/pull/21), aberta contra `main`; checks Linux/Windows aprovados no SHA `86deca8`. Nova execução após a atualização documental pendente.
 - **Estado do merge:** Não realizado; não autorizado.
 - **Commit final confirmado na `main`:** Não aplicável.
 
 ## Pendências e evolução
 
-- Atualizar o relatório após os resultados finais de CI; confirmar checks Linux e Windows do SHA final da PR. Não fazer merge.
+- Confirmar checks Linux e Windows no head final após esta atualização do relatório. Não fazer merge.

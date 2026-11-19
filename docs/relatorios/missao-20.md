@@ -2,14 +2,14 @@
 
 ## Identificação
 
-- **Estado atual:** Implementação validada localmente; PR/CI pendentes.
+- **Estado atual:** PR #21 aberta; checks Linux e Windows em execução.
 - **Início:** 2026-11-19 09:47:05 -03:00.
-- **Conclusão local:** 2026-11-19, após as verificações finais registradas abaixo.
+- **Conclusão local:** 2026-11-19 10:02 -03:00 (validação local; CI remota ainda em andamento).
 - **Repositório:** `poyato70/azure-cost-local`.
 - **Branch:** `codex/missao-20-ux07-stale-status`.
 - **Commit inicial:** `775de8b64e6c2c36391362efb7de357179b7ab8d`.
-- **Commit(s) corretivo(s):** `e22a6983cefc9a86f7cf66bb49da5c719b6d5c59` (modelo e unitários); `48ffcafaf946102f50c2ea9fabfb74093ecc1a02` (integração UX e E2E).
-- **Pull Request:** Pendente.
+- **Commit(s) corretivo(s):** `e22a6983cefc9a86f7cf66bb49da5c719b6d5c59` (modelo e unitários); `48ffcafaf946102f50c2ea9fabfb74093ecc1a02` (integração UX e E2E); `32f92eb57dde25c74feff313f6b36cf8e84c0a96` (relatório inicial).
+- **Pull Request:** [#21](https://github.com/poyato70/azure-cost-local/pull/21) — aberta.
 - **Commit de integração:** Não aplicável nesta missão; merge não autorizado.
 
 ## Objetivo e escopo
@@ -28,8 +28,8 @@
 | 4. Publicação/CI | Em andamento | Commits locais prontos; publicar branch, abrir PR e confirmar checks Linux/Windows. |
 
 - **Progresso:** 3/4 etapas (75%; etapas concluídas; publicação e CI pendentes).
-- **Tempo decorrido:** A registrar com horário efetivamente observado no fechamento.
-- **Dependências/bloqueios:** Nenhum bloqueio local. CI remota pendente.
+- **Tempo decorrido observado:** 15 min 17 s até 10:02 -03:00; a CI permanece em andamento após essa medição.
+- **Dependências/bloqueios:** Nenhum bloqueio local. Checks remotos Linux e Windows em andamento.
 
 ## Implementação
 
@@ -63,13 +63,11 @@
 
 ## Publicação
 
-- **Branch/commit publicado:** Pendente de push.
-- **Pull Request/CI:** Pendente.
+- **Branch/commit publicado:** `codex/missao-20-ux07-stale-status` em `32f92eb57dde25c74feff313f6b36cf8e84c0a96` (no momento da abertura da PR; atualização documental pendente).
+- **Pull Request/CI:** [PR #21](https://github.com/poyato70/azure-cost-local/pull/21), aberta contra `main`; workflow CI em execução para o SHA da PR.
 - **Estado do merge:** Não realizado; não autorizado.
 - **Commit final confirmado na `main`:** Não aplicável.
 
 ## Pendências e evolução
 
-- Confirmar typecheck/build/testes/diff final após o último ajuste documental.
-- Criar commits pequenos e publicar a branch; abrir PR exclusiva.
-- Aguardar e confirmar os checks Linux e Windows do SHA publicado. Não fazer merge.
+- Atualizar o relatório após os resultados finais de CI; confirmar checks Linux e Windows do SHA final da PR. Não fazer merge.
